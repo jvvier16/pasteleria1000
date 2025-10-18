@@ -1,0 +1,147 @@
+[
+  {
+    "id": 1,
+    "nombre": "Torta de chocolate cuadrada",
+    "precio": 45000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Cuadrada de Chocolate.webp",
+    "categoria": "Tortas",
+    "descripcion": "Deliciosa torta de chocolate con capas de ganache y un toque de avellanas."
+    
+  },
+  {
+    "id": 2,
+    "nombre": "Torta Cuadrada de Frutas",
+    "precio": 50000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Cuadrada de Frutas.jpeg",
+    "categoria": "Tortas",
+    "descripcion": "Una mezcla de frutas frescas y crema chantilly sobre un suave bizcocho."
+  },
+  {
+    "id": 3,
+    "nombre": "torta circular de vainilla",
+    "precio": 40000,
+    "stock": 10,
+    "imagen": "../assets/img/torta circular de vainilla.jpeg",
+    "categoria": "Tortas",
+    "descripcion": "Bizcocho de vainilla clásico relleno con crema pastelera y glaseado dulce."
+  },
+  {
+    "id": 4,
+    "nombre": "Torta Circular de manjar",
+    "precio": 45000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Circular de Manjar.jpeg",
+    "categoria": "Tortas",
+    "descripcion": "Torta tradicional chilena con manjar y nueces, un deleite para los amantes de los sabores clásicos."
+  },
+  {
+    "id": 5,
+    "nombre": "Torta Circular de Frutas",
+    "precio": 50000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Circular de Frutas.jpeg",
+    "categoria": "Tortas",
+    "descripcion": "Postre individual cremoso y suave, hecho con chocolate de alta calidad."
+  },
+  {
+    "id": 6,
+    "nombre": "Tiramisú Clásico",
+    "precio": 30000,
+    "stock": 10,
+    "imagen": "../assets/img/Tiramisú Clásico.jpeg",
+    "categoria": "Postres",
+    "descripcion": "Un postre italiano con capas de café, mascarpone y cacao."
+  },
+  {
+    "id": 7,
+    "nombre": "Torta Sin Azúcar de Naranja",
+    "precio": 35000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Sin Azúcar de Naranja.jpeg",
+    "categoria": "Sin Azúcar",
+    "descripcion": "Torta ligera y deliciosa, endulzada naturalmente, ideal para quienes buscan opciones saludables."
+  },
+  {
+    "id": 8,
+    "nombre": "Cheesecake Sin Azúcar",
+    "precio": 32000,
+    "stock": 10,
+    "imagen": "../assets/img/Cheesecake Sin Azúcar.jpeg",
+    "categoria": "Sin Azúcar",
+    "descripcion": "Un cheesecake suave y cremoso, endulzado naturalmente, perfecto para celebraciones."
+  },
+  {
+    "id": 9,
+    "nombre": "Empanada de Manzana",
+    "precio": 1500,
+    "stock": 10,
+    "imagen": "../assets/img/Empanada de Manzana.jpeg",
+    "categoria": "Otros",
+    "descripcion": "Pastelería tradicional rellena de manzanas especiadas, perfecta para desayuno o merienda."
+  },
+  {
+    "id": 10,
+    "nombre": "Tarta de Santiago",
+    "precio": 2000,
+    "stock": 10,
+    "imagen": "../assets/img/Tarta de Santiago.jpeg",
+    "categoria": "Otros",
+    "descripcion": "Tradicional tarta española hecha con almendras, azúcar y huevos."
+  },
+  {
+    "id": 11,
+    "nombre": "Brownie Sin Gluten",
+    "precio": 2500,
+    "stock": 10,
+    "imagen": "../assets/img/Brownie Sin Gluten.jpeg",
+    "categoria": "Sin Gluten",
+    "descripcion": "Brownie rico y denso, perfecto para quienes evitan el gluten sin perder sabor."
+  },
+  {
+    "id": 12,
+    "nombre": "Pan Sin Gluten",
+    "precio": 3000,
+    "stock": 10,
+    "imagen": "../assets/img/Pan Sin Gluten.jpeg",
+    "categoria": "Sin Gluten",
+    "descripcion": "Suave y esponjoso, ideal para sándwiches o acompañar cualquier comida."
+  },
+  {
+    "id": 13,
+    "nombre": "Torta Vegana de Chocolate",
+    "precio": 40000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Vegana de Chocolate.jpeg",
+    "categoria": "Veganas",
+    "descripcion": "Torta húmeda y deliciosa, hecha sin productos de origen animal."
+  },
+  {
+    "id": 14,
+    "nombre": "Galletas Veganas de Avena",
+    "precio": 1200,
+    "stock": 10,
+    "imagen": "../assets/img/Galletas Veganas de Avena.jpeg",
+    "categoria": "Veganas",
+    "descripcion": "Crujientes y sabrosas, una excelente opción para un snack saludable y vegano."
+  },
+  {
+    "id": 15,
+    "nombre": "Torta Especial de Cumpleaños",
+    "precio": 55000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Especial de Cumpleaños.jpeg",
+    "categoria": "Especiales",
+    "descripcion": "Diseñada para celebraciones, personalizable con decoraciones y mensajes únicos."
+  },
+  {
+    "id": 16,
+    "nombre": "Torta Especial de Boda",
+    "precio": 60000,
+    "stock": 10,
+    "imagen": "../assets/img/Torta Especial de Boda.jpeg",
+    "categoria": "Especiales",
+    "descripcion": "Elegante y deliciosa, pensada para ser el centro de atención en cualquier boda."
+  }
+]

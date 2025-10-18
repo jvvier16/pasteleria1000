@@ -1,0 +1,44 @@
+[
+	{
+		"id": 1,
+		"nombre": "Ana",
+		"apellido": "García",
+		"correo": "ana.garcia@gmail.com",
+		"contrasena": "AnaGarcia1234"
+	},
+	{
+		"id": 2,
+		"nombre": "Luis",
+		"apellido": "Martínez",
+		"correo": "luis.martinez@gmail.com",
+		"contrasena": "LuisMartinez1"
+	},
+	{
+		"id": 3,
+		"nombre": "Sofía",
+		"apellido": "López",
+		"correo": "sofia.lopez@gmail.com",
+		"contrasena": "SofiaLopez12"
+	},
+	{
+		"id": 4,
+		"nombre": "Carlos",
+		"apellido": "Ruiz",
+		"correo": "carlos.ruiz@gmail.com",
+		"contrasena": "CarlosRuiz34"
+	},
+	{
+		"id": 5,
+		"nombre": "Valentina",
+		"apellido": "Torres",
+		"correo": "valentina.torres@gmail.com",
+		"contrasena": "ValenTorres56"
+	},
+	{
+		"id": 6,
+		"nombre": "Javier",
+		"apellido": "Rojas",
+		"correo": "javier.rojas@gmail.com",
+		"contrasena": "javierrojas13"
+	}
+]
