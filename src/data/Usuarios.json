@@ -40,5 +40,13 @@
 		"apellido": "Rojas",
 		"correo": "javier.rojas@gmail.com",
 		"contrasena": "javierrojas13"
+	},
+	{
+		"id": 7,
+		"nombre": "admin",
+		"apellido": "tienda",
+		"correo": "admin@gmail.com",
+		"contrasena": "javierrojas12"
 	}
+
 ]

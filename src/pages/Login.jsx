@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import usuariosData from "../data/Usuarios.json";
 
 export default function Login() {
@@ -8,10 +9,52 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectedFrom = location.state?.from?.pathname;
 
   // Cargar usuarios desde el JSON
   useEffect(() => {
-    setUsuarios(usuariosData);
+    // Normalizar claves del JSON (Users.json usa `correo` y `contrasena`)
+    // para que concuerden con la lógica de búsqueda del formulario
+    const normalized = usuariosData.map((u) => ({
+      ...u,
+      // mantener valores existentes si ya existen
+      email: u.correo ?? u.email,
+      password: u.contrasena ?? u.password,
+      // usar nombre como username o derivar desde el email si no hay nombre
+      username:
+        u.nombre ??
+        (u.email
+          ? u.email.split("@")[0]
+          : u.correo
+          ? u.correo.split("@")[0]
+          : ""),
+    }));
+    // además, leer usuarios guardados en localStorage
+    let local = [];
+    try {
+      const raw = localStorage.getItem("usuarios_local");
+      local = raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      console.error("Error leyendo usuarios_local:", err);
+      local = [];
+    }
+
+    const normalizedLocal = local.map((u) => ({
+      ...u,
+      email: u.correo ?? u.email,
+      password: u.contrasena ?? u.password,
+      username:
+        u.nombre ??
+        (u.email
+          ? u.email.split("@")[0]
+          : u.correo
+          ? u.correo.split("@")[0]
+          : ""),
+    }));
+
+    setUsuarios([...normalized, ...normalizedLocal]);
   }, []);
 
   const validate = () => {
@@ -48,6 +91,24 @@ export default function Login() {
 
     setLogged(true);
     setErrors({});
+    // guardar sesión en localStorage
+    try {
+      localStorage.setItem(
+        "session_user",
+        JSON.stringify({
+          id: found.id,
+          nombre: found.nombre || found.username,
+          correo: found.email,
+        })
+      );
+      // disparar evento storage para otras pestañas/componentes
+      window.dispatchEvent(new Event("storage"));
+      // redirigir al origen si venimos de una ruta protegida
+      const dest = location.state?.from?.pathname || "/";
+      navigate(dest, { replace: true });
+    } catch (err) {
+      console.error("No se pudo guardar session_user", err);
+    }
   };
 
   return (
@@ -70,6 +131,13 @@ export default function Login() {
         </div>
 
         <h3 className="mb-3 text-center">Iniciar Sesión</h3>
+
+        {redirectedFrom && (
+          <div className="alert alert-warning w-100">
+            Debes iniciar sesión para acceder a{" "}
+            <strong>{redirectedFrom}</strong>
+          </div>
+        )}
 
         {logged === true && (
           <div className="alert alert-success w-100">

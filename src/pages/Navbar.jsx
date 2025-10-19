@@ -2,29 +2,80 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import pastelesData from "../data/Pasteles.json"; // Ajusta la ruta si es distinta
+import { getCart } from "../utils/localstorageHelper";
 
 export default function Navbar() {
   const [categorias, setCategorias] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [cartCount, setCartCount] = useState(0);
+  const [cartTotalMoney, setCartTotalMoney] = useState(0);
+  const [sessionUser, setSessionUser] = useState(null);
   const navigate = useNavigate();
 
   // Generar categorías automáticamente desde los nombres
   useEffect(() => {
+    // Tomar las categorías directamente del campo `categoria` de cada pastel
     const cats = new Set();
-
     pastelesData.forEach((p) => {
-      const nombre = p.nombre.toLowerCase();
-      if (nombre.includes("sin azúcar")) cats.add("Sin Azúcar");
-      else if (nombre.includes("sin gluten")) cats.add("Sin Gluten");
-      else if (nombre.includes("vegana") || nombre.includes("vegano"))
-        cats.add("Veganas");
-      else if (nombre.includes("especial")) cats.add("Especiales");
-      else if (nombre.includes("torta")) cats.add("Tortas");
+      const c = (p.categoria || "").toString().trim();
+      if (c) cats.add(c);
       else cats.add("Otros");
     });
-
     setCategorias(Array.from(cats));
   }, []);
+
+  // helper para crear slugs compatibles con la página de Categorías
+  const slugify = (str) =>
+    String(str)
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/\s+/g, "-")
+      .replace(/[^a-zA-Z0-9\-]/g, "")
+      .toLowerCase();
+
+  useEffect(() => {
+    const update = () => {
+      const cart = getCart();
+      const total = cart.reduce((acc, i) => acc + (i.cantidad || 1), 0);
+      setCartCount(total);
+      const money = cart.reduce(
+        (acc, i) => acc + (Number(i.precio) || 0) * (i.cantidad || 1),
+        0
+      );
+      setCartTotalMoney(money);
+    };
+    update();
+    const onStorage = (e) => {
+      if (e.key === null || e.key === "pasteleria_cart") update();
+      if (e.key === null || e.key === "session_user") {
+        try {
+          const raw = localStorage.getItem("session_user");
+          setSessionUser(raw ? JSON.parse(raw) : null);
+        } catch (err) {
+          setSessionUser(null);
+        }
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    // inicializar sessionUser
+    try {
+      const raw = localStorage.getItem("session_user");
+      setSessionUser(raw ? JSON.parse(raw) : null);
+    } catch (err) {
+      setSessionUser(null);
+    }
+  }, []);
+
+  // determinar si el usuario es admin (por correo)
+  const isAdmin = Boolean(
+    sessionUser &&
+      (sessionUser.correo || sessionUser.email || "").toLowerCase() ===
+        "admin@gmail.com"
+  );
 
   return (
     <nav className="navbar navbar-expand-lg site-navbar">
@@ -35,7 +86,7 @@ export default function Navbar() {
             alt="Logo"
             className="logo rounded-circle me-2"
           />
-          <span className="brand-text">pastelería 1000 Sabores</span>
+          <span className="brand-text">Pastelería 1000 Sabores</span>
         </a>
 
         <button
@@ -59,8 +110,6 @@ export default function Navbar() {
                 Home
               </Link>
             </li>
-
-            {/* Dropdown dinámico de categorías */}
             <li className="nav-item dropdown">
               <a
                 className="nav-link dropdown-toggle"
@@ -78,9 +127,12 @@ export default function Navbar() {
               >
                 {categorias.map((cat, i) => (
                   <li key={i}>
-                    <a className="dropdown-item" href="#">
+                    <Link
+                      className="dropdown-item"
+                      to={`/categorias?cat=${encodeURIComponent(slugify(cat))}`}
+                    >
                       {cat}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -99,9 +151,16 @@ export default function Navbar() {
 
             <li className="nav-item">
               <Link className="nav-link" to="/productos">
-                productos
+                Pasteles
               </Link>
             </li>
+            {isAdmin && (
+              <li className="nav-item">
+                <Link className="nav-link text-danger fw-semibold" to="/admin">
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
 
           {/* Buscador */}
@@ -128,20 +187,89 @@ export default function Navbar() {
 
           {/* Botones derecha (mantienen colores inline según petición) */}
           <div className="d-flex align-items-center">
-            <button
-              className="btn me-2"
-              style={{ backgroundColor: "#7ea6f2", color: "white" }}
-              onClick={() => navigate("/login")}
-            >
-              Iniciar Sesión
-            </button>
-            <button
-              className="btn me-3"
-              style={{ backgroundColor: "#4f80e1", color: "white" }}
-              onClick={() => navigate("/register")}
-            >
-              Crear Cuenta
-            </button>
+            {!sessionUser ? (
+              <>
+                <button
+                  className="btn me-2"
+                  style={{ backgroundColor: "#7ea6f2", color: "white" }}
+                  onClick={() => navigate("/login")}
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  className="btn me-3"
+                  style={{ backgroundColor: "#4f80e1", color: "white" }}
+                  onClick={() => navigate("/register")}
+                >
+                  Crear Cuenta
+                </button>
+              </>
+            ) : (
+              <div className="dropdown me-3">
+                <button
+                  className="btn d-flex align-items-center dropdown-toggle"
+                  type="button"
+                  id="userMenuBtn"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "white",
+                  }}
+                >
+                  {sessionUser.imagen ? (
+                    <img
+                      src={sessionUser.imagen}
+                      alt={sessionUser.nombre}
+                      style={{ width: 34, height: 34, objectFit: "cover" }}
+                      className="rounded-circle me-2"
+                    />
+                  ) : (
+                    <div
+                      className="rounded-circle bg-dark text-white d-inline-flex justify-content-center align-items-center me-2"
+                      style={{ width: 34, height: 34 }}
+                    >
+                      {sessionUser.nombre
+                        ? sessionUser.nombre.charAt(0).toUpperCase()
+                        : "U"}
+                    </div>
+                  )}
+                  <span className="me-1">{sessionUser.nombre}</span>
+                </button>
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="userMenuBtn"
+                >
+                  <li>
+                    <Link className="dropdown-item" to="/perfil">
+                      Perfil
+                    </Link>
+                  </li>
+                  <li>
+                    <a className="dropdown-item" href="#">
+                      Mis pedidos
+                    </a>
+                  </li>
+                  <li>
+                    <hr className="dropdown-divider" />
+                  </li>
+                  <li>
+                    <button
+                      className="dropdown-item text-danger"
+                      onClick={() => {
+                        localStorage.removeItem("session_user");
+                        window.dispatchEvent(new Event("storage"));
+                        setSessionUser(null);
+                      }}
+                    >
+                      Cerrar sesión
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
+
             <button
               className="btn d-flex align-items-center"
               style={{ backgroundColor: "#7bc47f", color: "white" }}
@@ -149,7 +277,30 @@ export default function Navbar() {
             >
               <ShoppingCart className="me-1" size={16} />
               Carrito
+              {cartCount > 0 && (
+                <>
+                  <span className="badge bg-dark rounded-pill ms-2">
+                    {cartCount}
+                  </span>
+                  <small className="ms-2 text-white">
+                    ${Number(cartTotalMoney).toLocaleString("es-CL")}
+                  </small>
+                </>
+              )}
             </button>
+
+            {sessionUser && (
+              <button
+                className="btn btn-outline-light ms-2"
+                onClick={() => {
+                  localStorage.removeItem("session_user");
+                  window.dispatchEvent(new Event("storage"));
+                  setSessionUser(null);
+                }}
+              >
+                Cerrar sesión
+              </button>
+            )}
           </div>
         </div>
       </div>

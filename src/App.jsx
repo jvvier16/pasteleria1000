@@ -6,11 +6,17 @@ import Navbar from "./pages/Navbar.jsx";
 import { Routes, Route } from "react-router-dom";
 import Index from "./pages/index.jsx";
 import Productos from "./pages/Productos.jsx";
-import Admin from "./pages/admin.jsx";
-import Carrito from "./pages/carrito.jsx";
-import Contacto from "./pages/contacto.jsx";
+import Admin from "./pages/Admin.jsx";
+import RequireAdmin from "./components/RequireAdmin";
+import Carrito from "./pages/Carrito.jsx";
+import RequireAuth from "./components/RequireAuth";
+import Contacto from "./pages/Contacto.jsx";
 import Pago from "./pages/pago.jsx";
+import Categorias from "./pages/Categorias.jsx";
+import Pedidos from "./pages/Pedidos.jsx";
+import Registro from "./pages/Registro.jsx";
 import Login from "./pages/Login.jsx";
+import Perfil from "./pages/Perfil.jsx";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -28,11 +34,43 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/productos" element={<Productos />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/carrito" element={<Carrito />} />
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Admin />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/carrito"
+          element={
+            <RequireAuth>
+              <Carrito />
+            </RequireAuth>
+          }
+        />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/pago" element={<Pago />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/categorias" element={<Categorias />} />
+        <Route
+          path="/pedidos"
+          element={
+            <RequireAuth>
+              <Pedidos />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/perfil"
+          element={
+            <RequireAuth>
+              <Perfil />
+            </RequireAuth>
+          }
+        />
+        <Route path="/register" element={<Registro />} />
       </Routes>
     </>
   );
