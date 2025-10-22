@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import pasteles from "../data/Pasteles.json";
 
 // Componente Boleta: muestra los items del carrito (localStorage "pasteleria_cart")
@@ -49,6 +50,42 @@ export default function Boleta() {
       // ignore
     }
   }, []);
+
+  // leer resultado de pago pasado por navigation state
+  const location = useLocation();
+  useEffect(() => {
+    try {
+      const state = location.state || {};
+      if (typeof state.pagoExitoso === "boolean")
+        setPagoExitoso(state.pagoExitoso);
+      // si fue exitoso, grabar la orden en pedidos_local y limpiar carrito
+      if (state.pagoExitoso === true && items.length > 0) {
+        const orden = {
+          id: `ORD-${Date.now()}`,
+          fecha: new Date().toISOString(),
+          cliente: cliente,
+          items: items,
+          subtotal,
+          impuestos,
+          total,
+        };
+        try {
+          const raw = localStorage.getItem("pedidos_local");
+          const arr = raw ? JSON.parse(raw) : [];
+          arr.push(orden);
+          localStorage.setItem("pedidos_local", JSON.stringify(arr));
+        } catch (err) {
+          // ignore
+        }
+        // limpiar carrito
+        localStorage.removeItem("pasteleria_cart");
+        window.dispatchEvent(new Event("storage"));
+      }
+    } catch (err) {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   return (
     <div className="container py-4">

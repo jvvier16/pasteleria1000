@@ -107,7 +107,7 @@ export default function Navbar() {
           <ul className="navbar-nav me-auto mb-2 mb-lg-0 ms-3">
             <li className="nav-item">
               <Link className="nav-link active fw-semibold" to="/">
-                Home
+                Inicio
               </Link>
             </li>
             <li className="nav-item dropdown">
@@ -139,7 +139,7 @@ export default function Navbar() {
             </li>
 
             <li className="nav-item">
-              <Link className="nav-link" to="/ofertas">
+              <Link className="nav-link" to="/Ofertas">
                 Ofertas
               </Link>
             </li>

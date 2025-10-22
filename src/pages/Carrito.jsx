@@ -45,51 +45,8 @@ const Carrito = () => {
   const comprarAhora = () => {
     const items = getCart();
     if (!items || items.length === 0) return alert("Tu carrito está vacío");
-    const total = items.reduce(
-      (acc, it) => acc + (Number(it.precio) || 0) * (it.cantidad || 1),
-      0
-    );
-    // leer pedidos existentes
-    let pedidos = [];
-    try {
-      const raw = localStorage.getItem("pedidos_local");
-      pedidos = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      pedidos = [];
-    }
-
-    // obtener usuario si existe
-    let user = null;
-    try {
-      const rawUser = localStorage.getItem("session_user");
-      user = rawUser ? JSON.parse(rawUser) : null;
-    } catch (err) {
-      user = null;
-    }
-
-    const nextId = pedidos.length
-      ? Math.max(...pedidos.map((p) => p.id)) + 1
-      : 1;
-    const nuevoPedido = {
-      id: nextId,
-      userId: user ? user.id : null,
-      items,
-      total,
-      createdAt: new Date().toISOString(),
-    };
-
-    pedidos.push(nuevoPedido);
-    try {
-      localStorage.setItem("pedidos_local", JSON.stringify(pedidos));
-    } catch (err) {
-      console.error("No se pudo guardar el pedido", err);
-    }
-
-    // limpiar carrito y redirigir
-    clearCart();
-    window.dispatchEvent(new Event("storage"));
-    setCarrito([]);
-    navigate("/pedidos");
+    // redirigir al flujo de pago; Pago.jsx leerá el carrito desde localStorage
+    navigate("/pago");
   };
 
   const total = getTotal();

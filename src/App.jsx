@@ -6,6 +6,7 @@ import Navbar from "./pages/Navbar.jsx";
 import { Routes, Route } from "react-router-dom";
 import Index from "./pages/index.jsx";
 import Productos from "./pages/Productos.jsx";
+import Ofertas from "./pages/Ofertas.jsx";
 import Admin from "./pages/Admin.jsx";
 import RequireAdmin from "./components/RequireAdmin";
 import Carrito from "./pages/Carrito.jsx";
@@ -17,6 +18,7 @@ import Pedidos from "./pages/Pedidos.jsx";
 import Registro from "./pages/Registro.jsx";
 import Login from "./pages/Login.jsx";
 import Perfil from "./pages/Perfil.jsx";
+import Boleta from "./pages/Boleta.jsx";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -51,6 +53,7 @@ function App() {
           }
         />
         <Route path="/contacto" element={<Contacto />} />
+        <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/pago" element={<Pago />} />
         <Route path="/login" element={<Login />} />
         <Route path="/categorias" element={<Categorias />} />
@@ -62,6 +65,7 @@ function App() {
             </RequireAuth>
           }
         />
+        <Route path="/boleta" element={<Boleta />} />
         <Route
           path="/perfil"
           element={

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import "bootstrap/dist/css/bootstrap.min.css";
 import pasteles from "../data/Pasteles.json";
@@ -38,10 +39,13 @@ const Categorias = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // si la url contiene ?cat=slug, seleccionar esa categoria al cargar
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // sincronizar con query param ?cat=slug
   useEffect(() => {
     try {
-      const qp = new URLSearchParams(window.location.search).get("cat");
+      const qp = new URLSearchParams(location.search).get("cat");
       if (qp) {
         const found = categorias.find((c) => slugify(c.nombre) === qp);
         if (found) {
@@ -51,12 +55,15 @@ const Categorias = () => {
             const el = document.getElementById(qp);
             if (el) el.scrollIntoView({ behavior: "smooth" });
           }, 150);
+          return;
         }
       }
+      // si no hay qp, limpiar selección
+      setSelectedCategory(null);
     } catch (err) {
-      // ignore
+      setSelectedCategory(null);
     }
-  }, [categorias]);
+  }, [categorias, location.search]);
   const categoriasAMostrar = selectedCategory
     ? categorias.filter((c) => c.nombre === selectedCategory)
     : categorias;
@@ -81,7 +88,12 @@ const Categorias = () => {
                 ? "btn-primary"
                 : "btn-outline-secondary"
             }`}
-            onClick={() => setSelectedCategory(cat.nombre)}
+            onClick={() => {
+              // actualizar estado y la query string
+              setSelectedCategory(cat.nombre);
+              const s = slugify(cat.nombre);
+              navigate(`/categorias?cat=${encodeURIComponent(s)}`);
+            }}
           >
             {cat.nombre}
           </button>
