@@ -1,4 +1,3 @@
-import React from "react";
 import Card from "../components/Card";
 import pasteles from "../data/Pasteles.json";
 import { useLocation } from "react-router-dom";
@@ -7,7 +6,7 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-function Productos() {
+export default function Perfil() {
   const query = useQuery();
   const search = (query.get("search") || "").trim().toLowerCase();
 
@@ -43,5 +42,3 @@ function Productos() {
     </div>
   );
 }
-
-export default Productos;

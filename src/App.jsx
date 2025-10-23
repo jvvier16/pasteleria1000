@@ -1,39 +1,85 @@
-import { useState } from "react";
+import React from "react";
 import "./App.css";
-import Card from "./components/Card";
-import pasteles from "./data/Pasteles.json";
-import Navbar from "./pages/Navbar.jsx";
 import { Routes, Route } from "react-router-dom";
-import Index from "./pages/index.jsx";
+
+// Layout
+import Navbar from "./pages/Navbar.jsx";
+import Footer from "./components/Footer.jsx";
+
+// Pages
+import Index from "./pages/Index.jsx";
 import Productos from "./pages/Productos.jsx";
-import Admin from "./pages/admin.jsx";
-import Carrito from "./pages/carrito.jsx";
-import Contacto from "./pages/contacto.jsx";
-import Pago from "./pages/pago.jsx";
+import Ofertas from "./pages/Ofertas.jsx";
+import Categorias from "./pages/Categoria.jsx";
+import Contacto from "./pages/ContactoPage.jsx";
+import Pago from "./pages/Pago.jsx";
 import Login from "./pages/Login.jsx";
+import Registro from "./pages/Registro.jsx";
+import Nosotros from "./pages/Nosotros.jsx";
+import Carrito from "./pages/Carrito.jsx";
+import Perfil from "./pages/Perfil.jsx";
+import Pedidos from "./pages/Pedidos.jsx";
+import Admin from "./pages/Admin.jsx";
+
+// Guards
+import RequireAuth from "./components/RequireAuth.jsx";
+import RequireAdmin from "./components/RequireAdmin.jsx";
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  // Resolver la URL de las imágenes listadas en pasteles.json
-  const productos = pasteles.map((p) => {
-    const filename = p.imagen.split("/").pop();
-    const imageUrl = new URL(`./assets/img/${filename}`, import.meta.url).href;
-    return { ...p, imageUrl };
-  });
-
   return (
     <>
       <Navbar />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/productos" element={<Productos />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/carrito" element={<Carrito />} />
+        <Route path="/categorias" element={<Categorias />} />
+        <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/pago" element={<Pago />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Registro />} />
+        <Route path="/nosotros" element={<Nosotros />} />
+
+        <Route
+          path="/perfil"
+          element={
+            <RequireAuth>
+              <Perfil />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/carrito"
+          element={
+            <RequireAuth>
+              <Carrito />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Admin />
+            </RequireAdmin>
+          }
+        />
+
+        <Route
+          path="/pedidos"
+          element={
+            <RequireAuth>
+              <Pedidos />
+            </RequireAuth>
+          }
+        />
+
+        {/* fallback a index para rutas no definidas */}
+        <Route path="*" element={<Index />} />
       </Routes>
+      <Footer />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import usuariosData from "../data/Usuarios.json";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [form, setForm] = useState({ userOrEmail: "", password: "" });
@@ -8,10 +9,20 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const navigate = useNavigate();
 
   // Cargar usuarios desde el JSON
   useEffect(() => {
-    setUsuarios(usuariosData);
+    // Inicializar usuarios_local desde usuariosData si no existe
+    try {
+      const rawLocal = localStorage.getItem("usuarios_local");
+      if (!rawLocal) {
+        localStorage.setItem("usuarios_local", JSON.stringify([]));
+      }
+    } catch (err) {
+      console.error("Error inicializando usuarios_local", err);
+    }
+    setUsuarios(usuariosData || []);
   }, []);
 
   const validate = () => {
@@ -30,9 +41,29 @@ export default function Login() {
     ev.preventDefault();
     if (!validate()) return;
 
-    const found = usuarios.find(
-      (u) => u.username === form.userOrEmail || u.email === form.userOrEmail
-    );
+    // Buscar en Usuarios.json y en usuarios_local
+    const localRaw = localStorage.getItem("usuarios_local");
+    let localUsers = [];
+    try {
+      localUsers = localRaw ? JSON.parse(localRaw) : [];
+    } catch (err) {
+      console.error("Error parseando usuarios_local", err);
+      localUsers = [];
+    }
+
+    const normalized = (s) => (s || "").toString().toLowerCase();
+
+    const matches = (u) => {
+      const email = normalized(u.correo || u.email);
+      const nombre = normalized(u.nombre || "");
+      const nombreCompleto = normalized(
+        ((u.nombre || "") + " " + (u.apellido || "")).trim()
+      );
+      const input = normalized(form.userOrEmail);
+      return input === email || input === nombre || input === nombreCompleto;
+    };
+
+    const found = usuarios.find(matches) || localUsers.find(matches);
 
     if (!found) {
       setLogged(false);
@@ -40,12 +71,38 @@ export default function Login() {
       return;
     }
 
-    if (found.password !== form.password) {
+    const expected = found.contrasena || found.password || found.pass || "";
+    if (expected !== form.password) {
       setLogged(false);
       setErrors({ ...errors, password: "Contraseña incorrecta" });
       return;
     }
 
+    // Guardar session_user mínimo en localStorage
+    try {
+      const session = {
+        id: found.id,
+        nombre:
+          (found.nombre || "") + (found.apellido ? " " + found.apellido : "") ||
+          found.username ||
+          "Usuario",
+        correo: found.correo || found.email || form.userOrEmail,
+        imagen: found.imagen || null,
+        role:
+          (found.correo || found.email || "").toString().toLowerCase() ===
+          "admin@gmail.com"
+            ? "admin"
+            : "user",
+      };
+      localStorage.setItem("session_user", JSON.stringify(session));
+      window.dispatchEvent(new Event("storage"));
+      // redirigir si es admin
+      if (session.role === "admin") {
+        navigate("/admin");
+      }
+    } catch (err) {
+      console.error("No se pudo guardar session_user", err);
+    }
     setLogged(true);
     setErrors({});
   };

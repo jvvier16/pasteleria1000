@@ -11,7 +11,7 @@ const Index = () => {
   }));
 
   return (
-    <div style={{ backgroundColor: "#f8f9fa" }}>
+    <div className="bg-muted">
       {/* Carrusel */}
       <div
         id="carouselExampleIndicators"

@@ -1,17 +1,42 @@
 /* Logo en la cabecera */
 .logo {
-	width: 150px;
-	height: auto;
-	display: block;
-	margin: 16px auto;
+    width: 150px;
+    height: auto;
+    margin: 16px auto;
+}
+
+:root {
+	/* Paleta centralizada */
+	--brand-pink: #e67ca3;
+	--navbar-bg: #fbe4ec;
+	--nav-link: #6b4f4f;
+	--nav-link-hover: #d63384;
+	--btn-login: #7ea6f2;
+	--btn-register: #4f80e1;
+	--btn-user-bg: #ffd6e0;
+	--btn-user-color: #6b4f4f;
+	--btn-cart: #7bc47f;
+	--btn-search: #91d7c8;
+	--muted-bg: #f8f9fa;
+	--card-gradient-start: #6b3e26;
+	--card-gradient-end: #a0633f;
+	--accent-text: #7b3e19;
+	--success-green: #198754;
+	--footer-text: #ffffff;
+	--social-instagram: #E1306C;
+	--social-whatsapp: #25D366;
+	--social-facebook: #1877F2;
+	--error-red: #b00020;
+	--card-bg: #ffffff;
+	--border-muted: #eeeeee;
+	--text-default: #333333;
 }
 
 /* Imagen dentro de la tarjeta */
 .card-img-top {
-	width: 100%;
-	height: auto;
-	display: block;
-	margin-bottom: 8px;
+    width: 100%;
+    height: auto;
+    margin-bottom: 8px;
 }
 
 /* Grid de tarjetas */
@@ -117,12 +142,42 @@ header .nav-link {
 	color: #333;
 }
 
-.btn-instagram { background: linear-gradient(45deg,#f58529,#dd2a7b); border: none; }
-.btn-instagram:hover { filter: brightness(0.95); }
-.btn-whatsapp { background: #25D366; border: none; }
-.btn-whatsapp:hover { filter: brightness(0.95); }
-.btn-facebook { background: #1877F2; border: none; }
-.btn-facebook:hover { filter: brightness(0.95); }
+/* Botones sociales — usar variables centralizadas */
+.btn.btn-instagram {
+	background-color: var(--social-instagram, #E1306C) !important;
+	border: none !important;
+	color: #fff !important;
+	background-image: none !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	padding: .5rem .75rem !important;
+}
+.btn.btn-whatsapp {
+	background-color: var(--social-whatsapp, #25D366) !important;
+	border: none !important;
+	color: #fff !important;
+	background-image: none !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	padding: .5rem .75rem !important;
+}
+.btn.btn-facebook {
+	background-color: var(--social-facebook, #1877F2) !important;
+	border: none !important;
+	color: #fff !important;
+	background-image: none !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	padding: .5rem .75rem !important;
+}
+.btn.btn-instagram:hover,
+.btn.btn-whatsapp:hover,
+.btn.btn-facebook:hover {
+	opacity: 0.95;
+}
 
 
 @media (max-width: 767px) {
@@ -208,5 +263,159 @@ header .nav-link {
 	width: 100%;
 	height: 300px;
 	object-fit: cover;
+}
+
+/* Asegurar comportamiento por defecto de Bootstrap para dropdowns: ocultos hasta recibir la clase .show */
+.dropdown-menu {
+    display: none; /* oculto por defecto */
+}
+.dropdown-menu.show,
+.dropdown-menu.dropdown-menu-end.show {
+    display: block; /* visible solo cuando Bootstrap añade .show */
+}
+
+/* Forzar color del footer a blanco para buena legibilidad */
+footer,
+footer a,
+footer p,
+footer li,
+.site-footer {
+	color: #ffffff !important;
+}
+
+/* === FONT GLOBAL === */
+body {
+	font-family: 'Quicksand', sans-serif;
+}
+
+/* === NAVBAR PASTEL ROSADO === */
+.site-navbar {
+	background-color: var(--navbar-bg) !important;
+	border-bottom: 2px solid #f4b8c8;
+	box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.site-navbar .nav-link {
+	color: var(--nav-link) !important;
+	font-weight: 600;
+}
+
+.site-navbar .nav-link:hover {
+	color: var(--nav-link-hover) !important;
+}
+
+/* === BOTONES LOGIN === */
+.btn-login {
+	background-color: var(--btn-login);
+	border: none;
+	color: white;
+	font-weight: 600;
+	border-radius: 25px;
+	padding: 6px 18px;
+	transition: 0.2s ease-in-out;
+}
+
+.btn-login:hover { filter: brightness(0.95); }
+
+.btn-register {
+	background-color: var(--btn-register);
+	border: none;
+	color: white;
+	font-weight: 600;
+	border-radius: 25px;
+	padding: 6px 18px;
+	transition: 0.2s ease-in-out;
+}
+
+.btn-register:hover { filter: brightness(0.95); }
+
+/* === BOTÓN CARRITO === */
+.btn-cart {
+	background-color: var(--btn-cart);
+	border: none;
+	color: #fff;
+	font-weight: 600;
+	border-radius: 25px;
+}
+
+.btn-cart:hover { filter: brightness(0.95); }
+
+/* botón para el usuario-sesion */
+.btn-user {
+	background-color: var(--btn-user-bg);
+	color: var(--btn-user-color);
+}
+
+/* utilidades */
+.bg-muted { background-color: var(--muted-bg) !important; }
+.text-accent { color: var(--accent-text) !important; }
+.btn-submit { background-color: var(--success-green); color: white; border-radius: 10px; }
+
+/* ErrorBoundary styles */
+.error-boundary { padding: 20px; }
+.error-boundary h2 { color: var(--error-red); }
+.error-box {
+	white-space: pre-wrap;
+	background: var(--card-bg);
+	padding: 12px;
+	border-radius: 6px;
+	border: 1px solid var(--border-muted);
+}
+.error-box .error-text { color: var(--text-default); margin-top: 6px; }
+.error-box details { margin-top: 12px; }
+
+/* === DROPDOWN NAV === */
+.dropdown-menu {
+	border-radius: 12px;
+	border: 1px solid #f3b5c8;
+}
+
+.dropdown-item:hover {
+	background-color: #ffe5f0;
+}
+
+/* === Alineación uniforme de botones en la navbar === */
+.site-navbar .navbar-nav .nav-link,
+.site-navbar .d-flex.align-items-center .btn,
+.site-navbar .btn-search,
+.site-navbar .btn-cart,
+.site-navbar .btn-login,
+.site-navbar .btn-register,
+.site-navbar .nav-link.dropdown-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 40px; /* altura consistente */
+	padding: 6px 12px;
+	border-radius: 10px;
+}
+
+/* Ajustes específicos para el toggle que usamos como botón link */
+.site-navbar .nav-link.dropdown-toggle.btn-link {
+	padding: 6px 12px;
+	color: inherit;
+}
+
+/* Asegurar que los badges y smalls no rompan la altura del botón */
+.site-navbar .badge,
+.site-navbar small {
+	line-height: 1;
+}
+
+/* Mantener consistencia en dispositivos pequeños */
+@media (max-width: 576px) {
+	.site-navbar .navbar-nav .nav-link,
+	.site-navbar .d-flex.align-items-center .btn {
+		height: auto;
+		padding: 6px 8px;
+	}
+	.btn-instagram,
+	.btn-whatsapp,
+	.btn-facebook {
+		color: #fff;
+		border: none;
+	}
+
+
 }
 
