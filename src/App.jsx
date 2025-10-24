@@ -6,7 +6,7 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 
 // Layout
-import Navbar from "./pages/Navbar.jsx";
+import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 
 // Pages

@@ -1,0 +1,1 @@
+//crear idea que aparezca una tarjeta que dice todo lo de un producto de stock tener una descripcion con ingredientes 
