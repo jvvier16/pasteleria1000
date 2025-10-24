@@ -1,3 +1,5 @@
+// Footer: pie de página con enlaces y contactos.
+// - Presenta información de la empresa y enlaces a redes.
 import React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -10,7 +12,7 @@ const Footer = () => {
           <div className="col-md-4 mb-4">
             <h5 className="fw-bold text-warning">Pastelería 1000 Sabores</h5>
             <p className="text-light">
-              Endulzando momentos desde 1975 🍰 Nos especializamos en tortas y
+              Endulzando momentos desde 1975. Nos especializamos en tortas y
               productos de repostería artesanal con el sabor tradicional que nos
               caracteriza.
             </p>

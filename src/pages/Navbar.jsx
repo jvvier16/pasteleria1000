@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from "react";
+// Navbar: barra superior con navegación, buscador, menú de categorías y accesos de usuario.
+// - Calcula categorías desde el JSON de productos.
+// - Controla el estado del carrito y de la sesión leyendo localStorage.
+// - Implementa un dropdown controlado en React para evitar conflictos con el JS de Bootstrap.
+import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import pastelesData from "../data/Pasteles.json";
@@ -85,6 +89,19 @@ export default function Navbar() {
         "admin@gmail.com"
   );
 
+  // control del dropdown de categorias en React para evitar dependencias del JS de Bootstrap
+  const [catOpen, setCatOpen] = useState(false);
+  const catRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (catRef.current && !catRef.current.contains(e.target))
+        setCatOpen(false);
+    };
+    window.addEventListener("click", onDocClick);
+    return () => window.removeEventListener("click", onDocClick);
+  }, []);
+
   return (
     <nav className="navbar navbar-expand-lg site-navbar px-4 py-2">
       <Link className="navbar-brand d-flex align-items-center" to="/">
@@ -114,20 +131,42 @@ export default function Navbar() {
             </Link>
           </li>
 
-          <li className="nav-item dropdown">
-            <button
-              className="nav-link dropdown-toggle btn btn-link p-0"
-              type="button"
-              data-bs-toggle="dropdown"
+          <li className="nav-item dropdown" ref={catRef}>
+            <a
+              className={`nav-link dropdown-toggle ${catOpen ? "show" : ""}`}
+              href="#"
+              id="categoriaDropdown"
+              role="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setCatOpen((v) => !v);
+              }}
+              aria-expanded={catOpen}
             >
               Categorías
-            </button>
-            <ul className="dropdown-menu">
+            </a>
+            <ul
+              className={`dropdown-menu${catOpen ? " show" : ""}`}
+              aria-labelledby="categoriaDropdown"
+            >
+              <li>
+                <Link
+                  className="dropdown-item"
+                  to="/categorias"
+                  onClick={() => setCatOpen(false)}
+                >
+                  Ver todas
+                </Link>
+              </li>
+              <li>
+                <hr className="dropdown-divider" />
+              </li>
               {categorias.map((cat, i) => (
                 <li key={i}>
                   <Link
                     className="dropdown-item"
                     to={`/categorias?cat=${encodeURIComponent(slugify(cat))}`}
+                    onClick={() => setCatOpen(false)}
                   >
                     {cat}
                   </Link>

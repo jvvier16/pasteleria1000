@@ -1,3 +1,6 @@
+// App: Composición principal de la aplicación.
+// - Incluye el layout (Navbar, Footer).
+// - Define las rutas públicas y las rutas protegidas (RequireAuth / RequireAdmin).
 import React from "react";
 import "./App.css";
 import { Routes, Route } from "react-router-dom";
@@ -19,7 +22,13 @@ import Nosotros from "./pages/Nosotros.jsx";
 import Carrito from "./pages/Carrito.jsx";
 import Perfil from "./pages/Perfil.jsx";
 import Pedidos from "./pages/Pedidos.jsx";
-import Admin from "./pages/Admin.jsx";
+//admin Pages
+import Admin from "./Admin/Admin.jsx";
+import AgregarPastel from "./Admin/AgregarPastel.jsx";
+import AdminUsuarios from "./Admin/UsuariosAdmin";
+import AdminPasteles from "./Admin/AdminPastel";
+import AdminReportes from "./Admin/Reportes";
+import AdminOrdenes from "./Admin/AdminOrdenes";
 
 // Guards
 import RequireAuth from "./components/RequireAuth.jsx";
@@ -39,6 +48,39 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Registro />} />
         <Route path="/nosotros" element={<Nosotros />} />
+        <Route
+          path="/admin/pasteles/agregar"
+          element={
+            <RequireAdmin>
+              <AgregarPastel />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/usuarios"
+          element={
+            <RequireAdmin>
+              <AdminUsuarios />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/pasteles"
+          element={
+            <RequireAdmin>
+              <AdminPasteles />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/admin/ordenes"
+          element={
+            <RequireAdmin>
+              <AdminOrdenes />
+            </RequireAdmin>
+          }
+        />
+        <Route path="/admin/reportes" element={<AdminReportes />} />
 
         <Route
           path="/perfil"

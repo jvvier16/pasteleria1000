@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 // Uso de emojis en lugar de react-icons para evitar dependencias faltantes
 
@@ -10,6 +11,7 @@ const AdminDashboard = () => {
   const [productos, setProductos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [ordenes, setOrdenes] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Cargar datos reales (pueden venir de archivos o API)
@@ -40,34 +42,66 @@ const AdminDashboard = () => {
         <h4 className="text-center mb-4 text-primary fw-bold">Panel Admin</h4>
         <ul className="nav flex-column">
           <li className="nav-item">
-            <a href="#" className="nav-link active text-primary fw-semibold">
+            <NavLink
+              to="/admin"
+              className={({ isActive }) =>
+                `nav-link ${
+                  isActive ? "active text-primary fw-semibold" : "text-dark"
+                }`
+              }
+            >
               Dashboard
-            </a>
+            </NavLink>
           </li>
           <li className="nav-item">
-            <a href="#" className="nav-link text-dark">
+            <NavLink
+              to="/admin/ordenes"
+              className={({ isActive }) =>
+                isActive ? "nav-link active text-primary" : "nav-link text-dark"
+              }
+            >
               Órdenes
-            </a>
+            </NavLink>
           </li>
           <li className="nav-item">
-            <a href="#" className="nav-link text-dark">
+            <NavLink
+              to="/admin/pasteles"
+              className={({ isActive }) =>
+                isActive ? "nav-link active text-primary" : "nav-link text-dark"
+              }
+            >
               Productos
-            </a>
+            </NavLink>
           </li>
           <li className="nav-item">
-            <a href="#" className="nav-link text-dark">
+            <NavLink
+              to="/categorias"
+              className={({ isActive }) =>
+                isActive ? "nav-link active text-primary" : "nav-link text-dark"
+              }
+            >
               Categorías
-            </a>
+            </NavLink>
           </li>
           <li className="nav-item">
-            <a href="#" className="nav-link text-dark">
+            <NavLink
+              to="/admin/usuarios"
+              className={({ isActive }) =>
+                isActive ? "nav-link active text-primary" : "nav-link text-dark"
+              }
+            >
               Usuarios
-            </a>
+            </NavLink>
           </li>
           <li className="nav-item">
-            <a href="#" className="nav-link text-dark">
+            <NavLink
+              to="/admin/reportes"
+              className={({ isActive }) =>
+                isActive ? "nav-link active text-primary" : "nav-link text-dark"
+              }
+            >
               Reportes
-            </a>
+            </NavLink>
           </li>
         </ul>
 
@@ -78,12 +112,20 @@ const AdminDashboard = () => {
             <span style={{ fontSize: 24 }} className="me-2 text-secondary">
               👤
             </span>
-            <span>Perfil</span>
+            <NavLink to="/perfil" className="text-dark">
+              Perfil
+            </NavLink>
           </div>
-          <button className="btn btn-dark w-100 mb-2">
-            <span className="me-2">🏬</span> Tienda
-          </button>
-          <button className="btn btn-danger w-100">
+          <button
+            className="btn btn-danger w-100"
+            onClick={() => {
+              try {
+                localStorage.removeItem("session_user");
+                window.dispatchEvent(new Event("storage"));
+              } catch {}
+              navigate("/");
+            }}
+          >
             <span className="me-2">🚪</span> Cerrar Sesión
           </button>
         </div>
@@ -174,11 +216,7 @@ const AdminDashboard = () => {
               desc: "Información personal y configuración.",
               icon: <span>👤</span>,
             },
-            {
-              title: "Tienda",
-              desc: "Visualiza la tienda en tiempo real.",
-              icon: <span>🏬</span>,
-            },
+            // 'Tienda' eliminado del panel admin por decisión de UX
           ].map((card, index) => (
             <div key={index} className="col-md-3">
               <div className="card h-100 text-center shadow-sm border-0">

@@ -1,3 +1,6 @@
+// ErrorBoundary: componente de clase que captura errores durante el render y muestra
+// un mensaje de diagnóstico. Útil para evitar pantallas en blanco y obtener
+// contexto del stack cuando un componente lanza una excepción.
 import React from "react";
 
 class ErrorBoundary extends React.Component {

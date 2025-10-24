@@ -1,3 +1,6 @@
+// Entry point: inicializa la aplicación, importa estilos globales y monta React.
+// - Copia datos semilla (usuarios, pasteles) a localStorage si no existen.
+// - Envoltorio con BrowserRouter y ErrorBoundary para manejar rutas y errores en tiempo de ejecución.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";

@@ -1,3 +1,6 @@
+// Login: formulario de autenticación local.
+// - Combina datos de `Usuarios.json` con `usuarios_local` (localStorage).
+// - En caso de credenciales válidas guarda `session_user` en localStorage con role.
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import usuariosData from "../data/Usuarios.json";
@@ -8,23 +11,30 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
-  const [usuarios, setUsuarios] = useState([]);
+  const [usuarios, setUsuarios] = useState([]); // ahora tendrá JSON + localStorage
   const navigate = useNavigate();
 
-  // Cargar usuarios desde el JSON
+  //  Cargar usuarios desde JSON + localStorage
   useEffect(() => {
-    // Inicializar usuarios_local desde usuariosData si no existe
     try {
+      // Leer local
       const rawLocal = localStorage.getItem("usuarios_local");
+      const usuariosLocal = rawLocal ? JSON.parse(rawLocal) : [];
+
+      // Si no existe, inicializar
       if (!rawLocal) {
         localStorage.setItem("usuarios_local", JSON.stringify([]));
       }
+
+      //  COMBINE JSON + LOCAL
+      setUsuarios([...usuariosData, ...usuariosLocal]);
     } catch (err) {
-      console.error("Error inicializando usuarios_local", err);
+      console.error("Error cargando usuarios", err);
+      setUsuarios(usuariosData);
     }
-    setUsuarios(usuariosData || []);
   }, []);
 
+  // Validación del formulario
   const validate = () => {
     const e = {};
     if (!form.userOrEmail.trim()) e.userOrEmail = "Ingresa usuario o email";
@@ -37,20 +47,12 @@ export default function Login() {
     return Object.keys(e).length === 0;
   };
 
+  // 🚪 Submit login
   const onSubmit = (ev) => {
     ev.preventDefault();
     if (!validate()) return;
 
-    // Buscar en Usuarios.json y en usuarios_local
-    const localRaw = localStorage.getItem("usuarios_local");
-    let localUsers = [];
-    try {
-      localUsers = localRaw ? JSON.parse(localRaw) : [];
-    } catch (err) {
-      console.error("Error parseando usuarios_local", err);
-      localUsers = [];
-    }
-
+    // Normalizar comparaciones
     const normalized = (s) => (s || "").toString().toLowerCase();
 
     const matches = (u) => {
@@ -63,7 +65,8 @@ export default function Login() {
       return input === email || input === nombre || input === nombreCompleto;
     };
 
-    const found = usuarios.find(matches) || localUsers.find(matches);
+    // Buscar en la lista combinada
+    const found = usuarios.find(matches);
 
     if (!found) {
       setLogged(false);
@@ -71,38 +74,39 @@ export default function Login() {
       return;
     }
 
-    const expected = found.contrasena || found.password || found.pass || "";
+    // Validar contraseña
+    const expected = found.contrasena || "";
     if (expected !== form.password) {
       setLogged(false);
       setErrors({ ...errors, password: "Contraseña incorrecta" });
       return;
     }
 
-    // Guardar session_user mínimo en localStorage
+    // Guardar session_user con el role real del usuario encontrado
     try {
       const session = {
         id: found.id,
         nombre:
           (found.nombre || "") + (found.apellido ? " " + found.apellido : "") ||
-          found.username ||
           "Usuario",
-        correo: found.correo || found.email || form.userOrEmail,
+        correo: found.correo || form.userOrEmail,
         imagen: found.imagen || null,
-        role:
-          (found.correo || found.email || "").toString().toLowerCase() ===
-          "admin@gmail.com"
-            ? "admin"
-            : "user",
+        role: found.role || "user", // <-- IMPORTANTE CAMBIO AQUÍ
       };
+
       localStorage.setItem("session_user", JSON.stringify(session));
       window.dispatchEvent(new Event("storage"));
-      // redirigir si es admin
+
+      // Redirigir si es admin
       if (session.role === "admin") {
         navigate("/admin");
+      } else {
+        navigate("/");
       }
     } catch (err) {
       console.error("No se pudo guardar session_user", err);
     }
+
     setLogged(true);
     setErrors({});
   };
@@ -111,11 +115,7 @@ export default function Login() {
     <div className="d-flex justify-content-center align-items-center min-vh-100">
       <div
         className="card p-4 shadow login-card"
-        style={{
-          maxWidth: 420,
-          width: "100%",
-          borderRadius: "1rem",
-        }}
+        style={{ maxWidth: 420, width: "100%", borderRadius: "1rem" }}
       >
         <div className="login-header mb-3">
           <img
@@ -129,18 +129,13 @@ export default function Login() {
         <h3 className="mb-3 text-center">Iniciar Sesión</h3>
 
         {logged === true && (
-          <div className="alert alert-success w-100">
-            Has ingresado correctamente
-          </div>
+          <div className="alert alert-success">Has ingresado correctamente</div>
         )}
         {logged === false && (
-          <div className="alert alert-danger w-100">
-            Error al iniciar sesión
-          </div>
+          <div className="alert alert-danger">Error al iniciar sesión</div>
         )}
 
         <form
-          className="text-start"
           onSubmit={onSubmit}
           onReset={() => {
             setForm({ userOrEmail: "", password: "" });
@@ -152,11 +147,8 @@ export default function Login() {
         >
           {/* Usuario o correo */}
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">
-              Usuario o Correo
-            </label>
+            <label className="form-label">Usuario o Correo</label>
             <input
-              id="email"
               type="text"
               className={`form-control ${
                 errors.userOrEmail ? "is-invalid" : ""
@@ -166,21 +158,17 @@ export default function Login() {
               onChange={(e) =>
                 setForm({ ...form, userOrEmail: e.target.value })
               }
-              required
             />
             {errors.userOrEmail && (
               <div className="invalid-feedback">{errors.userOrEmail}</div>
             )}
           </div>
 
-          {/* Contraseña con botón mostrar/ocultar */}
+          {/* Contraseña */}
           <div className="mb-3 position-relative">
-            <label htmlFor="password" className="form-label">
-              Contraseña
-            </label>
+            <label className="form-label">Contraseña</label>
             <div className="input-group">
               <input
-                id="password"
                 minLength={12}
                 maxLength={18}
                 type={showPassword ? "text" : "password"}
@@ -190,13 +178,11 @@ export default function Login() {
                 placeholder="********"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
               />
               <button
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -206,7 +192,6 @@ export default function Login() {
             )}
           </div>
 
-          {/* Botones apilados */}
           <div className="d-grid gap-2 mt-3">
             <button type="submit" className="btn btn-primary">
               Ingresar

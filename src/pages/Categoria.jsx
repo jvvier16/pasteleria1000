@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from "react";
+// Categoria: organiza productos por categoría.
+// - Agrupa pasteles por `categoria` y resuelve imágenes.
+// - Si la URL contiene `?cat=slug` selecciona y hace scroll a esa sección.
+import React, { useMemo, useState, useEffect } from "react";
 import Card from "../components/Card";
 import "bootstrap/dist/css/bootstrap.min.css";
 import pasteles from "../data/Pasteles.json";

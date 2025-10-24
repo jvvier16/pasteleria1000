@@ -1,3 +1,6 @@
+// RequireAuth: wrapper para rutas protegidas por sesión.
+// - Lee `session_user` desde localStorage y permite el render si existe.
+// - Si no hay sesión redirige a /login preservando la ubicación deseada.
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 

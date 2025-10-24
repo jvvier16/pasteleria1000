@@ -1,3 +1,5 @@
+// Contacto: formulario de contacto con validación cliente y enlaces a redes sociales.
+// - Validación mínima en el cliente; el envío es simulado y muestra un mensaje temporal.
 import React, { useState } from "react";
 
 function Contacto() {
@@ -19,6 +21,24 @@ function Contacto() {
   const onSubmit = (ev) => {
     ev.preventDefault();
     if (!validate()) return;
+    // Persistir mensaje en localStorage para que admin lo vea en "Reportes"
+    try {
+      const raw = localStorage.getItem("reportes_contacto");
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.push({
+        id: `MSG-${Date.now()}`,
+        nombre: form.name,
+        correo: form.email,
+        mensaje: form.message,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("reportes_contacto", JSON.stringify(arr));
+      // notificar cambios
+      window.dispatchEvent(new Event("storage"));
+    } catch (err) {
+      console.error("No se pudo guardar el mensaje de contacto", err);
+    }
+
     setSent(true);
     setTimeout(() => setSent(false), 3000);
   };

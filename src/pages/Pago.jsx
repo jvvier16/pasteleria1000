@@ -117,6 +117,13 @@ export default function Pago() {
         id: `ORD-${Date.now()}`,
         fecha: new Date().toISOString(),
         cliente,
+        userId: (() => {
+          try {
+            const rawSession = localStorage.getItem("session_user");
+            if (rawSession) return JSON.parse(rawSession).id;
+          } catch {}
+          return null;
+        })(),
         items,
         subtotal,
         impuestos,

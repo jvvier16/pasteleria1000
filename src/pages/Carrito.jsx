@@ -1,3 +1,5 @@
+// Carrito: página para revisar y gestionar los artículos agregados al carrito.
+// - Usa utilitarios de localstorageHelper para manipular el carrito.
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {

@@ -1,54 +1,200 @@
 [
-	{
-		"id": 1,
-		"nombre": "Ana",
-		"apellido": "García",
-		"correo": "ana.garcia@gmail.com",
-		"contrasena": "AnaGarcia1234"
-	},
-	{
-		"id": 2,
-		"nombre": "Luis",
-		"apellido": "Martínez",
-		"correo": "luis.martinez@gmail.com",
-		"contrasena": "LuisMartinez1"
-	},
-	{
-		"id": 3,
-		"nombre": "Sofía",
-		"apellido": "López",
-		"correo": "sofia.lopez@gmail.com",
-		"contrasena": "SofiaLopez12"
-	},
-	{
-		"id": 4,
-		"nombre": "Carlos",
-		"apellido": "Ruiz",
-		"correo": "carlos.ruiz@gmail.com",
-		"contrasena": "CarlosRuiz34"
-	},
-	{
-		"id": 5,
-		"nombre": "Valentina",
-		"apellido": "Torres",
-		"correo": "valentina.torres@gmail.com",
-		"contrasena": "ValenTorres56"
-	},
-	{
-		"id": 6,
-		"nombre": "Javier",
-		"apellido": "Rojas",
-		"correo": "javier.rojas@gmail.com",
-		"contrasena": "javierrojas13",
-		"role": "user"
-	},
-	{
-		"id": 7,
-		"nombre": "admin",
-		"apellido": "tienda",
-		"correo": "admin@gmail.com",
-		"contrasena": "javierrojas12",
-		"role": "admin"
-	}
-
+  {
+    "id": 1,
+    "nombre": "Ana",
+    "apellido": "García",
+    "correo": "ana.garcia@gmail.com",
+    "contrasena": "AnaGarcia1234",
+    "role": "user",
+    "fechaNacimiento": "1990-05-14",
+    "direccion": "Ñuñoa, Santiago"
+  },
+  {
+    "id": 2,
+    "nombre": "Luis",
+    "apellido": "Martínez",
+    "correo": "luis.martinez@gmail.com",
+    "contrasena": "LuisMartinez1",
+    "role": "user",
+    "fechaNacimiento": "1987-09-02",
+    "direccion": "La Florida, Santiago"
+  },
+  {
+    "id": 3,
+    "nombre": "Sofía",
+    "apellido": "López",
+    "correo": "sofia.lopez@gmail.com",
+    "contrasena": "SofiaLopez12",
+    "role": "user",
+    "fechaNacimiento": "1996-11-21",
+    "direccion": "Providencia, Santiago"
+  },
+  {
+    "id": 4,
+    "nombre": "Carlos",
+    "apellido": "Ruiz",
+    "correo": "carlos.ruiz@gmail.com",
+    "contrasena": "CarlosRuiz34",
+    "role": "user",
+    "fechaNacimiento": "1979-04-08",
+    "direccion": "Maipú, Santiago"
+  },
+  {
+    "id": 5,
+    "nombre": "Valentina",
+    "apellido": "Torres",
+    "correo": "valentina.torres@gmail.com",
+    "contrasena": "ValenTorres56",
+    "role": "user",
+    "fechaNacimiento": "1984-12-30",
+    "direccion": "Las Condes, Santiago"
+  },
+  {
+    "id": 6,
+    "nombre": "Javier",
+    "apellido": "Rojas",
+    "correo": "javier.rojas@gmail.com",
+    "contrasena": "javierrojas13",
+    "role": "user",
+    "fechaNacimiento": "1993-07-10",
+    "direccion": "Santiago Centro, Santiago"
+  },
+  {
+    "id": 7,
+    "nombre": "admin",
+    "apellido": "tienda",
+    "correo": "admin@gmail.com",
+    "contrasena": "javierrojas12",
+    "role": "admin"
+  },
+  {
+    "id": 8,
+    "nombre": "Camila",
+    "apellido": "Hernández",
+    "correo": "camila.hernandez@gmail.com",
+    "contrasena": "CamilaHer90",
+    "role": "user",
+    "fechaNacimiento": "1988-04-12",
+    "direccion": "Ñuñoa, Santiago"
+  },
+  {
+    "id": 9,
+    "nombre": "Matías",
+    "apellido": "Pérez",
+    "correo": "matias.perez@gmail.com",
+    "contrasena": "MatiasPerez22",
+    "role": "user",
+    "fechaNacimiento": "1995-11-03",
+    "direccion": "La Florida, Santiago"
+  },
+  {
+    "id": 10,
+    "nombre": "Fernanda",
+    "apellido": "Castillo",
+    "correo": "fernanda.castillo@gmail.com",
+    "contrasena": "FerCastillo45",
+    "role": "user",
+    "fechaNacimiento": "1978-02-17",
+    "direccion": "Providencia, Santiago"
+  },
+  {
+    "id": 11,
+    "nombre": "Ricardo",
+    "apellido": "Morales",
+    "correo": "ricardo.morales@gmail.com",
+    "contrasena": "RicaMora80",
+    "role": "user",
+    "fechaNacimiento": "1960-06-29",
+    "direccion": "Maipú, Santiago"
+  },
+  {
+    "id": 12,
+    "nombre": "Daniela",
+    "apellido": "Vega",
+    "correo": "daniela.vega@gmail.com",
+    "contrasena": "DaniVega19",
+    "role": "user",
+    "fechaNacimiento": "2003-03-15",
+    "direccion": "Puente Alto, Santiago"
+  },
+  {
+    "id": 13,
+    "nombre": "Tomás",
+    "apellido": "Aguilera",
+    "correo": "tomas.aguilera@gmail.com",
+    "contrasena": "TomasAgui07",
+    "role": "user",
+    "fechaNacimiento": "1985-09-01",
+    "direccion": "Las Condes, Santiago"
+  },
+  {
+    "id": 14,
+    "nombre": "Beatriz",
+    "apellido": "Fuentes",
+    "correo": "beatriz.fuentes@gmail.com",
+    "contrasena": "BeaFuent55",
+    "role": "user",
+    "fechaNacimiento": "1970-07-21",
+    "direccion": "Recoleta, Santiago"
+  },
+  {
+    "id": 15,
+    "nombre": "Gabriel",
+    "apellido": "Navarro",
+    "correo": "gabriel.navarro@gmail.com",
+    "contrasena": "GabiNava44",
+    "role": "user",
+    "fechaNacimiento": "1980-12-09",
+    "direccion": "San Miguel, Santiago"
+  },
+  {
+    "id": 16,
+    "nombre": "Francisca",
+    "apellido": "Silva",
+    "correo": "francisca.silva@gmail.com",
+    "contrasena": "FranSilva67",
+    "role": "user",
+    "fechaNacimiento": "1957-08-14",
+    "direccion": "La Reina, Santiago"
+  },
+  {
+    "id": 17,
+    "nombre": "Ignacio",
+    "apellido": "Vergara",
+    "correo": "ignacio.vergara@gmail.com",
+    "contrasena": "IgnacioVer03",
+    "role": "user",
+    "fechaNacimiento": "1999-10-30",
+    "direccion": "Quilicura, Santiago"
+  },
+  {
+    "id": 18,
+    "nombre": "Paula",
+    "apellido": "Mendoza",
+    "correo": "paula.mendoza@gmail.com",
+    "contrasena": "PaulaMend12",
+    "role": "user",
+    "fechaNacimiento": "1992-01-22",
+    "direccion": "Independencia, Santiago"
+  },
+  {
+    "id": 19,
+    "nombre": "Héctor",
+    "apellido": "Carrasco",
+    "correo": "hector.carrasco@gmail.com",
+    "contrasena": "HectorCar50",
+    "role": "user",
+    "fechaNacimiento": "1974-05-27",
+    "direccion": "Peñalolén, Santiago"
+  },
+  {
+    "id": 20,
+    "nombre": "Natalia",
+    "apellido": "Ramos",
+    "correo": "natalia.ramos@gmail.com",
+    "contrasena": "NataRamos08",
+    "role": "user",
+    "fechaNacimiento": "1986-09-19",
+    "direccion": "Santiago Centro, Santiago"
+  }
 ]

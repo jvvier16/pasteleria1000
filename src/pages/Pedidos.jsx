@@ -1,3 +1,4 @@
+// Pedidos: muestra las órdenes guardadas en `pedidos_local` para el usuario autenticado.
 import React, { useEffect, useState } from "react";
 
 function Pedidos() {

@@ -1,8 +1,8 @@
+// Boleta: muestra el resumen de la compra y persiste la orden en `pedidos_local` si
+// el pago se marca como exitoso en navigation state.
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import pasteles from "../data/Pasteles.json";
-
-// Componente Boleta: muestra los items del carrito (localStorage "pasteleria_cart")
 export default function Boleta() {
   const [pagoExitoso, setPagoExitoso] = useState(true);
   const [cliente, setCliente] = useState({ nombre: "Cliente", correo: "" });
@@ -64,6 +64,13 @@ export default function Boleta() {
           id: `ORD-${Date.now()}`,
           fecha: new Date().toISOString(),
           cliente: cliente,
+          userId: (() => {
+            try {
+              const raw = localStorage.getItem("session_user");
+              if (raw) return JSON.parse(raw).id;
+            } catch {}
+            return null;
+          })(),
           items: items,
           subtotal,
           impuestos,
