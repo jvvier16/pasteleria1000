@@ -29,22 +29,35 @@ export default function Productos() {
     pastelesLocales = [];
   }
 
-  // 2) Preferir datos locales si existen, sino usar el JSON de assets
-  // Evita concatenar ambos (causa duplicados cuando pasteles_local fue inicializado
-  // previamente con el mismo contenido del JSON).
-  const todosLosPasteles =
-    pastelesLocales && pastelesLocales.length ? pastelesLocales : pastelesData;
+  // 2) Combinar JSON + LocalStorage sin duplicados.
+  // - Queremos mostrar todos los productos (los 20 del JSON) pero permitir
+  //   que los pasteles locales reemplacen/actualicen a los del JSON cuando
+  //   compartan el mismo `id` (por ejemplo, tras editar/crear desde Admin).
+  // - Evita concatenar indiscriminadamente y producir duplicados con los
+  //   mismos ids.
+  const mapa = new Map();
+  // primero cargar JSON (base)
+  for (const p of pastelesData) mapa.set(p.id, p);
+  // luego sobreescribir/añadir locales
+  for (const p of pastelesLocales || []) mapa.set(p.id, p);
+  const todosLosPasteles = Array.from(mapa.values());
 
   // 3) Resolver imagen y filtrar por search
   const productos = todosLosPasteles
     .map((p) => {
-      // Resolver imagen (del JSON tiene ruta relativa, de local puede venir "")
+      // Resolver imagen (usando ruta relativa del JSON o ruta completa de local)
       let imageUrl = "";
       if (p.imagen) {
-        const filename = (p.imagen || "").split("/").pop();
-        imageUrl = filename
-          ? new URL(`../assets/img/${filename}`, import.meta.url).href
-          : "";
+        // Si la imagen ya es una URL completa (ej: data:image/... o http://) usarla directamente
+        if (p.imagen.startsWith("data:") || p.imagen.startsWith("http")) {
+          imageUrl = p.imagen;
+        } else {
+          // Si es ruta relativa, resolverla usando la estructura del proyecto
+          const filename = p.imagen.split("/").pop();
+          imageUrl = filename
+            ? new URL(`../assets/img/${filename}`, import.meta.url).href
+            : "";
+        }
       }
       return { ...p, imageUrl };
     })
@@ -56,7 +69,22 @@ export default function Productos() {
 
   return (
     <div className="container mt-4">
-      <h2>Productos</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Productos</h2>
+        {search && (
+          <div className="d-flex align-items-center">
+            <span className="me-2">
+              Resultados para: <strong>{query.get("search")}</strong>
+            </span>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => (window.location.href = "/productos")}
+            >
+              ✕ Limpiar búsqueda
+            </button>
+          </div>
+        )}
+      </div>
       <div className="cards-grid mt-3">
         {productos.map((prod) => (
           <Card
@@ -68,6 +96,7 @@ export default function Productos() {
             hideDescription={true}
             descripcion={prod.descripcion || `Stock: ${prod.stock ?? "N/A"}`}
             stock={prod.stock ?? 0}
+            stockCritico={prod.stockCritico}
             precio={Number(prod.precio)}
             onAgregar={(p) =>
               addToCartHelper({

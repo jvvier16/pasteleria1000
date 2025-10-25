@@ -58,7 +58,7 @@ export default function Navbar() {
       .toLowerCase();
 
   useEffect(() => {
-    const update = () => {
+    const updateCart = () => {
       try {
         const cart = getCart();
         setCartCount(cart.reduce((acc, i) => acc + (i.cantidad || 1), 0));
@@ -73,37 +73,52 @@ export default function Navbar() {
         setCartTotalMoney(0);
       }
     };
-    update();
 
-    const onStorage = (e) => {
-      if (e.key === null || e.key === "pasteleria_cart") update();
-      if (e.key === null || e.key === "session_user") {
-        try {
-          const raw = localStorage.getItem("session_user");
-          setSessionUser(raw ? JSON.parse(raw) : null);
-        } catch {
+    const updateUser = () => {
+      try {
+        const raw = localStorage.getItem("session_user");
+        if (raw) {
+          const userData = JSON.parse(raw);
+          setSessionUser(userData);
+          // Actualizar isAdmin cuando el usuario cambia
+          if (userData.role === "admin") {
+            console.log("Usuario admin detectado");
+          }
+        } else {
           setSessionUser(null);
         }
+      } catch (err) {
+        console.error("Error al cargar usuario:", err);
+        setSessionUser(null);
       }
     };
+
+    // Ejecutar actualizaciones iniciales
+    updateCart();
+    updateUser();
+
+    const onStorage = (e) => {
+      if (e.key === null || e.key === "pasteleria_cart") {
+        updateCart();
+      }
+      if (e.key === null || e.key === "session_user") {
+        updateUser();
+      }
+    };
+
+    // Escuchar eventos de storage y custom events
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("userLogin", updateUser);
+    window.addEventListener("userLogout", updateUser);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("userLogin", updateUser);
+      window.removeEventListener("userLogout", updateUser);
+    };
   }, []);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("session_user");
-      setSessionUser(raw ? JSON.parse(raw) : null);
-    } catch {
-      setSessionUser(null);
-    }
-  }, []);
-
-  const isAdmin = Boolean(
-    sessionUser &&
-      (sessionUser.correo || sessionUser.email || "").toLowerCase() ===
-        "admin@gmail.com"
-  );
+  const isAdmin = Boolean(sessionUser && sessionUser.role === "admin");
 
   const handleLogout = () => {
     // mostrar modal de confirmación
@@ -125,29 +140,28 @@ export default function Navbar() {
 
   const confirmLogout = () => {
     try {
+      // Guardar el usuario actual para el evento
+      const currentUser = sessionUser;
+
+      // Eliminar sesión
       localStorage.removeItem("session_user");
-      // Actualizar estado local inmediatamente y notificar a otros listeners.
       setSessionUser(null);
-      try {
-        // Intentar disparar un StorageEvent más fiel (otros windows lo recibirán)
-        const ev = new StorageEvent("storage", {
-          key: "session_user",
-          oldValue: null,
-          newValue: null,
-          url: window.location.href,
-        });
-        window.dispatchEvent(ev);
-      } catch {
-        // Fallback simple
-        window.dispatchEvent(new Event("storage"));
-      }
-      // ocultar modal si existe
+
+      // Disparar eventos de logout
+      window.dispatchEvent(
+        new CustomEvent("userLogout", { detail: currentUser })
+      );
+      window.dispatchEvent(new Event("storage"));
+
+      // Ocultar modal si existe
       try {
         logoutModalInstance.current && logoutModalInstance.current.hide();
       } catch {}
+
+      // Redirigir a inicio
       navigate("/");
     } catch (err) {
-      console.error("Error during logout", err);
+      console.error("Error durante el cierre de sesión:", err);
     }
   };
 
@@ -321,7 +335,12 @@ export default function Navbar() {
             className="d-flex me-3"
             onSubmit={(e) => {
               e.preventDefault();
-              navigate(`/productos?search=${encodeURIComponent(searchTerm)}`);
+              if (searchTerm.trim()) {
+                navigate(
+                  `/productos?search=${encodeURIComponent(searchTerm.trim())}`
+                );
+                setSearchTerm(""); // Limpiar después de buscar
+              }
             }}
           >
             <input
@@ -330,8 +349,21 @@ export default function Navbar() {
               placeholder="Buscar pasteles..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchTerm.trim()) {
+                  e.preventDefault();
+                  navigate(
+                    `/productos?search=${encodeURIComponent(searchTerm.trim())}`
+                  );
+                  setSearchTerm(""); // Limpiar después de buscar
+                }
+              }}
             />
-            <button className="btn btn-search rounded-pill" type="submit">
+            <button
+              className="btn btn-search rounded-pill"
+              type="submit"
+              disabled={!searchTerm.trim()}
+            >
               Buscar
             </button>
           </form>
@@ -392,7 +424,7 @@ export default function Navbar() {
                   <li>
                     <button
                       className="dropdown-item text-danger"
-                      onClick={handleLogout}
+                      onClick={confirmLogout}
                     >
                       Cerrar sesión
                     </button>

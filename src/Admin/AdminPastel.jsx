@@ -21,8 +21,12 @@ export default function AdminPasteles() {
     descripcion: "",
     precio: "",
     stock: "",
+    stockCritico: "",
     categoria: "",
   });
+
+  // Lista de categorías disponibles
+  const [categorias, setCategorias] = useState([]);
 
   // Ref al modal y a la instancia de Bootstrap
   const modalRef = useRef(null);
@@ -45,14 +49,38 @@ export default function AdminPasteles() {
     }
   }, [navigate]);
 
-  // 📥 Cargar pasteles locales al montar
+  // 📥 Cargar pasteles y categorías al montar
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("pasteles_local");
-      const arr = raw ? JSON.parse(raw) : [];
-      setPastelesLocal(Array.isArray(arr) ? arr : []);
-    } catch {
+      // Cargar pasteles
+      const rawPasteles = localStorage.getItem("pasteles_local");
+      const arrPasteles = rawPasteles ? JSON.parse(rawPasteles) : [];
+      setPastelesLocal(Array.isArray(arrPasteles) ? arrPasteles : []);
+
+      // Cargar categorías
+      const rawCategorias = localStorage.getItem("categorias_local");
+      if (rawCategorias) {
+        setCategorias(JSON.parse(rawCategorias));
+      } else {
+        // Categorías por defecto si no existen
+        const categoriasDefault = [
+          "Tortas",
+          "Postres",
+          "Sin Azúcar",
+          "Sin Gluten",
+          "Veganas",
+          "Especiales",
+        ];
+        localStorage.setItem(
+          "categorias_local",
+          JSON.stringify(categoriasDefault)
+        );
+        setCategorias(categoriasDefault);
+      }
+    } catch (error) {
+      console.error("Error cargando datos:", error);
       setPastelesLocal([]);
+      setCategorias([]);
     }
   }, []);
 
@@ -77,11 +105,10 @@ export default function AdminPasteles() {
     }));
   }, [pastelesLocal]);
 
-  // 🔗 Combinar para mostrar (H1: todos)
-  const todos = useMemo(
-    () => [...baseJsonResuelto, ...localesMarcados],
-    [baseJsonResuelto, localesMarcados]
-  );
+  // 🔗 Mostrar solo los pasteles locales en el panel admin (son los editables)
+  // - El resto (JSON) se muestra en la tienda pública, pero en admin sólo
+  //   queremos permitir editar/Eliminar los que fueron creados localmente.
+  const todos = useMemo(() => localesMarcados || [], [localesMarcados]);
 
   // 🧹 Eliminar (solo local)
   const handleEliminar = (id) => {
@@ -273,16 +300,49 @@ export default function AdminPasteles() {
               </div>
 
               <div className="mb-3">
-                <label className="form-label">Categoría</label>
+                <label className="form-label">Stock Crítico</label>
                 <input
-                  type="text"
+                  type="number"
                   className="form-control"
+                  value={editForm.stockCritico}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, stockCritico: e.target.value })
+                  }
+                  min="0"
+                  step="1"
+                  placeholder="Nivel de stock para alertas"
+                />
+                <small className="form-text text-muted">
+                  Cuando el stock baje de este número, se mostrará una alerta
+                </small>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Categoría</label>
+                <select
+                  className="form-select"
                   value={editForm.categoria}
                   onChange={(e) =>
                     setEditForm({ ...editForm, categoria: e.target.value })
                   }
                   required
-                />
+                >
+                  <option value="">Selecciona una categoría...</option>
+                  {categorias.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <small className="form-text text-muted">
+                  <a
+                    href="/admin/categorias"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Administrar categorías
+                  </a>
+                </small>
               </div>
             </div>
 

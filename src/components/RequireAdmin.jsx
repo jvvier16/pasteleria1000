@@ -7,14 +7,23 @@ export default function RequireAdmin({ children }) {
   let user = null;
   try {
     const raw = localStorage.getItem("session_user");
-    user = raw ? JSON.parse(raw) : null;
+    if (raw) {
+      user = JSON.parse(raw);
+    }
   } catch (err) {
-    user = null;
+    console.error("Error parsing session_user:", err);
+    return <Navigate to="/login" replace />;
   }
 
-  const email = (user && (user.correo || user.email || "")).toLowerCase();
+  // Verificar que el usuario existe y tiene role admin
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-  if (email === "admin@gmail.com") return children;
+  // Verificar el rol del usuario
+  if (user.role === "admin") {
+    return children;
+  }
 
   return <Navigate to="/login" replace />;
 }

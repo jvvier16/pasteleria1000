@@ -20,6 +20,7 @@ function Card({
   // --- NUEVAS PROPS ---
   hideDescription = false,
   stock,
+  stockCritico = 5, // Valor por defecto de 5 unidades
   origen, // "json" | "local"
   onEditar, // function(id)
   onEliminar, // function(id)
@@ -80,15 +81,24 @@ function Card({
         <h5 className="card-title">{title}</h5>
         {!hideDescription && <p className="card-text flex-grow-1">{desc}</p>}
 
-        {/* Mostrar stock si se pasó como prop */}
+        {/* Mostrar stock y alerta de stock crítico */}
         {typeof stock !== "undefined" && (
-          <p
-            className={`small mb-2 ${
-              Number(stock) === 0 ? "text-danger" : "text-muted"
-            }`}
-          >
-            Stock: {stock}
-          </p>
+          <>
+            <p
+              className={`small mb-2 ${
+                Number(stock) === 0
+                  ? "text-danger"
+                  : Number(stock) <= stockCritico
+                  ? "text-warning"
+                  : "text-muted"
+              }`}
+            >
+              Stock: {stock}
+              {Number(stock) <= stockCritico && stock > 0 && (
+                <span className="ms-2">⚠️ Stock crítico</span>
+              )}
+            </p>
+          </>
         )}
 
         {/* Mensaje temporal al agregar */}

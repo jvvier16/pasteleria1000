@@ -98,7 +98,20 @@ export default function Login() {
         role: found.role || "user", // <-- IMPORTANTE CAMBIO AQUÍ
       };
 
+      // Guardar sesión en localStorage
       localStorage.setItem("session_user", JSON.stringify(session));
+
+      // Disparar eventos para notificar el inicio de sesión
+      // Primero el evento personalizado para actualizar el estado
+      window.dispatchEvent(
+        new CustomEvent("userLogin", {
+          detail: session,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+
+      // Luego el evento de storage para persistencia
       window.dispatchEvent(new Event("storage"));
 
       // Redirigir si es admin

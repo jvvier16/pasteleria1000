@@ -35,8 +35,16 @@ const AdminDashboard = () => {
   const nuevosUsuariosMes = 120;
   const probAumento = 20;
 
+  // Estilos inline para los botones del admin
+  const buttonStyles = {
+    transition: "all 0.3s ease",
+    border: "none",
+    cursor: "pointer",
+    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+  };
+
   return (
-    <div className="d-flex bg-muted admin-min-vh">
+    <div className="d-flex bg-light admin-min-vh">
       {/* Sidebar */}
       <div className="bg-white border-end p-3 admin-sidebar-width">
         <h4 className="text-center mb-4 text-primary fw-bold">Panel Admin</h4>
@@ -134,96 +142,141 @@ const AdminDashboard = () => {
         <h3 className="fw-bold">Dashboard</h3>
         <p className="text-muted">Resumen de las actividades diarias</p>
 
-        {/* Tarjetas de métricas */}
+        {/* Tarjetas de métricas como botones */}
         <div className="row g-3 mb-4">
           <div className="col-md-4">
-            <div className="card text-white bg-primary shadow-sm h-100">
-              <div className="card-body">
-                <span className="fs-2">🛒</span>
-                <h4 className="mt-3">Compras</h4>
-                <h2>{totalOrdenes}</h2>
-                <small>
-                  Probabilidad de aumento: <strong>{probAumento}%</strong>
-                </small>
+            <button
+              onClick={() => navigate("/admin/ordenes")}
+              className="card w-100 border-0 bg-primary text-white h-100 admin-stat-button"
+              style={{
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.transform = "translateY(-5px)")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.transform = "translateY(0)")
+              }
+            >
+              <div className="card-body text-center">
+                <span className="fs-1">🛒</span>
+                <h4 className="mt-3 mb-2">Compras Totales</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalOrdenes}</h2>
+                <small className="text-white-50">Click para ver detalles</small>
               </div>
-            </div>
+            </button>
           </div>
 
           <div className="col-md-4">
-            <div className="card text-white bg-success shadow-sm h-100">
-              <div className="card-body">
-                <span className="fs-2">📦</span>
-                <h4 className="mt-3">Productos</h4>
-                <h2>{totalProductos}</h2>
-                <small>
-                  Inventario actual: <strong>{inventarioActual}</strong>
-                </small>
+            <button
+              onClick={() => navigate("/admin/pasteles")}
+              className="card w-100 border-0 bg-success text-white h-100 admin-stat-button"
+              style={{
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.transform = "translateY(-5px)")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.transform = "translateY(0)")
+              }
+            >
+              <div className="card-body text-center">
+                <span className="fs-1">🎂</span>
+                <h4 className="mt-3 mb-2">Productos Activos</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalProductos}</h2>
+                <small className="text-white-50">Click para administrar</small>
               </div>
-            </div>
+            </button>
           </div>
 
           <div className="col-md-4">
-            <div className="card text-dark bg-warning shadow-sm h-100">
-              <div className="card-body">
-                <span className="fs-2">👥</span>
-                <h4 className="mt-3">Usuarios</h4>
-                <h2>{totalUsuarios}</h2>
-                <small>
-                  Nuevos usuarios este mes: <strong>{nuevosUsuariosMes}</strong>
-                </small>
+            <button
+              onClick={() => navigate("/admin/usuarios")}
+              className="card w-100 border-0 bg-info text-white h-100 admin-stat-button"
+              style={{
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.transform = "translateY(-5px)")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.transform = "translateY(0)")
+              }
+            >
+              <div className="card-body text-center">
+                <span className="fs-1">👥</span>
+                <h4 className="mt-3 mb-2">Usuarios Registrados</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalUsuarios}</h2>
+                <small className="text-white-50">Click para gestionar</small>
               </div>
-            </div>
+            </button>
           </div>
         </div>
 
-        {/* Cuadrícula de accesos */}
+        {/* Cuadrícula de accesos con botones */}
         <div className="row g-3">
           {[
             {
-              title: "Dashboard",
-              desc: "Visión general de todas las métricas.",
-              icon: <span>📊</span>,
-            },
-            {
               title: "Órdenes",
-              desc: "Gestión y seguimiento de compras.",
-              icon: <span>🧾</span>,
+              desc: "Gestión y seguimiento de compras",
+              icon: "🧾",
+              route: "/admin/ordenes",
+              color: "primary",
             },
             {
               title: "Productos",
-              desc: "Administrar inventario y detalles.",
-              icon: <span>📦</span>,
-            },
-            {
-              title: "Categorías",
-              desc: "Organizar productos por categoría.",
-              icon: <span>🗂️</span>,
+              desc: "Administrar pasteles y stock",
+              icon: "🎂",
+              route: "/admin/pasteles",
+              color: "success",
             },
             {
               title: "Usuarios",
-              desc: "Gestión de cuentas de usuario.",
-              icon: <span>👥</span>,
+              desc: "Gestión de cuentas",
+              icon: "👥",
+              route: "/admin/usuarios",
+              color: "info",
             },
             {
               title: "Reportes",
-              desc: "Generar informes detallados.",
-              icon: <span>📈</span>,
+              desc: "Ver estadísticas y gráficos",
+              icon: "📊",
+              route: "/admin/reportes",
+              color: "warning",
             },
             {
-              title: "Perfil",
-              desc: "Información personal y configuración.",
-              icon: <span>👤</span>,
+              title: "Agregar Pastel",
+              desc: "Crear nuevo producto",
+              icon: "➕",
+              route: "/admin/pasteles/agregar",
+              color: "success",
             },
-            // 'Tienda' eliminado del panel admin por decisión de UX
-          ].map((card, index) => (
-            <div key={index} className="col-md-3">
-              <div className="card h-100 text-center shadow-sm border-0">
-                <div className="card-body">
-                  <div className="mb-2 fs-3 text-primary">{card.icon}</div>
-                  <h6 className="fw-bold">{card.title}</h6>
-                  <p className="text-muted small">{card.desc}</p>
+          ].map((card) => (
+            <div key={card.title} className="col-md-4">
+              <button
+                onClick={() => navigate(card.route)}
+                className={`card h-100 w-100 border-0 bg-${card.color} text-white admin-card-button`}
+                style={{
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.transform = "translateY(-5px)")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.transform = "translateY(0)")
+                }
+              >
+                <div className="card-body d-flex flex-column align-items-center text-center p-4">
+                  <div className="mb-3 fs-1">{card.icon}</div>
+                  <h4 className="fw-bold mb-2">{card.title}</h4>
+                  <p className="mb-0 text-white-50">{card.desc}</p>
                 </div>
-              </div>
+              </button>
             </div>
           ))}
         </div>

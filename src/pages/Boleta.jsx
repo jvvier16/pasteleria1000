@@ -37,15 +37,50 @@ export default function Boleta() {
   let impuestos = Number((subtotal * 0.19).toFixed(2));
   let total = subtotal + impuestos;
 
-  // Si se pasó una orden completa por navigation state, usarla para mostrar datos
+  // Cargar la orden desde URL params, sessionStorage o navigation state
   useEffect(() => {
     try {
+      // 1. Intentar obtener desde URL params
+      const params = new URLSearchParams(location.search);
+      const ordenId = params.get('orden');
+      const isError = params.get('error') === 'true';
+      
+      if (ordenId) {
+        // Buscar la orden en sessionStorage primero
+        const storedOrder = sessionStorage.getItem('ultima_orden');
+        if (storedOrder) {
+          const orden = JSON.parse(storedOrder);
+          if (orden.id === ordenId) {
+            setDisplayedOrder(orden);
+            setPagoExitoso(!isError && !orden.error);
+            return;
+          }
+        }
+        
+        // Si no está en sessionStorage, buscar en pedidos_local
+        const pedidosRaw = localStorage.getItem('pedidos_local');
+        if (pedidosRaw) {
+          const pedidos = JSON.parse(pedidosRaw);
+          const orden = pedidos.find(p => p.id === ordenId);
+          if (orden) {
+            setDisplayedOrder(orden);
+            setPagoExitoso(!isError && !orden.error);
+            return;
+          }
+        }
+      }
+
+      // 2. Intentar obtener desde navigation state
       const state = location.state || {};
       if (state && state.orden) {
         setDisplayedOrder(state.orden);
+        setPagoExitoso(!state.orden.error);
       }
-    } catch (err) {}
-  }, [location.state]);
+    } catch (err) {
+      console.error('Error cargando orden:', err);
+      setPagoExitoso(false);
+    }
+  }, [location.search, location.state]);
 
   if (displayedOrder) {
     // sobrescribir los valores por los de la orden recibida
@@ -149,7 +184,21 @@ export default function Boleta() {
 
   return (
     <div className="container py-4">
-      <div className="card p-4">
+      <div className="card p-4 mx-auto" style={{ maxWidth: "800px" }}>
+        <div className="text-center mb-4">
+          <img
+            src="/src/assets/img/logo.png"
+            alt="Logo"
+            style={{ width: "100px" }}
+            className="mb-2"
+          />
+          <h2 className="mb-0">Pastelería 1000 Sabores</h2>
+          <p className="text-muted small mb-0">RUT: 76.XXX.XXX-X</p>
+          <p className="text-muted small">
+            Dirección: Av. Example 123, Santiago
+          </p>
+        </div>
+        <hr className="my-4" />
         {pagoExitoso ? (
           <div className="mb-3">
             <h4 className="text-success">✅ Compra realizada</h4>
@@ -159,25 +208,75 @@ export default function Boleta() {
             </small>
           </div>
         ) : (
-          <div className="mb-3">
-            <h4 className="text-danger">❌ Pago fallido</h4>
-            <button
-              className="btn btn-warning"
-              onClick={() => setPagoExitoso(true)}
-            >
-              Reintentar pago
-            </button>
+          <div className="mb-4">
+            <div className="alert alert-danger">
+              <h4 className="alert-heading">❌ Error en el pago</h4>
+              <p className="mb-1">
+                {displayedOrder?.mensajeError || "No se pudo completar el pago"}
+              </p>
+              {displayedOrder?.errores && displayedOrder.errores.length > 0 && (
+                <ul className="mb-1 small">
+                  {displayedOrder.errores.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              )}
+              <hr />
+              <div className="d-flex gap-2">
+                <button
+                  className="btn btn-danger"
+                  onClick={() => window.close()}
+                >
+                  Cerrar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    window.opener?.location.href = '/pago';
+                    window.close();
+                  }}
+                >
+                  Volver al pago
+                </button>
+              </div>
+            </div>
           </div>
         )}
-
-        <section className="mb-3">
-          <h5>Cliente</h5>
-          <p>
-            <strong>{cliente.nombre}</strong>
-            {cliente.correo && <span> — {cliente.correo}</span>}
-          </p>
-        </section>
-
+        <section className="mb-4">
+          <h5 className="border-bottom pb-2">Información del Cliente</h5>
+          <div className="row">
+            <div className="col-md-6">
+              <p className="mb-2">
+                <strong>Nombre:</strong> {cliente.nombre}
+              </p>
+              {cliente.correo && (
+                <p className="mb-2">
+                  <strong>Email:</strong> {cliente.correo}
+                </p>
+              )}
+            </div>
+            <div className="col-md-6">
+              <p className="mb-2">
+                <strong>Fecha:</strong>{" "}
+                {displayedOrder
+                  ? new Date(displayedOrder.fecha).toLocaleDateString("es-CL", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : new Date().toLocaleDateString("es-CL", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+              </p>
+              <p className="mb-2">
+                <strong>Nº Boleta:</strong>{" "}
+                {displayedOrder ? displayedOrder.id : `ORDER-${Date.now()}`}
+              </p>
+            </div>
+          </div>
+        </section>{" "}
         <section className="mb-3">
           <h5>Items</h5>
           {items.length === 0 ? (
@@ -209,43 +308,99 @@ export default function Boleta() {
             </table>
           )}
         </section>
+        <section className="mb-4">
+          <div className="card bg-light">
+            <div className="card-body">
+              <div className="row text-end">
+                <div className="col-7 col-md-9 text-end">
+                  <p className="mb-2">Subtotal:</p>
+                  <p className="mb-2">IVA (19%):</p>
+                  <h5 className="mb-0 fw-bold">Total:</h5>
+                </div>
+                <div className="col-5 col-md-3 text-end">
+                  <p className="mb-2">
+                    ${Number(subtotal).toLocaleString("es-CL")}
+                  </p>
+                  <p className="mb-2">
+                    ${Number(impuestos).toLocaleString("es-CL")}
+                  </p>
+                  <h5 className="mb-0 fw-bold text-success">
+                    ${Number(total).toLocaleString("es-CL")}
+                  </h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>{" "}
+        <div className="border-top pt-3 mt-4">
+          <div className="row">
+            <div className="col-12 col-md-6">
+              <div className="d-flex flex-column gap-2">
+                <button
+                  className="btn btn-secondary d-flex align-items-center justify-content-center gap-2"
+                  onClick={() => window.print()}
+                >
+                  <i className="bi bi-printer"></i>
+                  Imprimir boleta
+                </button>
+                <button
+                  className="btn btn-primary d-flex align-items-center justify-content-center gap-2"
+                  onClick={() => navigate("/pedidos")}
+                >
+                  <i className="bi bi-box"></i>
+                  Ver mis pedidos
+                </button>
+              </div>
+            </div>
+            <div className="col-12 col-md-6 mt-3 mt-md-0">
+              <div className="card bg-light">
+                <div className="card-body">
+                  <h6 className="card-title">Información importante:</h6>
+                  <ul className="small mb-0">
+                    <li>
+                      Guarda esta boleta para cualquier cambio o devolución
+                    </li>
+                    <li>Plazo máximo para cambios: 10 días hábiles</li>
+                    <li>Para consultas: contacto@pasteleria1000.cl</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <section className="text-end">
-          <p>Subtotal: ${Number(subtotal).toLocaleString("es-CL")}</p>
-          <p>Impuestos (19%): ${Number(impuestos).toLocaleString("es-CL")}</p>
-          <h5>Total: ${Number(total).toLocaleString("es-CL")}</h5>
-        </section>
-
-        <div className="d-flex gap-2 mt-3">
-          <button className="btn btn-secondary" onClick={() => window.print()}>
-            Imprimir boleta
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              // ejemplo simple: limpiar carrito y mostrar mensaje
-              localStorage.removeItem("pasteleria_cart");
-              window.dispatchEvent(new Event("storage"));
-              setPagoExitoso(true);
-              alert("Gracias por tu compra");
-            }}
-          >
-            Finalizar
-          </button>
-
-          {/* Ver mi pedido: navegar a /pedidos pasando el id de la orden si existe */}
-          <button
-            className="btn btn-outline-primary"
-            onClick={() =>
-              navigate("/pedidos", {
-                state: { orderId: displayedOrder ? displayedOrder.id : null },
-              })
-            }
-          >
-            Ver mi pedido
-          </button>
+          <div className="text-center mt-4">
+            <h5 className="text-success mb-2">¡Gracias por tu compra!</h5>
+            <p className="text-muted small mb-0">
+              Tu pedido ha sido registrado con éxito.
+              <br />
+              Recibirás un correo con los detalles de tu compra.
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Estilos para impresión */}
+      <style type="text/css" media="print">
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            .card, .card * {
+              visibility: visible;
+            }
+            .card {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+            }
+            .btn, .no-print {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
     </div>
   );
 }

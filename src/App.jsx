@@ -33,6 +33,7 @@ import AdminUsuarios from "./Admin/UsuariosAdmin";
 import AdminPasteles from "./Admin/AdminPastel";
 import AdminReportes from "./Admin/Reportes";
 import AdminOrdenes from "./Admin/AdminOrdenes";
+import AdminCategoria from "./Admin/AdminCategoria";
 
 // Guards
 import RequireAuth from "./components/RequireAuth.jsx";
@@ -89,6 +90,14 @@ function App() {
           }
         />
         <Route path="/admin/reportes" element={<AdminReportes />} />
+        <Route
+          path="/admin/categorias"
+          element={
+            <RequireAdmin>
+              <AdminCategoria />
+            </RequireAdmin>
+          }
+        />
 
         <Route
           path="/perfil"

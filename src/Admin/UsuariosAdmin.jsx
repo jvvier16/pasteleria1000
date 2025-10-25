@@ -64,35 +64,43 @@ export default function AdminUsuarios() {
     }
   }, []);
 
-  // 🔗 Combinar JSON + Local, marcando origen para la UI
-  const usuariosJsonMarcados = useMemo(
-    () => (usuariosData || []).map((u) => ({ ...u, _origen: "json" })),
-    []
-  );
-  const usuariosLocalMarcados = useMemo(
-    () => (usuariosLocal || []).map((u) => ({ ...u, _origen: "local" })),
-    [usuariosLocal]
-  );
-  const usuariosTodos = useMemo(
-    () => [...usuariosJsonMarcados, ...usuariosLocalMarcados],
-    [usuariosJsonMarcados, usuariosLocalMarcados]
-  );
+  // Todos los usuarios están en localStorage y son editables
+  const usuariosTodos = useMemo(() => {
+    return usuariosLocal;
+  }, [usuariosLocal]);
 
-  // 🗑️ Eliminar usuario LOCAL (confirm + actualización en vivo)
+  // 🗑️ Eliminar cualquier usuario (con confirmación)
   const handleEliminar = (id) => {
-    const u = usuariosLocal.find((x) => x.id === id);
-    if (!u) return; // no es local o no existe
-    if (!window.confirm(`¿Eliminar a ${u.nombre} ${u.apellido || ""}?`)) return;
+    // No permitir eliminar al admin principal
+    if (id === 7) {
+      alert("No se puede eliminar la cuenta de administrador principal");
+      return;
+    }
+
+    const u = usuariosTodos.find((x) => x.id === id);
+    if (!u) return;
+
+    if (
+      !window.confirm(
+        `¿Seguro que deseas eliminar a ${u.nombre} ${u.apellido || ""}?`
+      )
+    )
+      return;
 
     const next = usuariosLocal.filter((x) => x.id !== id);
     setUsuariosLocal(next);
     localStorage.setItem("usuarios_local", JSON.stringify(next));
-    // NO cerrar sesión aunque se borre al usuario logueado
+
+    // Mostrar confirmación
+    alert(`Usuario ${u.nombre} eliminado correctamente`);
   };
 
-  // ✏️ Abrir modal para editar usuario LOCAL
+  // ✏️ Abrir modal para editar usuario LOCAL o del JSON (se convertirá en local al editar)
   const handleEditar = (id) => {
-    const u = usuariosLocal.find((x) => x.id === id);
+    // Buscar primero en local, luego en el array combinado
+    const u =
+      usuariosLocal.find((x) => x.id === id) ||
+      usuariosTodos.find((x) => x.id === id);
     if (!u) return;
 
     setEditId(id);
@@ -131,7 +139,7 @@ export default function AdminUsuarios() {
     return !isNaN(d.getTime());
   };
 
-  // 💾 Guardar cambios del usuario LOCAL (sin contraseña ni role)
+  // 💾 Guardar cambios del usuario
   const handleGuardar = (e) => {
     e.preventDefault();
     // Validaciones mínimas
@@ -154,19 +162,26 @@ export default function AdminUsuarios() {
     }
 
     // Actualizar y persistir
-    const next = usuariosLocal.map((u) =>
-      u.id === editId
-        ? {
-            ...u,
-            nombre: editForm.nombre.trim(),
-            apellido: (editForm.apellido || "").trim(),
-            correo: editForm.correo.trim(),
-            fechaNacimiento: editForm.fechaNacimiento || "",
-            direccion: (editForm.direccion || "").trim(),
-            // role NO se edita — se mantiene
-          }
-        : u
-    );
+    const usuarioOriginal =
+      usuariosLocal.find((u) => u.id === editId) ||
+      usuariosTodos.find((u) => u.id === editId);
+    const usuarioEditado = {
+      id: editId,
+      nombre: editForm.nombre.trim(),
+      apellido: (editForm.apellido || "").trim(),
+      correo: editForm.correo.trim(),
+      fechaNacimiento: editForm.fechaNacimiento || "",
+      direccion: (editForm.direccion || "").trim(),
+      // Mantener role y contraseña del usuario original
+      role: usuarioOriginal?.role || "user",
+      contrasena: usuarioOriginal?.contrasena || "",
+    };
+
+    // Si no existe en local, agregar; si existe, actualizar
+    const existeEnLocal = usuariosLocal.some((u) => u.id === editId);
+    const next = existeEnLocal
+      ? usuariosLocal.map((u) => (u.id === editId ? usuarioEditado : u))
+      : [...usuariosLocal, usuarioEditado];
 
     setUsuariosLocal(next);
     localStorage.setItem("usuarios_local", JSON.stringify(next));
@@ -203,39 +218,29 @@ export default function AdminUsuarios() {
                   <td>{u.id}</td>
                   <td>
                     {u.nombre} {u.apellido || ""}
-                    {u._origen === "json" && (
-                      <small className="text-muted ms-2">(Base)</small>
-                    )}
-                    {u._origen === "local" && (
-                      <small className="text-success ms-2">(Local)</small>
-                    )}
                   </td>
                   <td>{u.correo}</td>
                   <td>{u.role}</td>
                   <td>{u.direccion || "-"}</td>
                   <td>{u.fechaNacimiento || "-"}</td>
                   <td>
-                    {/* Solo locales tienen acciones */}
-                    {esLocal ? (
-                      <div className="d-flex gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-secondary"
-                          onClick={() => handleEditar(u.id)}
-                        >
-                          Editar
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleEliminar(u.id)}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    ) : (
-                      <small className="text-muted">(No editable)</small>
-                    )}
+                    {/* Todos los usuarios son editables y eliminables */}
+                    <div className="d-flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => handleEditar(u.id)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleEliminar(u.id)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

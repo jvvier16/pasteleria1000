@@ -104,7 +104,37 @@ export default function Pago() {
 
   const onSubmit = (ev) => {
     ev.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      // Si hay errores de validación, redirigir a boleta de error
+      const errorOrden = {
+        id: `ERR-${Date.now()}`,
+        fecha: new Date().toISOString(),
+        error: true,
+        mensajeError: "Error en la validación del formulario de pago",
+        errores: Object.values(errors),
+        cliente: (() => {
+          try {
+            const rawSession = localStorage.getItem("session_user");
+            if (rawSession) {
+              const s = JSON.parse(rawSession);
+              return {
+                nombre: s.nombre || "Cliente",
+                correo: s.correo || s.email || "",
+              };
+            }
+          } catch {}
+          return { nombre: "Cliente", correo: "" };
+        })(),
+      };
+
+      // Guardar en sessionStorage y abrir boleta de error
+      sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
+      window.open(
+        `/boleta?orden=${errorOrden.id}&error=true&timestamp=${Date.now()}`,
+        "_blank"
+      );
+      return;
+    }
     // Simular pago exitoso: crear boleta/orden y guardarla en localStorage
     try {
       // leer carrito
@@ -166,13 +196,26 @@ export default function Pago() {
       localStorage.removeItem("pasteleria_cart");
       window.dispatchEvent(new Event("storage"));
 
-      // mostrar confirmación breve antes de navegar a la boleta
+      // Mostrar confirmación y abrir boleta en nueva ventana
       setShowConfirmation(true);
-      // mostrar toast por 800ms, ocultarlo y luego navegar (pequeño delay para que el toast desaparezca)
+
+      // Guardar la orden en sessionStorage para que esté disponible en la nueva ventana
+      sessionStorage.setItem("ultima_orden", JSON.stringify(orden));
+
+      // Abrir boleta en nueva ventana
+      const boletaUrl = `/boleta?orden=${orden.id}&timestamp=${Date.now()}`;
+      window.open(boletaUrl, "_blank");
+
+      // Mostrar toast y redireccionar a la página principal después de un breve delay
       setTimeout(() => {
         setShowConfirmation(false);
         setTimeout(() => {
-          navigate("/boleta", { state: { pagoExitoso: true, orden } });
+          navigate("/", {
+            state: {
+              message:
+                "¡Pago exitoso! La boleta se ha abierto en una nueva ventana.",
+            },
+          });
         }, 180);
       }, 800);
     } catch (err) {
