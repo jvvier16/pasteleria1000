@@ -96,8 +96,7 @@ const Categorias = () => {
         {categorias.map((cat) => (
           <div
             key={cat.id}
-            className="card text-center shadow-sm"
-            style={{ width: "8rem" }}
+            className="card text-center shadow-sm fixed-width-8rem"
           >
             <img
               src={

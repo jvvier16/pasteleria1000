@@ -58,9 +58,8 @@ const Ofertas = () => {
               <div className="card h-100 shadow-sm">
                 <img
                   src={p.imageUrl || "https://via.placeholder.com/300"}
-                  className="card-img-top"
+                  className="card-img-top img-cover-height-180"
                   alt={p.nombre}
-                  style={{ objectFit: "cover", height: 180 }}
                 />
                 <div className="card-body text-center">
                   <h6 className="card-title">{p.nombre}</h6>

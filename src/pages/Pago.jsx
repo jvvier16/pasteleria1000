@@ -49,13 +49,40 @@ export default function Pago() {
 
   const cardType = detectCardType(number);
   const formattedNumber = formatCardNumber(number);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const getMaxDigitsFor = (type) => {
+    if (type === "amex") return 15;
+    if (type === "visa" || type === "mastercard") return 16;
+    return 19; // fallback
+  };
+
+  const handleNumberChange = (e) => {
+    const raw = onlyDigits(e.target.value);
+    // detectar tipo provisional desde los dígitos introducidos
+    const type = detectCardType(raw);
+    const max = getMaxDigitsFor(type);
+    setNumber(raw.slice(0, max));
+  };
+
+  const formatExpiryInput = (val) => {
+    const d = onlyDigits(val).slice(0, 4); // MMYY
+    if (d.length <= 2) return d;
+    return d.slice(0, 2) + "/" + d.slice(2);
+  };
+
+  const handleExpiryChange = (e) => {
+    const formatted = formatExpiryInput(e.target.value);
+    setExpiry(formatted);
+  };
 
   const validate = () => {
     const e = {};
     if (!name.trim()) e.name = "Ingresa el nombre que aparece en la tarjeta";
 
     const digits = onlyDigits(number);
-    if (digits.length < 13 || digits.length > 19 || !luhnCheck(number))
+    // No validar Luhn aquí (proyecto educativo): solo comprobar longitud razonable
+    if (digits.length < 13 || digits.length > 19)
       e.number = "Número de tarjeta inválido";
 
     if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(expiry)) e.expiry = "Formato MM/AA";
@@ -139,8 +166,15 @@ export default function Pago() {
       localStorage.removeItem("pasteleria_cart");
       window.dispatchEvent(new Event("storage"));
 
-      // navegar a boleta para mostrar la boleta recién creada
-      navigate("/boleta", { state: { pagoExitoso: true } });
+      // mostrar confirmación breve antes de navegar a la boleta
+      setShowConfirmation(true);
+      // mostrar toast por 800ms, ocultarlo y luego navegar (pequeño delay para que el toast desaparezca)
+      setTimeout(() => {
+        setShowConfirmation(false);
+        setTimeout(() => {
+          navigate("/boleta", { state: { pagoExitoso: true, orden } });
+        }, 180);
+      }, 800);
     } catch (err) {
       console.error("Error guardando boleta", err);
       alert(
@@ -182,7 +216,7 @@ export default function Pago() {
                   className="form-control"
                   id="numero"
                   value={formattedNumber}
-                  onChange={(e) => setNumber(onlyDigits(e.target.value))}
+                  onChange={handleNumberChange}
                   inputMode="numeric"
                   placeholder="1234 5678 9012 3456"
                 />
@@ -202,7 +236,8 @@ export default function Pago() {
                     id="expira"
                     placeholder="MM/AA"
                     value={expiry}
-                    onChange={(e) => setExpiry(e.target.value)}
+                    onChange={handleExpiryChange}
+                    maxLength={5}
                   />
                   {errors.expiry && (
                     <div className="field-error">{errors.expiry}</div>
@@ -229,14 +264,44 @@ export default function Pago() {
               <button type="submit" className="btn btn-success w-100">
                 Pagar
               </button>
+
+              {/* Toast fijo en la esquina superior derecha */}
+              {showConfirmation && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  style={{
+                    position: "fixed",
+                    top: 20,
+                    right: 20,
+                    zIndex: 2000,
+                    minWidth: 240,
+                  }}
+                >
+                  <div className="toast show bg-success text-white p-2 shadow">
+                    <div className="d-flex align-items-center justify-content-between">
+                      <div>
+                        <strong>Pago procesado</strong>
+                        <div className="small">Redirigiendo a boleta…</div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white"
+                        aria-label="Cerrar"
+                        onClick={() => setShowConfirmation(false)}
+                      ></button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
 
           <div>
             <div className="card-preview">
               <div className="d-flex justify-content-between align-items-start">
-                <img src={logo} alt="logo" style={{ height: 28 }} />
-                <span style={{ textTransform: "capitalize" }}>{cardType}</span>
+                <img src={logo} alt="logo" className="logo-small" />
+                <span className="text-capitalize">{cardType}</span>
               </div>
               <div className="number">
                 {formattedNumber || "#### #### #### ####"}

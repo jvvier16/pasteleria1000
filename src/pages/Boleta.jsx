@@ -1,11 +1,13 @@
 // Boleta: muestra el resumen de la compra y persiste la orden en `pedidos_local` si
 // el pago se marca como exitoso en navigation state.
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import pasteles from "../data/Pasteles.json";
 export default function Boleta() {
   const [pagoExitoso, setPagoExitoso] = useState(true);
   const [cliente, setCliente] = useState({ nombre: "Cliente", correo: "" });
+  const [displayedOrder, setDisplayedOrder] = useState(null);
+  const navigate = useNavigate();
 
   // leer carrito de localStorage
   const cart = useMemo(() => {
@@ -31,9 +33,43 @@ export default function Boleta() {
     });
   }, [cart]);
 
-  const subtotal = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
-  const impuestos = Number((subtotal * 0.19).toFixed(2));
-  const total = subtotal + impuestos;
+  let subtotal = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+  let impuestos = Number((subtotal * 0.19).toFixed(2));
+  let total = subtotal + impuestos;
+
+  // Si se pasó una orden completa por navigation state, usarla para mostrar datos
+  useEffect(() => {
+    try {
+      const state = location.state || {};
+      if (state && state.orden) {
+        setDisplayedOrder(state.orden);
+      }
+    } catch (err) {}
+  }, [location.state]);
+
+  if (displayedOrder) {
+    // sobrescribir los valores por los de la orden recibida
+    if (Array.isArray(displayedOrder.items)) {
+      // mapear items si vienen con campos mínimos
+      const ordItems = displayedOrder.items.map((it) => ({
+        id: it.id,
+        nombre:
+          it.nombre ||
+          (pasteles.find((p) => Number(p.id) === Number(it.id)) || {}).nombre ||
+          "Producto",
+        cantidad: it.cantidad || it.cantidad || 1,
+        precio: Number(it.precio || 0),
+      }));
+      // usar estos items para render
+      // re-calcular subtotal/impuestos/total basados en la orden (si vienen, preferirlos)
+      subtotal =
+        displayedOrder.subtotal ??
+        ordItems.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+      impuestos =
+        displayedOrder.impuestos ?? Number((subtotal * 0.19).toFixed(2));
+      total = displayedOrder.total ?? subtotal + impuestos;
+    }
+  }
 
   useEffect(() => {
     // intentar leer datos mínimos del cliente desde session_user
@@ -58,8 +94,25 @@ export default function Boleta() {
       const state = location.state || {};
       if (typeof state.pagoExitoso === "boolean")
         setPagoExitoso(state.pagoExitoso);
-      // si fue exitoso, grabar la orden en pedidos_local y limpiar carrito
-      if (state.pagoExitoso === true && items.length > 0) {
+
+      // Si el pago fue exitoso y el navegador envió la orden en el state, usarla
+      // para mostrar la boleta. Esto evita depender del carrito que puede ya
+      // haber sido limpiado por el flujo de pago.
+      if (state.pagoExitoso === true && state.orden) {
+        // Mostrar la orden enviada por Pago
+        const o = state.orden;
+        // Si items vienen en la orden, sobreescribimos el contenido mostrado
+        // (no volveremos a persistirla para evitar duplicados).
+        // Reemplazamos los items locales temporalmente para la visualización.
+        // Nota: no modificamos pedidos_local aquí porque Pago ya lo guardó.
+        // Limpiar carrito local para reflejar que la compra fue completada.
+        try {
+          localStorage.removeItem("pasteleria_cart");
+        } catch {}
+        window.dispatchEvent(new Event("storage"));
+      } else if (state.pagoExitoso === true && items.length > 0) {
+        // Backward-compat: si no recibimos la orden pero el carrito tiene items,
+        // persistir la orden aquí.
         const orden = {
           id: `ORD-${Date.now()}`,
           fecha: new Date().toISOString(),
@@ -100,7 +153,10 @@ export default function Boleta() {
         {pagoExitoso ? (
           <div className="mb-3">
             <h4 className="text-success">✅ Compra realizada</h4>
-            <small>Código orden: ORDER-{Date.now()}</small>
+            <small>
+              Código orden:{" "}
+              {displayedOrder ? displayedOrder.id : `ORDER-${Date.now()}`}
+            </small>
           </div>
         ) : (
           <div className="mb-3">
@@ -175,6 +231,18 @@ export default function Boleta() {
             }}
           >
             Finalizar
+          </button>
+
+          {/* Ver mi pedido: navegar a /pedidos pasando el id de la orden si existe */}
+          <button
+            className="btn btn-outline-primary"
+            onClick={() =>
+              navigate("/pedidos", {
+                state: { orderId: displayedOrder ? displayedOrder.id : null },
+              })
+            }
+          >
+            Ver mi pedido
           </button>
         </div>
       </div>

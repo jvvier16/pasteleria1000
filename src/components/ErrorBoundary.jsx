@@ -39,13 +39,11 @@ class ErrorBoundary extends React.Component {
             {info && info.componentStack && (
               <details>
                 <summary>Detalles del stack</summary>
-                <pre style={{ whiteSpace: "pre-wrap" }}>
-                  {info.componentStack}
-                </pre>
+                <pre className="pre-wrap">{info.componentStack}</pre>
               </details>
             )}
           </div>
-          <p style={{ marginTop: 12 }}>
+          <p className="mt-12">
             Recomendación: abre la consola del navegador (F12) y copia el error
             completo aquí para que lo revise.
           </p>

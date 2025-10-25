@@ -36,9 +36,9 @@ const AdminDashboard = () => {
   const probAumento = 20;
 
   return (
-    <div className="d-flex bg-muted" style={{ minHeight: "100vh" }}>
+    <div className="d-flex bg-muted admin-min-vh">
       {/* Sidebar */}
-      <div className="bg-white border-end p-3" style={{ width: "250px" }}>
+      <div className="bg-white border-end p-3 admin-sidebar-width">
         <h4 className="text-center mb-4 text-primary fw-bold">Panel Admin</h4>
         <ul className="nav flex-column">
           <li className="nav-item">
@@ -109,9 +109,7 @@ const AdminDashboard = () => {
 
         <div className="mt-auto">
           <div className="d-flex align-items-center mb-3">
-            <span style={{ fontSize: 24 }} className="me-2 text-secondary">
-              👤
-            </span>
+            <span className="fs-4 me-2 text-secondary">👤</span>
             <NavLink to="/perfil" className="text-dark">
               Perfil
             </NavLink>
@@ -141,7 +139,7 @@ const AdminDashboard = () => {
           <div className="col-md-4">
             <div className="card text-white bg-primary shadow-sm h-100">
               <div className="card-body">
-                <span style={{ fontSize: 28 }}>🛒</span>
+                <span className="fs-2">🛒</span>
                 <h4 className="mt-3">Compras</h4>
                 <h2>{totalOrdenes}</h2>
                 <small>
@@ -154,7 +152,7 @@ const AdminDashboard = () => {
           <div className="col-md-4">
             <div className="card text-white bg-success shadow-sm h-100">
               <div className="card-body">
-                <span style={{ fontSize: 28 }}>📦</span>
+                <span className="fs-2">📦</span>
                 <h4 className="mt-3">Productos</h4>
                 <h2>{totalProductos}</h2>
                 <small>
@@ -167,7 +165,7 @@ const AdminDashboard = () => {
           <div className="col-md-4">
             <div className="card text-dark bg-warning shadow-sm h-100">
               <div className="card-body">
-                <span style={{ fontSize: 28 }}>👥</span>
+                <span className="fs-2">👥</span>
                 <h4 className="mt-3">Usuarios</h4>
                 <h2>{totalUsuarios}</h2>
                 <small>

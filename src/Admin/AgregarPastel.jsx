@@ -86,7 +86,7 @@ const AgregarPastel = () => {
   return (
     <div className="container py-5">
       <h2 className="text-center mb-4">Agregar nuevo pastel</h2>
-      <div className="card p-4 shadow-sm mx-auto" style={{ maxWidth: "500px" }}>
+      <div className="card p-4 shadow-sm mx-auto card-max-500">
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="form-label">Nombre</label>

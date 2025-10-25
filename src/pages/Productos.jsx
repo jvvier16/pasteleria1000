@@ -2,6 +2,7 @@
 // - Lee la query string `search` para filtrar por nombre/descripcion (normalizado sin tildes).
 // - Resuelve la URL de la imagen basada en el campo `imagen` del JSON.
 import Card from "../components/Card";
+import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
 import pastelesData from "../data/Pasteles.json";
 import { useLocation } from "react-router-dom";
 
@@ -28,8 +29,11 @@ export default function Productos() {
     pastelesLocales = [];
   }
 
-  // 2) Combinar JSON + Local
-  const todosLosPasteles = [...pastelesData, ...pastelesLocales];
+  // 2) Preferir datos locales si existen, sino usar el JSON de assets
+  // Evita concatenar ambos (causa duplicados cuando pasteles_local fue inicializado
+  // previamente con el mismo contenido del JSON).
+  const todosLosPasteles =
+    pastelesLocales && pastelesLocales.length ? pastelesLocales : pastelesData;
 
   // 3) Resolver imagen y filtrar por search
   const productos = todosLosPasteles
@@ -60,8 +64,21 @@ export default function Productos() {
             id={prod.id}
             nombre={prod.nombre}
             imagen={prod.imageUrl}
+            // ocultar la descripción en el listado pero mantener la info de stock en data
+            hideDescription={true}
             descripcion={prod.descripcion || `Stock: ${prod.stock ?? "N/A"}`}
+            stock={prod.stock ?? 0}
             precio={Number(prod.precio)}
+            onAgregar={(p) =>
+              addToCartHelper({
+                id: prod.id,
+                nombre: prod.nombre,
+                precio: Number(prod.precio),
+                imagen: prod.imageUrl,
+                cantidad: 1,
+                stock: prod.stock,
+              })
+            }
           />
         ))}
       </div>

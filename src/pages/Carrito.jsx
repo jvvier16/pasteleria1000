@@ -45,53 +45,13 @@ const Carrito = () => {
   const navigate = useNavigate();
 
   const comprarAhora = () => {
+    // En lugar de crear la orden aquí, redirigimos al flujo de pago
+    // para pedir los datos de la tarjeta y procesar el pago en `/pago`.
     const items = getCart();
     if (!items || items.length === 0) return alert("Tu carrito está vacío");
-    const total = items.reduce(
-      (acc, it) => acc + (Number(it.precio) || 0) * (it.cantidad || 1),
-      0
-    );
-    // leer pedidos existentes
-    let pedidos = [];
-    try {
-      const raw = localStorage.getItem("pedidos_local");
-      pedidos = raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      pedidos = [];
-    }
 
-    // obtener usuario si existe
-    let user = null;
-    try {
-      const rawUser = localStorage.getItem("session_user");
-      user = rawUser ? JSON.parse(rawUser) : null;
-    } catch (err) {
-      user = null;
-    }
-
-    const nextId = pedidos.length
-      ? Math.max(...pedidos.map((p) => p.id)) + 1
-      : 1;
-    const nuevoPedido = {
-      id: nextId,
-      userId: user ? user.id : null,
-      items,
-      total,
-      createdAt: new Date().toISOString(),
-    };
-
-    pedidos.push(nuevoPedido);
-    try {
-      localStorage.setItem("pedidos_local", JSON.stringify(pedidos));
-    } catch (err) {
-      console.error("No se pudo guardar el pedido", err);
-    }
-
-    // limpiar carrito y redirigir
-    clearCart();
-    window.dispatchEvent(new Event("storage"));
-    setCarrito([]);
-    navigate("/pedidos");
+    // navegar a pago; la página `Pago.jsx` leerá el carrito y procesará la orden
+    navigate("/pago");
   };
 
   const total = getTotal();
@@ -124,7 +84,7 @@ const Carrito = () => {
                   <tr key={item.id}>
                     <td>{item.nombre}</td>
                     <td>${Number(item.precio).toLocaleString("es-CL")}</td>
-                    <td style={{ width: "90px" }}>
+                    <td className="td-qty">
                       <input
                         type="number"
                         min="1"

@@ -128,10 +128,8 @@ const Registro = () => {
 
   return (
     <div className="d-flex justify-content-center align-items-center vh-100 bg-muted">
-      <div className="p-4 rounded-4 shadow bg-white" style={{ width: "380px" }}>
-        <h3 className="text-center mb-4" style={{ fontFamily: "cursive" }}>
-          Registro
-        </h3>
+      <div className="p-4 rounded-4 shadow bg-white card-max-380">
+        <h3 className="text-center mb-4 font-cursive">Registro</h3>
 
         <form onSubmit={handleSubmit}>
           {/* Nombre */}

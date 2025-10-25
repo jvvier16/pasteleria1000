@@ -16,12 +16,16 @@ import Ofertas from "./pages/Ofertas.jsx";
 import Categorias from "./pages/Categoria.jsx";
 import Contacto from "./pages/ContactoPage.jsx";
 import Pago from "./pages/Pago.jsx";
+import BlogIndex from "./pages/BlogIndex.jsx";
+import BlogUno from "./pages/BlogUno.jsx";
+import BlogDos from "./pages/BlogDos.jsx";
 import Login from "./pages/Login.jsx";
 import Registro from "./pages/Registro.jsx";
 import Nosotros from "./pages/Nosotros.jsx";
 import Carrito from "./pages/Carrito.jsx";
 import Perfil from "./pages/Perfil.jsx";
 import Pedidos from "./pages/Pedidos.jsx";
+import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 //admin Pages
 import Admin from "./Admin/Admin.jsx";
 import AgregarPastel from "./Admin/AgregarPastel.jsx";
@@ -41,12 +45,16 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/productos" element={<Productos />} />
+        <Route path="/productos/:id" element={<ProductoDetalle />} />
         <Route path="/categorias" element={<Categorias />} />
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/pago" element={<Pago />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Registro />} />
+        <Route path="/blog" element={<BlogIndex />} />
+        <Route path="/blog/uno" element={<BlogUno />} />
+        <Route path="/blog/dos" element={<BlogDos />} />
         <Route path="/nosotros" element={<Nosotros />} />
         <Route
           path="/admin/pasteles/agregar"

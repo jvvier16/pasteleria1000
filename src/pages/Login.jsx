@@ -26,8 +26,12 @@ export default function Login() {
         localStorage.setItem("usuarios_local", JSON.stringify([]));
       }
 
-      //  COMBINE JSON + LOCAL
-      setUsuarios([...usuariosData, ...usuariosLocal]);
+      // Preferir usuarios locales si existen, sino usar JSON
+      // Evitamos concatenar ambos para prevenir duplicados cuando
+      // `usuarios_local` contiene ya las entradas del JSON.
+      setUsuarios(
+        usuariosLocal && usuariosLocal.length ? usuariosLocal : usuariosData
+      );
     } catch (err) {
       console.error("Error cargando usuarios", err);
       setUsuarios(usuariosData);
@@ -113,16 +117,12 @@ export default function Login() {
 
   return (
     <div className="d-flex justify-content-center align-items-center min-vh-100">
-      <div
-        className="card p-4 shadow login-card"
-        style={{ maxWidth: 420, width: "100%", borderRadius: "1rem" }}
-      >
+      <div className="card p-4 shadow login-card card-max-420">
         <div className="login-header mb-3">
           <img
             src={new URL("../assets/img/logo.png", import.meta.url).href}
             alt="logo"
-            className="mx-auto d-block"
-            style={{ width: "100px" }}
+            className="mx-auto d-block logo-100"
           />
         </div>
 

@@ -64,6 +64,27 @@
 /* asegurar que los hijos (p. ej. componentes con clases col-*) ocupen todo el ancho del grid cell */
 .cards-grid > * { width: 100%; }
 
+/* === UTILS MIGRADOS DESDE STYLES INLINE === */
+.avatar-small { width: 34px; height: 34px; object-fit: cover; }
+.avatar-placeholder { width: 34px; height: 34px; }
+.card-max-420 { max-width: 420px; width: 100%; border-radius: 1rem; }
+.card-max-500 { max-width: 500px; width: 100%; }
+.card-max-380 { width: 380px; }
+.logo-100 { width: 100px; }
+.logo-small { height: 28px; }
+.td-qty { width: 90px; }
+.img-cover-height-180 { object-fit: cover; height: 180px; }
+.font-cursive { font-family: cursive; }
+.fixed-width-8rem { width: 8rem; }
+.card-fixed-height-180 { height: 180px; }
+.pre-wrap { white-space: pre-wrap; }
+.nowrap { white-space: nowrap; }
+.th-width-160 { width: 160px; }
+.admin-sidebar-width { width: 250px; }
+.admin-min-vh { min-height: 100vh; }
+.mt-12 { margin-top: 12px; }
+
+
 /* Styles for header/navbar layout */
 header .container {
 	display: flex;

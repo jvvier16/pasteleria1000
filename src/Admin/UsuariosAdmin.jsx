@@ -186,13 +186,13 @@ export default function AdminUsuarios() {
         <table className="table table-striped table-bordered align-middle">
           <thead className="table-dark">
             <tr>
-              <th style={{ whiteSpace: "nowrap" }}>ID</th>
+              <th className="nowrap">ID</th>
               <th>Nombre</th>
               <th>Correo</th>
               <th>Role</th>
               <th>Dirección</th>
               <th>Fecha nacimiento</th>
-              <th style={{ width: 160 }}>Acciones</th>
+              <th className="th-width-160">Acciones</th>
             </tr>
           </thead>
           <tbody>
