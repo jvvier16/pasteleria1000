@@ -1,10 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * @component AdminOrdenes
+ * @description Componente que gestiona la visualización y administración de órdenes de compra.
+ * Muestra un listado de todas las órdenes realizadas con sus detalles y permite eliminarlas.
+ * Solo accesible para usuarios con rol de administrador.
+ * @returns {JSX.Element} Interfaz de administración de órdenes
+ */
 export default function AdminOrdenes() {
+  /** @state {Array} ordenes - Lista de órdenes almacenadas */
   const [ordenes, setOrdenes] = useState([]);
   const navigate = useNavigate();
 
+  /**
+   * @effect
+   * Efecto que maneja:
+   * 1. Protección de ruta (solo admin)
+   * 2. Carga inicial de órdenes
+   * 3. Actualización en tiempo real cuando cambia el localStorage
+   */
   useEffect(() => {
     // proteger ruta: solo admin
     try {
@@ -32,6 +47,11 @@ export default function AdminOrdenes() {
     return () => window.removeEventListener("storage", onStorage);
   }, [navigate]);
 
+  /**
+   * @function handleEliminar
+   * @description Maneja la eliminación de una orden específica
+   * @param {string} id - ID de la orden a eliminar
+   */
   const handleEliminar = (id) => {
     if (!window.confirm("Eliminar orden?")) return;
     try {

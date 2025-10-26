@@ -1,9 +1,32 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import pastelesData from "../data/Pasteles.json"; // Ajusta la ruta si es distinta
+import pastelesData from "../data/Pasteles.json";
 
+/**
+ * @component AgregarPastel
+ * @description Componente que proporciona un formulario para agregar nuevos pasteles al sistema.
+ * Permite a los administradores crear nuevos productos con detalles como:
+ * - Nombre y descripción
+ * - Precio y stock
+ * - Categoría
+ * - URL de imagen
+ *
+ * Solo accesible para usuarios con rol de administrador.
+ * @returns {JSX.Element} Formulario de creación de pasteles
+ */
 const AgregarPastel = () => {
   const navigate = useNavigate();
+
+  /**
+   * @state {Object} formData - Datos del formulario para crear un nuevo pastel
+   * @property {string} nombre - Nombre del pastel
+   * @property {string} descripcion - Descripción detallada
+   * @property {string} precio - Precio de venta
+   * @property {string} categoria - Categoría del pastel
+   * @property {string} stock - Cantidad disponible inicial
+   * @property {string} stockCritico - Nivel de alerta de stock bajo
+   * @property {string} imagen - URL de la imagen del pastel
+   */
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",
@@ -59,10 +82,22 @@ const AgregarPastel = () => {
     }
   }, [navigate]);
 
+  /**
+   * @function handleChange
+   * @description Maneja los cambios en los campos del formulario
+   * Actualiza el estado formData con los nuevos valores
+   * @param {Event} e - Evento del campo de formulario
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  /**
+   * @function handleSubmit
+   * @description Maneja el envío del formulario
+   * Realiza validaciones, crea un nuevo pastel y lo guarda en localStorage
+   * @param {Event} e - Evento del formulario
+   */
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");

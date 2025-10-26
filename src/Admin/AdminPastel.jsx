@@ -3,19 +3,35 @@ import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import pastelesData from "../data/Pasteles.json";
 
-// 🧁 Panel Admin de Pasteles
-// - Muestra TODOS (JSON + LocalStorage)
-// - Solo los del LocalStorage se pueden editar/eliminar
-// - Edición en Modal de Bootstrap (nombre, descripcion, precio, stock, categoria)
-
+/**
+ * @component AdminPasteles
+ * @description Panel de administración de pasteles que permite:
+ * - Visualizar todos los pasteles (tanto de JSON como LocalStorage)
+ * - Editar o eliminar pasteles almacenados en LocalStorage
+ * - Gestionar pasteles mediante un modal de Bootstrap
+ * - Controlar stock y categorías
+ *
+ * Solo accesible para usuarios con rol de administrador
+ * @returns {JSX.Element} Panel de administración de pasteles
+ */
 export default function AdminPasteles() {
   const navigate = useNavigate();
 
-  // LocalStorage: solo los creados por admin
+  /** @state {Array} pastelesLocal - Lista de pasteles creados por el admin en localStorage */
   const [pastelesLocal, setPastelesLocal] = useState([]);
 
-  // Para edición en modal
+  /** @state {string|null} editId - ID del pastel que se está editando actualmente */
   const [editId, setEditId] = useState(null);
+
+  /**
+   * @state {Object} editForm - Formulario para edición de pasteles
+   * @property {string} nombre - Nombre del pastel
+   * @property {string} descripcion - Descripción del pastel
+   * @property {string} precio - Precio del pastel
+   * @property {string} stock - Cantidad disponible
+   * @property {string} stockCritico - Nivel de stock para alertas
+   * @property {string} categoria - Categoría del pastel
+   */
   const [editForm, setEditForm] = useState({
     nombre: "",
     descripcion: "",
@@ -96,7 +112,11 @@ export default function AdminPasteles() {
     });
   }, []);
 
-  // Marcar origen local
+  /**
+   * @function localesMarcados
+   * @description Marca los pasteles del localStorage con origen "local"
+   * @returns {Array} Lista de pasteles con origen marcado
+   */
   const localesMarcados = useMemo(() => {
     return (pastelesLocal || []).map((p) => ({
       ...p,
@@ -110,7 +130,11 @@ export default function AdminPasteles() {
   //   queremos permitir editar/Eliminar los que fueron creados localmente.
   const todos = useMemo(() => localesMarcados || [], [localesMarcados]);
 
-  // 🧹 Eliminar (solo local)
+  /**
+   * @function handleEliminar
+   * @description Elimina un pastel del localStorage después de confirmar
+   * @param {string} id - ID del pastel a eliminar
+   */
   const handleEliminar = (id) => {
     const pastel = pastelesLocal.find((p) => p.id === id);
     if (!pastel) return; // no es local o no existe
@@ -122,7 +146,12 @@ export default function AdminPasteles() {
     localStorage.setItem("pasteles_local", JSON.stringify(next));
   };
 
-  // ✏️ Abrir modal para Editar (solo local)
+  /**
+   * @function handleEditar
+   * @description Abre el modal de edición para un pastel específico
+   * Carga los datos del pastel en el formulario de edición
+   * @param {string} id - ID del pastel a editar
+   */
   const handleEditar = (id) => {
     const pastel = pastelesLocal.find((p) => p.id === id);
     if (!pastel) return;
@@ -155,7 +184,12 @@ export default function AdminPasteles() {
     }
   };
 
-  // 💾 Guardar cambios (localStorage + estado) y cerrar modal
+  /**
+   * @function handleGuardar
+   * @description Guarda los cambios del formulario de edición
+   * Valida los datos antes de guardar y actualiza tanto el estado como localStorage
+   * @param {Event} e - Evento del formulario
+   */
   const handleGuardar = (e) => {
     e.preventDefault();
 

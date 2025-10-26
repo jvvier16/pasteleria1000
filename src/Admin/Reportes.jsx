@@ -1,10 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+/**
+ * @component AdminReportes
+ * @description Componente que gestiona la visualización y administración de los mensajes de contacto.
+ * Permite a los administradores ver, eliminar mensajes individuales o todos los mensajes.
+ * Solo accesible para usuarios con rol de administrador.
+ * @returns {JSX.Element} Interfaz de administración de reportes de contacto
+ */
 export default function AdminReportes() {
+  /** @state {Array} mensajes - Lista de mensajes de contacto almacenados */
   const [mensajes, setMensajes] = useState([]);
   const navigate = useNavigate();
 
+  /**
+   * @effect
+   * Efecto que maneja:
+   * 1. Protección de ruta (solo admin)
+   * 2. Carga inicial de mensajes
+   * 3. Actualización en tiempo real cuando cambia el localStorage
+   */
   useEffect(() => {
     // proteger ruta: solo admin
     try {
@@ -32,6 +47,11 @@ export default function AdminReportes() {
     return () => window.removeEventListener("storage", onStorage);
   }, [navigate]);
 
+  /**
+   * @function handleEliminar
+   * @description Maneja la eliminación de un mensaje específico
+   * @param {string} id - ID del mensaje a eliminar
+   */
   const handleEliminar = (id) => {
     if (!window.confirm("Eliminar este mensaje?")) return;
     try {
@@ -45,6 +65,11 @@ export default function AdminReportes() {
     }
   };
 
+  /**
+   * @function handleClearAll
+   * @description Elimina todos los mensajes de contacto almacenados
+   * Solicita confirmación antes de realizar la acción
+   */
   const handleClearAll = () => {
     if (!window.confirm("Eliminar todos los mensajes?")) return;
     localStorage.removeItem("reportes_contacto");

@@ -1,4 +1,30 @@
-// src/pages/AdminUsuarios.jsx
+/**
+ * Componente: Administración de Usuarios
+ *
+ * Este componente permite gestionar todos los usuarios del sistema.
+ * Características principales:
+ * - Vista protegida solo para administradores
+ * - Gestión de usuarios locales y del sistema
+ * - CRUD completo de usuarios
+ * - Validaciones en tiempo real
+ * - Persistencia en localStorage
+ * - Interfaz responsive con Bootstrap 5
+ *
+ * Funcionalidades:
+ * - Listado de usuarios con información detallada
+ * - Edición de usuarios mediante modal
+ * - Eliminación con confirmación
+ * - Validaciones de correo y fechas
+ * - Protección de usuarios del sistema
+ * - Mantenimiento de sesiones activas
+ *
+ * Seguridad:
+ * - Validación de rol de administrador
+ * - Protección contra eliminación de admin principal
+ * - Mantenimiento de roles y contraseñas
+ * - Validación de datos sensibles
+ */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import usuariosData from "../data/Usuarios.json";

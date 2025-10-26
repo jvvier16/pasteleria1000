@@ -1,5 +1,24 @@
-// Registro: formulario para crear un nuevo usuario y guardarlo en localStorage.
-// - Valida campos mínimos y evita emails duplicados (compara JSON + usuarios_local).
+/**
+ * Componente: Registro
+ *
+ * Este componente maneja el registro de nuevos usuarios en la aplicación.
+ * Características principales:
+ * - Formulario completo de registro con validaciones
+ * - Verificación de duplicados en JSON y localStorage
+ * - Validación de edad (18+ años)
+ * - Validación de contraseña
+ * - Persistencia en localStorage
+ * - Creación automática de sesión post-registro
+ *
+ * Flujo de registro:
+ * 1. Usuario completa el formulario
+ * 2. Se validan todos los campos
+ * 3. Se verifica que el correo no esté duplicado
+ * 4. Se crea el nuevo usuario con rol "user"
+ * 5. Se guarda en localStorage
+ * 6. Se inicia sesión automáticamente
+ * 7. Se redirige al inicio
+ */
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";

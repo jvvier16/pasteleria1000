@@ -1,6 +1,22 @@
-// Login: formulario de autenticación local.
-// - Combina datos de `Usuarios.json` con `usuarios_local` (localStorage).
-// - En caso de credenciales válidas guarda `session_user` en localStorage con role.
+/**
+ * Componente: Login
+ *
+ * Este componente maneja la autenticación de usuarios en la aplicación.
+ * Características principales:
+ * - Combina usuarios de JSON y localStorage para autenticación
+ * - Validación completa de formularios
+ * - Manejo de sesiones con localStorage
+ * - Redirección basada en roles
+ * - Interfaz de usuario amigable con feedback visual
+ *
+ * Flujo de autenticación:
+ * 1. Usuario ingresa credenciales
+ * 2. Se validan los datos localmente
+ * 3. Se busca el usuario en la base de datos combinada
+ * 4. Se verifica la contraseña
+ * 5. Se crea la sesión y se almacena
+ * 6. Se redirige según el rol del usuario
+ */
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import usuariosData from "../data/Usuarios.json";

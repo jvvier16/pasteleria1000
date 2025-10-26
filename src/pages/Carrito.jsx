@@ -1,5 +1,27 @@
-// Carrito: página para revisar y gestionar los artículos agregados al carrito.
-// - Usa utilitarios de localstorageHelper para manipular el carrito.
+/**
+ * Componente: Carrito de Compras
+ *
+ * Este componente maneja la visualización y gestión del carrito de compras.
+ * Características principales:
+ * - Listado de productos agregados al carrito
+ * - Actualización de cantidades en tiempo real
+ * - Cálculo automático de subtotales y total
+ * - Persistencia en localStorage
+ * - Sincronización entre pestañas
+ * - Redirección al flujo de pago
+ *
+ * Funcionalidades:
+ * - Eliminar productos individuales
+ * - Actualizar cantidades
+ * - Limpiar carrito completo
+ * - Calcular totales
+ * - Proceder al pago
+ *
+ * Integración:
+ * - Usa localstorageHelper para operaciones del carrito
+ * - Se conecta con el flujo de pago
+ * - Maneja formato de moneda en CLP
+ */
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {

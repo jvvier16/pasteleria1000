@@ -1,11 +1,55 @@
+/**
+ * Componente: Pago
+ *
+ * Este componente maneja el proceso de pago con tarjeta de crédito.
+ * Características principales:
+ * - Validación de tarjetas de crédito (Visa, Mastercard, Amex)
+ * - Visualización interactiva de la tarjeta
+ * - Validaciones en tiempo real
+ * - Generación de órdenes
+ * - Manejo de errores
+ * - Redirección a boleta
+ *
+ * Funcionalidades:
+ * - Detección automática del tipo de tarjeta
+ * - Formateo de número de tarjeta según tipo
+ * - Validación de fecha de expiración
+ * - Validación de CVV según tipo de tarjeta
+ * - Generación de boleta electrónica
+ * - Almacenamiento de pedido en localStorage
+ *
+ * Flujo de pago:
+ * 1. Usuario ingresa datos de tarjeta
+ * 2. Se validan todos los campos
+ * 3. Se procesa el pago (simulado)
+ * 4. Se genera la orden
+ * 5. Se limpia el carrito
+ * 6. Se muestra confirmación
+ * 7. Se abre la boleta en nueva ventana
+ * 8. Se redirige al inicio
+ */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
 
-// limpia el número dejando solo dígitos
+/**
+ * Utilidades para el manejo de tarjetas de crédito
+ */
+
+/**
+ * Limpia un string dejando solo dígitos
+ * @param {string} s - String a limpiar
+ * @returns {string} String con solo dígitos
+ */
 const onlyDigits = (s = "") => (s || "").replace(/\D/g, "");
 
-// formatea el número por espacios (AMEX 4-6-5)
+/**
+ * Formatea el número de tarjeta según su tipo
+ * - AMEX: XXXX XXXXXX XXXXX
+ * - Otros: XXXX XXXX XXXX XXXX
+ * @param {string} num - Número de tarjeta sin formato
+ * @returns {string} Número formateado
+ */
 const formatCardNumber = (num = "") => {
   const d = onlyDigits(num);
   if (/^3[47]/.test(d))
