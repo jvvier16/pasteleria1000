@@ -6,6 +6,7 @@
 //   - onEditar(id) y onEliminar(id) (solo se muestran si origen === "local")
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { checkAdmin } from "../utils/adminHelper";
 
 function Card({
   id,
@@ -94,7 +95,7 @@ function Card({
               }`}
             >
               Stock: {stock}
-              {Number(stock) <= stockCritico && stock > 0 && (
+              {Number(stock) <= stockCritico && stock > 0 && checkAdmin() && (
                 <span className="ms-2">⚠️ Stock crítico</span>
               )}
             </p>

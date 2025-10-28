@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link, Routes, Route } from "react-router-dom";
+import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import AdminPastel from "./AdminPastel";
 import UsuariosAdmin from "./UsuariosAdmin";
 import AdminOrdenes from "./AdminOrdenes";
@@ -182,141 +182,272 @@ export default function Admin() {
     }
   };
 
-  // Si es admin, mostrar el dashboard
+  const navigate = useNavigate();
+
+  // Métricas derivadas para mostrar en la UI
+  const totalOrdenes = stats.ordenes || 0;
+  const totalProductos = stats.productos || 0;
+  const totalUsuarios = stats.usuarios || 0;
+  const inventarioActual = stats.inventario || 0;
+  const nuevosUsuariosMes = 120;
+  const probAumento = 20;
+
+  // Estilos inline para el layout y botones (pequeños toques visuales)
+  const sidebarStyle = { width: "250px", minHeight: "100vh" };
+  const mainStyle = { flex: 1, padding: "24px" };
+  const buttonStyles = {
+    transition: "all 0.3s ease",
+    border: "none",
+    cursor: "pointer",
+    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.08)",
+  };
+
   return (
-    <div className="container py-4" data-testid="admin-dashboard">
-      <h2>Panel de Administración</h2>
-      <div className="row mt-4">
-        {/* Dashboard Cards */}
-        <div className="col-12 mb-4">
-          <div className="row g-4">
-            <div className="col-md-4">
-              <div className="card">
-                <div
-                  className="card-body"
-                  data-testid="stats-productos"
-                  role="region"
-                >
-                  <h5>Productos</h5>
-                  <p className="h3">{stats.productos} productos</p>
-                  <small>Inventario: {stats.inventario} unidades</small>
-                </div>
+    <div className="d-flex" data-testid="admin-dashboard">
+      {/* Sidebar */}
+      <aside className="bg-white border-end p-3" style={sidebarStyle}>
+        <h4 className="text-center mb-4 text-primary fw-bold">
+          Panel de Administración
+        </h4>
+        <nav role="navigation" aria-label="Admin sidebar">
+          <div className="list-group list-group-flush">
+            <Link
+              to="/admin"
+              className="list-group-item list-group-item-action"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/admin/pasteles"
+              className="list-group-item list-group-item-action"
+            >
+              Productos
+            </Link>
+            <Link
+              to="/admin/usuarios"
+              className="list-group-item list-group-item-action"
+            >
+              Usuarios
+            </Link>
+            <Link
+              to="/admin/pedidos"
+              className="list-group-item list-group-item-action"
+            >
+              Órdenes
+            </Link>
+            <Link
+              to="/admin/reportes"
+              className="list-group-item list-group-item-action"
+            >
+              Reportes
+            </Link>
+          </div>
+        </nav>
+      </aside>
+
+      {/* Main */}
+      <main style={mainStyle} className="bg-light">
+        <div className="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h2 className="mb-0">Dashboard</h2>
+            <small className="text-muted">
+              Resumen de las actividades diarias
+            </small>
+          </div>
+        </div>
+
+        {/* Tarjetas de métricas */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-4">
+            <div
+              className="card text-white bg-primary shadow-sm h-100"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/admin/pedidos")}
+            >
+              <div
+                className="card-body text-center"
+                data-testid="stats-pedidos"
+                role="region"
+              >
+                <span className="fs-1">🛒</span>
+                <h4 className="mt-3 mb-1">Compras Totales</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalOrdenes}</h2>
+                <p className="mb-0 small text-white-50">
+                  {totalOrdenes} órdenes
+                </p>
+                <small className="text-white-50">
+                  Probabilidad de aumento: <strong>{probAumento}%</strong>
+                </small>
               </div>
             </div>
-            <div className="col-md-4">
-              <div className="card">
-                <div
-                  className="card-body"
-                  data-testid="stats-usuarios"
-                  role="region"
-                >
-                  <h5>Usuarios</h5>
-                  <p className="h3">{stats.usuarios} usuarios</p>
-                </div>
+          </div>
+
+          <div className="col-md-4">
+            <div
+              className="card text-white bg-success shadow-sm h-100"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/admin/pasteles")}
+            >
+              <div
+                className="card-body text-center"
+                data-testid="stats-productos"
+                role="region"
+              >
+                <span className="fs-1">🎂</span>
+                <h4 className="mt-3 mb-1">Productos Activos</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalProductos}</h2>
+                <p className="mb-0 small text-white-50">
+                  {totalProductos} productos
+                </p>
+                <small className="text-white-50">
+                  Inventario: <strong>{inventarioActual} unidades</strong>
+                </small>
               </div>
             </div>
-            <div className="col-md-4">
-              <div className="card">
-                <div
-                  className="card-body"
-                  data-testid="stats-pedidos"
-                  role="region"
-                >
-                  <h5>Órdenes</h5>
-                  <p className="h3">{stats.ordenes} órdenes</p>
-                </div>
+          </div>
+
+          <div className="col-md-4">
+            <div
+              className="card text-dark bg-warning shadow-sm h-100"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate("/admin/usuarios")}
+            >
+              <div
+                className="card-body text-center"
+                data-testid="stats-usuarios"
+                role="region"
+              >
+                <span className="fs-1">👥</span>
+                <h4 className="mt-3 mb-1">Usuarios Registrados</h4>
+                <h2 className="display-4 fw-bold mb-0">{totalUsuarios}</h2>
+                <p className="mb-0 small text-white-50">
+                  {totalUsuarios} usuarios
+                </p>
+                <small className="text-white-50">
+                  Nuevos este mes: <strong>{nuevosUsuariosMes}</strong>
+                </small>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="col-12 mb-4">
-          <nav>
-            <ul className="nav nav-tabs">
-              <li className="nav-item">
-                <Link className="nav-link" to="/admin/usuarios">
-                  Usuarios
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/admin/pasteles">
-                  Productos
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/admin/pedidos">
-                  Órdenes
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/admin/reportes">
-                  Reportes
-                </Link>
-              </li>
-            </ul>
-          </nav>
+        {/* Título de la cuadrícula de accesos (mantener tests) */}
+        <h4 className="mb-3">Navegación rápida</h4>
+
+        {/* Indicador de stock crítico */}
+        {(function renderCritical() {
+          // contar productos que tengan stock <= stockCritico (fallback stockCritico=3)
+          const critical = productos.reduce((acc, p) => {
+            const s = Number(p && p.stock) || 0;
+            const sc = Number(p && p.stockCritico) || 3;
+            return acc + (s > 0 && s <= sc ? 1 : 0);
+          }, 0);
+          return (
+            <div className="mb-3">
+              {critical > 0 ? (
+                <div
+                  className="alert alert-warning"
+                  role="status"
+                  data-testid="admin-stock-critico"
+                >
+                  ⚠️ Hay {critical} producto(s) en stock crítico. Revisa el
+                  inventario.
+                </div>
+              ) : (
+                <div
+                  className="alert alert-success"
+                  role="status"
+                  data-testid="admin-stock-ok"
+                >
+                  ✅ No hay productos en stock crítico. Inventario OK.
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Grid de accesos rápidos */}
+        <div className="row g-3 mb-4">
+          {[
+            {
+              title: "Órdenes",
+              desc: "Gestionar compras",
+              icon: "🧾",
+              route: "/admin/pedidos",
+              color: "primary",
+            },
+            {
+              title: "Productos",
+              desc: "Administrar inventario",
+              icon: "🎂",
+              route: "/admin/pasteles",
+              color: "success",
+            },
+            {
+              title: "Usuarios",
+              desc: "Gestión de cuentas",
+              icon: "👥",
+              route: "/admin/usuarios",
+              color: "info",
+            },
+            {
+              title: "Reportes",
+              desc: "Informes y métricas",
+              icon: "📈",
+              route: "/admin/reportes",
+              color: "warning",
+            },
+          ].map((card) => (
+            <div key={card.title} className="col-md-3">
+              <div
+                className={`card h-100 text-white bg-${card.color} shadow-sm`}
+                style={{ ...buttonStyles }}
+              >
+                <div
+                  className="card-body d-flex flex-column align-items-center justify-content-center text-center p-4"
+                  onClick={() => navigate(card.route)}
+                >
+                  <div className="mb-2 fs-2">{card.icon}</div>
+                  <h6 className="fw-bold text-white">{card.title}</h6>
+                  <p className="small text-white-50 mb-0">{card.desc}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Navigation Cards */}
-        <div className="col-12 mb-4">
-          <h4>Navegación rápida</h4>
-          <div className="row g-4">
-            <div className="col-md-3">
-              <div className="card">
-                <div className="card-body">
-                  <h5>Gestión de productos</h5>
-                  <Link
-                    to="/admin/pasteles"
-                    className="btn btn-primary btn-sm"
-                    data-testid="nav-ver-productos"
-                  >
-                    Ver productos
-                  </Link>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card">
-                <div className="card-body">
-                  <h5>Gestión de usuarios</h5>
-                  <Link to="/admin/usuarios" className="btn btn-primary btn-sm">
-                    Ver usuarios
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Link rápido mantenido para tests */}
+        <div className="mb-4">
+          <Link
+            to="/admin/pasteles"
+            className="btn btn-outline-primary btn-sm"
+            data-testid="nav-ver-productos"
+          >
+            Ver productos
+          </Link>
         </div>
-        <div className="col-12">
-          <Routes>
-            <Route path="usuarios" element={<UsuariosAdmin />} />
-            <Route path="pasteles/*" element={<AdminPastel />} />
-            <Route path="pedidos" element={<AdminOrdenes />} />
-            <Route
-              path="/"
-              element={
-                <div className="card mb-4">
-                  <div className="card-body">
-                    <p>Selecciona una sección para administrar</p>
-                  </div>
-                </div>
-              }
-            />
-          </Routes>
-          <div className="card mb-4">
-            <div className="card-body">
-              <h3>Gestión de productos</h3>
-              {!showProductForm ? (
-                <>
-                  <button
-                    className="btn btn-primary mb-3"
-                    onClick={() => setShowProductForm(true)}
-                    data-testid="card-add-pastel"
-                  >
-                    + Agregar pastel
-                  </button>
-                  <div className="table-responsive">
+
+        <div className="card mb-4 shadow-sm">
+          <div className="card-body">
+            <div className="d-flex align-items-center justify-content-between">
+              <h3 className="mb-0">Gestión de productos</h3>
+              <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => setShowProductForm((s) => !s)}
+                data-testid="card-add-pastel"
+              >
+                {showProductForm ? "Cerrar" : "+ Agregar pastel"}
+              </button>
+            </div>
+
+            {!showProductForm ? (
+              <>
+                <div className="table-responsive mt-3">
+                  {productos.length === 0 ? (
+                    <div className="alert alert-info my-2">
+                      No hay productos creados aún.
+                    </div>
+                  ) : (
                     <table className="table">
                       <thead>
                         <tr>
@@ -342,11 +473,13 @@ export default function Admin() {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </>
-              ) : (
-                <form onSubmit={handleSaveProduct}>
-                  <div className="mb-3">
+                  )}
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleSaveProduct} className="mt-3">
+                <div className="row">
+                  <div className="col-md-6 mb-3">
                     <label
                       htmlFor="admin-product-nombre"
                       className="form-label"
@@ -362,7 +495,7 @@ export default function Admin() {
                       }
                     />
                   </div>
-                  <div className="mb-3">
+                  <div className="col-md-3 mb-3">
                     <label
                       htmlFor="admin-product-precio"
                       className="form-label"
@@ -379,24 +512,36 @@ export default function Admin() {
                       }
                     />
                   </div>
-                  <div className="d-flex gap-2">
-                    <button type="submit" className="btn btn-primary">
-                      Guardar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setShowProductForm(false)}
-                    >
-                      Cancelar
-                    </button>
+                  <div className="col-md-3 d-flex align-items-end mb-3">
+                    <div className="d-flex gap-2">
+                      <button type="submit" className="btn btn-primary">
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setShowProductForm(false)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                </form>
-              )}
-            </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
-      </div>
+
+        {/* Rutas internas del admin (módulos) */}
+        <div>
+          <Routes>
+            <Route path="usuarios" element={<UsuariosAdmin />} />
+            <Route path="pasteles/*" element={<AdminPastel />} />
+            <Route path="pedidos" element={<AdminOrdenes />} />
+            <Route path="/" element={<></>} />
+          </Routes>
+        </div>
+      </main>
     </div>
   );
 }

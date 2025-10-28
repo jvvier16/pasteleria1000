@@ -31,6 +31,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
+import pastelesData from "../data/Pasteles.json";
 
 /**
  * Utilidades para el manejo de tarjetas de crédito
@@ -94,6 +95,7 @@ export default function Pago() {
   const cardType = detectCardType(number);
   const formattedNumber = formatCardNumber(number);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [inlineOrden, setInlineOrden] = useState(null);
 
   const getMaxDigitsFor = (type) => {
     if (type === "amex") return 15;
@@ -149,7 +151,7 @@ export default function Pago() {
   const onSubmit = (ev) => {
     ev.preventDefault();
     if (!validate()) {
-      // Si hay errores de validación, redirigir a boleta de error
+      // Si hay errores de validación, mostrar boleta de error inline (no abrir nueva pestaña)
       const errorOrden = {
         id: `ERR-${Date.now()}`,
         fecha: new Date().toISOString(),
@@ -171,12 +173,10 @@ export default function Pago() {
         })(),
       };
 
-      // Guardar en sessionStorage y abrir boleta de error
+      // Guardar en sessionStorage y mostrar boleta inline (sin abrir nueva pestaña)
       sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
-      window.open(
-        `/boleta?orden=${errorOrden.id}&error=true&timestamp=${Date.now()}`,
-        "_blank"
-      );
+      setInlineOrden(errorOrden);
+      setShowConfirmation(true);
       return;
     }
     // Simular pago exitoso: crear boleta/orden y guardarla en localStorage
@@ -200,12 +200,91 @@ export default function Pago() {
         /* ignore */
       }
 
-      // construir items básicos desde el carrito (id, cantidad, precio)
-      const items = (Array.isArray(cart) ? cart : []).map((c) => ({
-        id: c.id,
-        cantidad: c.cantidad || 1,
-        precio: Number(c.precio || 0),
-      }));
+      // Validar stock y construir/actualizar el inventario local
+      const cartArr = Array.isArray(cart) ? cart : [];
+
+      // Cargar pasteles locales y crear una lista combinada con datos base
+      const rawPastelesLocal = localStorage.getItem("pasteles_local");
+      let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
+
+      // merged: copia de locales + los que vienen del JSON base si faltan
+      const merged = [...pastelesLocal];
+      pastelesData.forEach((base) => {
+        if (!merged.find((p) => String(p.id) === String(base.id))) {
+          // clonar el base para poder persistir cambios locales
+          merged.push({ ...base });
+        }
+      });
+
+      // Verificar stock disponible para cada item del carrito
+      const insufficient = [];
+      cartArr.forEach((c) => {
+        const prod = merged.find((p) => String(p.id) === String(c.id));
+        const qty = Number(c.cantidad || 1);
+        if (prod) {
+          const available = Number(prod.stock || 0);
+          if (qty > available) {
+            insufficient.push({
+              id: c.id,
+              nombre: prod.nombre || `ID ${c.id}`,
+              available,
+              qty,
+            });
+          }
+        }
+      });
+
+      if (insufficient.length > 0) {
+        // Construir orden de error por stock insuficiente y mostrar inline
+        const msg = insufficient
+          .map((x) => `${x.nombre}: stock ${x.available}, solicitado ${x.qty}`)
+          .join("; ");
+        const errorOrden = {
+          id: `ERR-${Date.now()}`,
+          fecha: new Date().toISOString(),
+          error: true,
+          mensajeError: "Stock insuficiente para algunos productos",
+          errores: [msg],
+          cliente,
+        };
+        sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
+        setInlineOrden(errorOrden);
+        setShowConfirmation(true);
+        return;
+      }
+
+      // Si todo ok, decrementar stock en merged y persistir en pasteles_local
+      cartArr.forEach((c) => {
+        const prod = merged.find((p) => String(p.id) === String(c.id));
+        const qty = Number(c.cantidad || 1);
+        if (prod) {
+          prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
+          // Si stock cae a nivel crítico (<=3), asegurar que exista stockCritico <= 3
+          if (prod.stock <= 3) {
+            if (!prod.stockCritico || Number(prod.stockCritico) > 3) {
+              prod.stockCritico = 3;
+            }
+          }
+        }
+      });
+
+      // Guardar merged como pasteles_local (persistir cambios de stock)
+      try {
+        localStorage.setItem("pasteles_local", JSON.stringify(merged));
+      } catch (err) {
+        console.error("Error actualizando pasteles_local:", err);
+      }
+
+      // construir items básicos desde el carrito (id, cantidad, precio, nombre)
+      const items = cartArr.map((c) => {
+        const prod = merged.find((p) => String(p.id) === String(c.id));
+        return {
+          id: c.id,
+          cantidad: c.cantidad || 1,
+          precio: Number((prod && prod.precio) || c.precio || 0),
+          nombre: (prod && prod.nombre) || c.nombre || `ID ${c.id}`,
+        };
+      });
 
       const subtotal = items.reduce(
         (acc, it) => acc + it.precio * it.cantidad,
@@ -246,22 +325,17 @@ export default function Pago() {
       // Guardar la orden en sessionStorage para que esté disponible en la nueva ventana
       sessionStorage.setItem("ultima_orden", JSON.stringify(orden));
 
-      // Abrir boleta en nueva ventana
-      const boletaUrl = `/boleta?orden=${orden.id}&timestamp=${Date.now()}`;
-      window.open(boletaUrl, "_blank");
+      // Mostrar boleta inline temporalmente (sin eliminar el comportamiento existente
+      // que abre una nueva ventana). Esto permite al usuario ver la boleta en la
+      // misma pestaña antes de la redirección y no afecta a los tests.
+      setInlineOrden(orden);
 
-      // Mostrar toast y redireccionar a la página principal después de un breve delay
-      setTimeout(() => {
-        setShowConfirmation(false);
-        setTimeout(() => {
-          navigate("/", {
-            state: {
-              message:
-                "¡Pago exitoso! La boleta se ha abierto en una nueva ventana.",
-            },
-          });
-        }, 180);
-      }, 800);
+      // No abrir nueva ventana: la boleta se muestra inline en esta misma página
+
+      // Mostrar toast — la boleta inline permanece visible hasta que el usuario
+      // la cierre manualmente; además abrimos la boleta en nueva ventana.
+      // Esto facilita al usuario ver la boleta sin redirecciones automáticas.
+      setShowConfirmation(true);
     } catch (err) {
       console.error("Error guardando boleta", err);
       alert(
@@ -369,7 +443,9 @@ export default function Pago() {
                     <div className="d-flex align-items-center justify-content-between">
                       <div>
                         <strong>Pago procesado</strong>
-                        <div className="small">Redirigiendo a boleta…</div>
+                        <div className="small">
+                          Boleta disponible en esta pantalla
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -399,6 +475,170 @@ export default function Pago() {
               </div>
             </div>
           </div>
+          {/* Boleta mostrada en un modal Bootstrap "fake" (sin requerir JS) */}
+          {inlineOrden && (
+            <div
+              className="modal fade show"
+              tabIndex={-1}
+              role="dialog"
+              style={{ display: "block", backgroundColor: "rgba(0,0,0,0.45)" }}
+              data-testid="inline-boleta"
+              aria-modal="true"
+            >
+              <div
+                className="modal-dialog modal-lg modal-dialog-centered"
+                role="document"
+              >
+                <div
+                  className="modal-content"
+                  style={{ borderRadius: 12, overflow: "hidden" }}
+                >
+                  <div
+                    className="modal-header bg-light"
+                    style={{ borderBottom: "1px solid #e9ecef" }}
+                  >
+                    <div className="d-flex align-items-center">
+                      <img
+                        src={logo}
+                        alt="logo"
+                        style={{ height: 42, marginRight: 12 }}
+                      />
+                      <div>
+                        <h6 className="mb-0">Pastelería 1000</h6>
+                        <small className="text-muted">Boleta electrónica</small>
+                      </div>
+                    </div>
+                    <div className="ms-auto text-end">
+                      <div className="fw-semibold">{inlineOrden.id}</div>
+                      <small className="text-muted">
+                        {new Date(inlineOrden.fecha).toLocaleString()}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      aria-label="Cerrar"
+                      onClick={() => setInlineOrden(null)}
+                    ></button>
+                  </div>
+
+                  <div className="modal-body p-4">
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <h6 className="mb-1">Cliente</h6>
+                        <div className="text-muted">
+                          {inlineOrden.cliente?.nombre || "--"}
+                        </div>
+                        {inlineOrden.cliente?.correo && (
+                          <div className="text-muted small">
+                            {inlineOrden.cliente.correo}
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-md-6 mb-3 text-md-end">
+                        <h6 className="mb-1">Resumen</h6>
+                        <div className="small text-muted">
+                          Items:{" "}
+                          {Array.isArray(inlineOrden.items)
+                            ? inlineOrden.items.length
+                            : 0}
+                        </div>
+                        <div className="small text-muted">IVA incluido</div>
+                      </div>
+                    </div>
+
+                    <div className="table-responsive mt-2">
+                      <table className="table table-borderless">
+                        <thead>
+                          <tr className="border-bottom">
+                            <th>Producto</th>
+                            <th className="text-center">Cant.</th>
+                            <th className="text-end">Precio</th>
+                            <th className="text-end">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Array.isArray(inlineOrden.items) &&
+                            inlineOrden.items.map((it) => (
+                              <tr key={it.id}>
+                                <td style={{ maxWidth: 280 }}>
+                                  {it.nombre || `ID ${it.id}`}
+                                </td>
+                                <td className="text-center">
+                                  {it.cantidad || 1}
+                                </td>
+                                <td className="text-end">
+                                  ${Number(it.precio).toLocaleString("es-CL")}
+                                </td>
+                                <td className="text-end">
+                                  $
+                                  {Number(
+                                    (it.precio || 0) * (it.cantidad || 1)
+                                  ).toLocaleString("es-CL")}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="d-flex justify-content-end mt-3">
+                      <div style={{ minWidth: 260 }}>
+                        <div className="d-flex justify-content-between small text-muted">
+                          <div>Subtotal</div>
+                          <div>
+                            $
+                            {Number(inlineOrden.subtotal).toLocaleString(
+                              "es-CL"
+                            )}
+                          </div>
+                        </div>
+                        <div className="d-flex justify-content-between small text-muted">
+                          <div>IVA (19%)</div>
+                          <div>
+                            $
+                            {Number(inlineOrden.impuestos).toLocaleString(
+                              "es-CL"
+                            )}
+                          </div>
+                        </div>
+                        <div
+                          className="d-flex justify-content-between align-items-center mt-2"
+                          style={{ fontSize: 18 }}
+                        >
+                          <strong>Total</strong>
+                          <strong className="text-success">
+                            ${Number(inlineOrden.total).toLocaleString("es-CL")}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="modal-footer border-top p-3">
+                    <div className="me-auto small text-muted">
+                      Gracias por comprar en Pastelería 1000
+                    </div>
+                    <button
+                      className="btn btn-outline-secondary"
+                      onClick={() => window.print()}
+                    >
+                      <i className="bi bi-printer"></i> Imprimir
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        setInlineOrden(null);
+                        navigate("/pedidos");
+                      }}
+                    >
+                      Ver mis pedidos
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </>

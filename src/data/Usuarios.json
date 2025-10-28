@@ -54,7 +54,7 @@
     "nombre": "Javier",
     "apellido": "Rojas",
     "correo": "javier.rojas@gmail.com",
-    "contrasena": "javierrojas13",
+    "contrasena": "JavierRojas13",
     "role": "user",
     "fechaNacimiento": "1993-07-10",
     "direccion": "Santiago Centro, Santiago"
@@ -64,7 +64,7 @@
     "nombre": "admin",
     "apellido": "tienda",
     "correo": "admin@gmail.com",
-    "contrasena": "javierrojas12",
+    "contrasena": "JavierRojas12",
     "role": "admin"
   },
   {

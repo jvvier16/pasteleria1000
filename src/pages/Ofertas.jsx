@@ -18,7 +18,7 @@ const Ofertas = () => {
   // filtrar pasteles con precio mayor a 45000
   const ofertados = (pasteles || [])
     .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
-    .filter((p) => p.precio >= 45000)
+    .filter((p) => p.precio >= 40000)
     .map((p) => ({ ...p, imageUrl: resolveImage(p.imagen) }));
 
   const addToCart = async (prod) => {
