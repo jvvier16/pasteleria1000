@@ -1,19 +1,42 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import pasteles from "../data/Pasteles.json";
+import pastelesData from "../data/Pasteles.json";
 import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
 
 const ProductoDetalle = () => {
   const { id } = useParams();
-  const prod = pasteles.find((p) => String(p.id) === String(id));
+
+  // Combinar JSON + pasteles_local (locales sobrescriben)
+  const rawLocal = localStorage.getItem("pasteles_local");
+  let pastelesLocales = [];
+  try {
+    pastelesLocales = rawLocal ? JSON.parse(rawLocal) : [];
+  } catch {
+    pastelesLocales = [];
+  }
+  const mapa = new Map();
+  for (const p of pastelesData) mapa.set(String(p.id), p);
+  for (const p of pastelesLocales || []) mapa.set(String(p.id), p);
+  const todos = Array.from(mapa.values());
+
+  const prod = todos.find((p) => String(p.id) === String(id));
   const [added, setAdded] = useState(false);
 
   if (!prod)
     return <div className="container py-5">Producto no encontrado</div>;
 
-  const imageUrl = prod.imagen
-    ? new URL(prod.imagen, import.meta.url).href
-    : "";
+  // Resolver imagen: soportar data:, http: o filename relativo en assets
+  let imageUrl = "";
+  if (prod.imagen) {
+    if (prod.imagen.startsWith("data:") || prod.imagen.startsWith("http")) {
+      imageUrl = prod.imagen;
+    } else {
+      const filename = (prod.imagen || "").split("/").pop();
+      imageUrl = filename
+        ? new URL(`../assets/img/${filename}`, import.meta.url).href
+        : "";
+    }
+  }
 
   const handleAdd = async () => {
     try {

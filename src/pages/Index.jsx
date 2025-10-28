@@ -3,6 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import Card from "../components/Card";
 import pastelesData from "../data/Pasteles.json";
+import { addToCart } from "../utils/localstorageHelper";
 
 const Index = () => {
   // Leer pasteles locales (si existen) y combinar con el JSON base
@@ -19,6 +20,30 @@ const Index = () => {
   for (const p of pastelesData) mapa.set(p.id, p);
   for (const p of pastelesLocales || []) mapa.set(p.id, p);
   const todos = Array.from(mapa.values());
+
+  // Crear un set con ids locales para marcar el origen
+  const localIds = new Set((pastelesLocales || []).map((x) => String(x.id)));
+
+  // Handler para agregar al carrito desde la página principal
+  const handleAddToCart = (product) => {
+    try {
+      const toAdd = {
+        id: product.id,
+        nombre: product.nombre || product.titulo,
+        precio: Number(product.precio) || 0,
+        imagen: product.imageUrl || product.imagen || "",
+        cantidad: 1,
+        stock: product.stock,
+      };
+      const res = addToCart(toAdd);
+      // Notificar cambios (componentes que escuchan 'storage')
+      window.dispatchEvent(new Event("storage"));
+      return res;
+    } catch (err) {
+      console.error("Error agregando al carrito desde Index:", err);
+      throw err;
+    }
+  };
 
   // Resolver imagenes (manejar data:, http:, o filename relativo)
   const productos = todos
@@ -131,6 +156,9 @@ const Index = () => {
                   descripcion={p.descripcion || ""}
                   precio={p.precio}
                   imagen={p.imageUrl}
+                  stock={p.stock}
+                  origen={localIds.has(String(p.id)) ? "local" : "json"}
+                  onAgregar={handleAddToCart}
                 />
               </div>
             ))}
