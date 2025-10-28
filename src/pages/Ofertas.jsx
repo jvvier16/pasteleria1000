@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import pasteles from "../data/Pasteles.json";
+import Card from "../components/Card";
+import { addToCart } from "../utils/localstorageHelper";
 
 // util para resolver imagenes (misma estrategia que en otras páginas)
 const resolveImage = (imgPath) => {
@@ -21,19 +23,29 @@ const Ofertas = () => {
     .filter((p) => p.precio >= 40000)
     .map((p) => ({ ...p, imageUrl: resolveImage(p.imagen) }));
 
-  const addToCart = async (prod) => {
+  const [toast, setToast] = useState(null);
+
+  const handleAddToCart = (product) => {
     try {
-      const mod = await import("../utils/localstorageHelper");
-      mod.addToCart(prod);
-    } catch (err) {
-      // fallback directo a localStorage
-      const raw = localStorage.getItem("pasteleria_cart");
-      let cart = raw ? JSON.parse(raw) : [];
-      const existing = cart.find((i) => Number(i.id) === Number(prod.id));
-      if (existing) existing.cantidad = (existing.cantidad || 1) + 1;
-      else cart.push({ ...prod, cantidad: 1 });
-      localStorage.setItem("pasteleria_cart", JSON.stringify(cart));
+      const toAdd = {
+        id: product.id,
+        nombre: product.nombre || product.titulo,
+        precio: Number(product.precio) || 0,
+        imagen: product.imageUrl || product.imagen || "",
+        cantidad: 1,
+        stock: product.stock,
+      };
+      addToCart(toAdd);
       window.dispatchEvent(new Event("storage"));
+      setToast({
+        title: "Carrito",
+        message: `${toAdd.nombre} agregado al carrito`,
+      });
+      setTimeout(() => setToast(null), 2500);
+    } catch (err) {
+      console.error("Error agregando al carrito desde Ofertas:", err);
+      setToast({ title: "Error", message: "No se pudo agregar al carrito" });
+      setTimeout(() => setToast(null), 2500);
     }
   };
 
@@ -49,45 +61,42 @@ const Ofertas = () => {
   return (
     <div className="container py-4">
       <h3 className="mb-4">Ofertas especiales</h3>
+      {toast && (
+        <div
+          className="toast show position-fixed bottom-0 end-0 m-3"
+          role="alert"
+          aria-live="polite"
+          data-testid="toast-notification"
+        >
+          <div className="toast-header">
+            <strong className="me-auto">{toast.title}</strong>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setToast(null)}
+              aria-label="Cerrar"
+            />
+          </div>
+          <div className="toast-body">{toast.message}</div>
+        </div>
+      )}
+
       <div className="row g-4">
         {ofertados.map((p) => {
           const precioOriginal = Number(p.precio || 0);
           const precioDescuento = Math.round(precioOriginal * 0.8);
           return (
             <div className="col-md-3" key={p.id}>
-              <div className="card h-100 shadow-sm">
-                <img
-                  src={p.imageUrl || "https://via.placeholder.com/300"}
-                  className="card-img-top img-cover-height-180"
-                  alt={p.nombre}
-                />
-                <div className="card-body text-center">
-                  <h6 className="card-title">{p.nombre}</h6>
-                  <p className="small text-muted mb-1">
-                    <span className="text-decoration-line-through me-2">
-                      ${precioOriginal.toLocaleString("es-CL")}
-                    </span>
-                    <strong className="text-danger">
-                      ${precioDescuento.toLocaleString("es-CL")}
-                    </strong>
-                  </p>
-                  <p className="small text-secondary">20% descuento</p>
-                  <button
-                    className="btn btn-success btn-sm mt-2"
-                    onClick={() =>
-                      addToCart({
-                        id: p.id,
-                        nombre: p.nombre,
-                        precio: precioDescuento,
-                        imagen: p.imageUrl,
-                        cantidad: 1,
-                      })
-                    }
-                  >
-                    Agregar al carrito
-                  </button>
-                </div>
-              </div>
+              <Card
+                id={p.id}
+                nombre={p.nombre}
+                descripcion={p.descripcion || ""}
+                precio={precioDescuento}
+                imagen={p.imageUrl}
+                stock={p.stock}
+                origen={"json"}
+                onAgregar={handleAddToCart}
+              />
             </div>
           );
         })}

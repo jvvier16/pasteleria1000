@@ -584,6 +584,7 @@ export default function Pago() {
                         </thead>
                         <tbody>
                           {Array.isArray(inlineOrden.items) &&
+                          inlineOrden.items.length > 0 ? (
                             inlineOrden.items.map((it) => (
                               <tr key={it.id}>
                                 <td style={{ maxWidth: 280 }}>
@@ -593,7 +594,10 @@ export default function Pago() {
                                   {it.cantidad || 1}
                                 </td>
                                 <td className="text-end">
-                                  ${Number(it.precio).toLocaleString("es-CL")}
+                                  $
+                                  {Number(it.precio || 0).toLocaleString(
+                                    "es-CL"
+                                  )}
                                 </td>
                                 <td className="text-end">
                                   $
@@ -602,40 +606,62 @@ export default function Pago() {
                                   ).toLocaleString("es-CL")}
                                 </td>
                               </tr>
-                            ))}
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="text-center text-muted py-4"
+                              >
+                                No hay productos en la boleta
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
 
                     <div className="d-flex justify-content-end mt-3">
                       <div style={{ minWidth: 260 }}>
-                        <div className="d-flex justify-content-between small text-muted">
-                          <div>Subtotal</div>
-                          <div>
-                            $
-                            {Number(inlineOrden.subtotal).toLocaleString(
-                              "es-CL"
-                            )}
-                          </div>
-                        </div>
-                        <div className="d-flex justify-content-between small text-muted">
-                          <div>IVA (19%)</div>
-                          <div>
-                            $
-                            {Number(inlineOrden.impuestos).toLocaleString(
-                              "es-CL"
-                            )}
-                          </div>
-                        </div>
-                        <div
-                          className="d-flex justify-content-between align-items-center mt-2"
-                          style={{ fontSize: 18 }}
-                        >
-                          <strong>Total</strong>
-                          <strong style={{ color: "var(--accent-choco)" }}>
-                            ${Number(inlineOrden.total).toLocaleString("es-CL")}
-                          </strong>
-                        </div>
+                        {/* Usar valores por defecto si la orden no incluye montos */}
+                        {(() => {
+                          const safeSubtotal = Number(
+                            inlineOrden.subtotal || 0
+                          );
+                          const safeImpuestos = Number(
+                            inlineOrden.impuestos || 0
+                          );
+                          const safeTotal = Number(
+                            inlineOrden.total || safeSubtotal + safeImpuestos
+                          );
+                          return (
+                            <>
+                              <div className="d-flex justify-content-between small text-muted">
+                                <div>Subtotal</div>
+                                <div>
+                                  ${safeSubtotal.toLocaleString("es-CL")}
+                                </div>
+                              </div>
+                              <div className="d-flex justify-content-between small text-muted">
+                                <div>IVA (19%)</div>
+                                <div>
+                                  ${safeImpuestos.toLocaleString("es-CL")}
+                                </div>
+                              </div>
+                              <div
+                                className="d-flex justify-content-between align-items-center mt-2"
+                                style={{ fontSize: 18 }}
+                              >
+                                <strong>Total</strong>
+                                <strong
+                                  style={{ color: "var(--accent-choco)" }}
+                                >
+                                  ${safeTotal.toLocaleString("es-CL")}
+                                </strong>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>

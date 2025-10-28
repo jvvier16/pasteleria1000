@@ -159,6 +159,8 @@ const Index = () => {
                   stock={p.stock}
                   origen={localIds.has(String(p.id)) ? "local" : "json"}
                   onAgregar={handleAddToCart}
+                  showAdminControls={false}
+                  showStockCritical={false}
                 />
               </div>
             ))}

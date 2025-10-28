@@ -4,6 +4,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Card from "../components/Card";
+import { addToCart } from "../utils/localstorageHelper";
 import "bootstrap/dist/css/bootstrap.min.css";
 import pasteles from "../data/Pasteles.json";
 
@@ -46,6 +47,31 @@ const Categorias = () => {
   const [toast, setToast] = useState(null);
   const [imageError, setImageError] = useState({});
 
+  // Handler para agregar al carrito desde la página de Categorías
+  const handleAddToCart = (product) => {
+    try {
+      const toAdd = {
+        id: product.id,
+        nombre: product.nombre || product.titulo,
+        precio: Number(product.precio) || 0,
+        imagen: product.imageUrl || product.imagen || "",
+        cantidad: 1,
+        stock: product.stock,
+      };
+      addToCart(toAdd);
+      window.dispatchEvent(new Event("storage"));
+      setToast({
+        title: "Carrito",
+        message: `${toAdd.nombre} agregado al carrito`,
+      });
+      setTimeout(() => setToast(null), 2500);
+    } catch (err) {
+      console.error("Error agregando al carrito desde Categorias:", err);
+      setToast({ title: "Error", message: "No se pudo agregar al carrito" });
+      setTimeout(() => setToast(null), 2500);
+    }
+  };
+
   const handleImageError = (id) => {
     setImageError((prev) => ({ ...prev, [id]: true }));
   };
@@ -67,17 +93,20 @@ const Categorias = () => {
         if (found) {
           setSelectedCategory(found.nombre);
           // pequeño delay para que el DOM renderice y luego hacer scroll
-          setTimeout(() => {
-            const el = document.getElementById(qp);
+          const t = setTimeout(() => {
             try {
-              if (el && typeof el.scrollIntoView === "function") {
-                el.scrollIntoView({ behavior: "smooth" });
+              if (typeof document !== "undefined") {
+                const el = document.getElementById(qp);
+                if (el && typeof el.scrollIntoView === "function") {
+                  el.scrollIntoView({ behavior: "smooth" });
+                }
               }
             } catch (err) {
               // En entornos de test (jsdom) scrollIntoView puede no existir o fallar.
               // Silenciar errores para que los tests no crasheen.
             }
           }, 150);
+          return () => clearTimeout(t);
         }
       }
     } catch (err) {
@@ -172,92 +201,16 @@ const Categorias = () => {
           <div className="row g-4">
             {cat.productos.map((prod) => (
               <div key={prod.id} className="col-md-3">
-                <div className="card shadow-sm h-100">
-                  <img
-                    src={
-                      imageError[prod.id]
-                        ? "/src/assets/img/placeholder.png"
-                        : prod.imageUrl
-                    }
-                    className="card-img-top"
-                    alt={prod.nombre}
-                    onError={() => handleImageError(prod.id)}
-                    data-testid={`producto-imagen-${prod.id}`}
-                  />
-                  <div className="card-body text-center">
-                    <h6 className="card-title">{prod.nombre}</h6>
-                    <p
-                      className="small text-muted"
-                      aria-label={`Precio: ${prod.precio} pesos`}
-                    >
-                      ${Number(prod.precio).toLocaleString("es-CL")}
-                    </p>
-                    <button
-                      className="btn btn-outline-success btn-sm mt-2"
-                      onClick={async () => {
-                        try {
-                          const mod = await import(
-                            "../utils/localstorageHelper"
-                          );
-                          await mod.addToCart({
-                            id: prod.id,
-                            nombre: prod.nombre,
-                            precio: prod.precio,
-                            imagen: prod.imageUrl,
-                            cantidad: 1,
-                          });
-                          showToast(
-                            "Carrito",
-                            `${prod.nombre} agregado al carrito`
-                          );
-                        } catch (err) {
-                          console.error("Error al agregar al carrito:", err);
-                          try {
-                            // fallback manual
-                            const raw = localStorage.getItem("pasteleria_cart");
-                            let cart = [];
-                            try {
-                              cart = raw ? JSON.parse(raw) : [];
-                            } catch {
-                              cart = [];
-                            }
-
-                            const existing = cart.find(
-                              (i) => Number(i.id) === Number(prod.id)
-                            );
-
-                            if (existing) {
-                              existing.cantidad = (existing.cantidad || 1) + 1;
-                            } else {
-                              cart.push({
-                                id: prod.id,
-                                nombre: prod.nombre,
-                                precio: prod.precio,
-                                imagen: prod.imageUrl,
-                                cantidad: 1,
-                              });
-                            }
-
-                            localStorage.setItem(
-                              "pasteleria_cart",
-                              JSON.stringify(cart)
-                            );
-                            window.dispatchEvent(new Event("storage"));
-                            showToast(
-                              "Carrito",
-                              `${prod.nombre} agregado al carrito`
-                            );
-                          } catch (fallbackErr) {
-                            console.error("Error en fallback:", fallbackErr);
-                            showToast("Error", "No se pudo agregar al carrito");
-                          }
-                        }
-                      }}
-                    >
-                      Agregar al carrito
-                    </button>
-                  </div>
-                </div>
+                <Card
+                  id={prod.id}
+                  nombre={prod.nombre}
+                  descripcion={prod.descripcion || ""}
+                  precio={prod.precio}
+                  imagen={prod.imageUrl}
+                  stock={prod.stock}
+                  origen={"json"}
+                  onAgregar={handleAddToCart}
+                />
               </div>
             ))}
           </div>

@@ -4,7 +4,7 @@
 // - Implementa un dropdown controlado en React para evitar conflictos con el JS de Bootstrap.
 import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Search } from "lucide-react";
 import blogPosts from "../data/BlogPosts";
 import pastelesData from "../data/Pasteles.json";
 import { getCart } from "../utils/localstorageHelper";
@@ -374,11 +374,13 @@ export default function Navbar() {
               }}
             />
             <button
-              className="btn btn-search rounded-pill"
+              className="btn btn-search rounded-pill d-flex align-items-center justify-content-center"
               type="submit"
               disabled={!searchTerm.trim()}
+              aria-label={searchTerm.trim() ? `Buscar ${searchTerm}` : "Buscar"}
+              title="Buscar"
             >
-              Buscar
+              <Search size={16} />
             </button>
           </form>
 

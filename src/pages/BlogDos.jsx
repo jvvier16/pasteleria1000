@@ -33,6 +33,12 @@ function BlogDos() {
           src={img("../assets/img/Torta Cuadrada de Chocolate.webp")}
           className="img-fluid rounded shadow-sm"
           alt="Ganache brillante en torta de chocolate"
+          onError={(e) =>
+            (e.currentTarget.src = new URL(
+              "../assets/img/logo.png",
+              import.meta.url
+            ).href)
+          }
         />
         <figcaption className="form-text mt-2">
           La proporción chocolate:crema define la textura final.

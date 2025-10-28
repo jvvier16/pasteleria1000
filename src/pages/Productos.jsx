@@ -97,6 +97,7 @@ export default function Productos() {
             descripcion={prod.descripcion || `Stock: ${prod.stock ?? "N/A"}`}
             stock={prod.stock ?? 0}
             stockCritico={prod.stockCritico}
+            showStockCritical={false}
             precio={Number(prod.precio)}
             onAgregar={(p) =>
               addToCartHelper({

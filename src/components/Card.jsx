@@ -25,6 +25,8 @@ function Card({
   origen, // "json" | "local"
   onEditar, // function(id)
   onEliminar, // function(id)
+  showAdminControls = true, // si false, ocultar botones Editar/Eliminar incluso para origen 'local'
+  showStockCritical = true, // si false, no mostrar la alerta de stock crítico
 }) {
   // compatibilidad: permitir usar tanto `titulo` como `nombre`, `contenido` o `descripcion`
   const title = titulo || nombre || "Producto";
@@ -71,7 +73,19 @@ function Card({
     <div className="card h-100">
       {/* Imagen o placeholder de texto si no hay imagen */}
       {imgSrc ? (
-        <img src={imgSrc} className="card-img-top" alt={title} />
+        <img
+          src={imgSrc}
+          className="card-img-top"
+          alt={title}
+          onError={(e) => {
+            try {
+              e.currentTarget.src = new URL(
+                "../assets/img/logo.png",
+                import.meta.url
+              ).href;
+            } catch {}
+          }}
+        />
       ) : (
         <div className="d-flex align-items-center justify-content-center bg-light card-fixed-height-180">
           <span className="text-muted">Sin imagen disponible</span>
@@ -95,9 +109,12 @@ function Card({
               }`}
             >
               Stock: {stock}
-              {Number(stock) <= stockCritico && stock > 0 && checkAdmin() && (
-                <span className="ms-2">⚠️ Stock crítico</span>
-              )}
+              {Number(stock) <= stockCritico &&
+                stock > 0 &&
+                checkAdmin() &&
+                showStockCritical && (
+                  <span className="ms-2">⚠️ Stock crítico</span>
+                )}
             </p>
           </>
         )}
@@ -126,7 +143,7 @@ function Card({
           onClick={handleAgregar}
           disabled={Number(stock) === 0}
         >
-          Agregar a carrito
+          Agregar al carrito
         </button>
 
         {/* Ver detalle: lleva a la página de detalle del producto */}
@@ -143,7 +160,7 @@ function Card({
             <small className="text-muted">(No editable)</small>
           )}
 
-          {origen === "local" && (
+          {origen === "local" && showAdminControls && (
             <div className="d-flex gap-2">
               <button
                 type="button"

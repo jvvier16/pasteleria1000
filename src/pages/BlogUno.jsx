@@ -32,6 +32,12 @@ export default function BlogUno() {
           src={img("../assets/img/torta circular de vainilla.jpeg")}
           className="img-fluid rounded shadow-sm"
           alt="Bizcocho de vainilla esponjoso"
+          onError={(e) =>
+            (e.currentTarget.src = new URL(
+              "../assets/img/logo.png",
+              import.meta.url
+            ).href)
+          }
         />
         <figcaption className="form-text mt-2">
           La miga ligera empieza antes de encender el horno.
