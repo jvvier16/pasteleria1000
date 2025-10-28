@@ -257,6 +257,26 @@ header .nav-link {
 	font-weight: 700;
 }
 
+/* Index specific overrides: make carousel caption and index buttons match brand color */
+.carousel-caption .brand-text {
+	color: #ffffff !important;
+	text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+.carousel-caption .carousel-caption-text {
+	color: #ffffff; /* white paragraph for contrast */
+	text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.index-products .btn-primary {
+	background-color: var(--brand-pink) !important;
+	border-color: var(--brand-pink) !important;
+	color: #fff !important;
+	box-shadow: 0 6px 18px rgba(230,124,163,0.12);
+}
+.index-products .btn-primary:hover {
+	background-color: #d96e9a !important;
+	border-color: #d96e9a !important;
+}
+
 /* Carousel and category placeholders moved to App.css to centralize colors */
 .carousel-placeholder {
 	background-color: #e9ecef; /* light gray similar to app background */
@@ -439,4 +459,84 @@ body {
 
 
 }
+
+/* ===== Boleta (inline) - mejoras responsive para móvil ===== */
+.modal[data-testid="inline-boleta"] .modal-dialog {
+	max-width: 880px; /* tamaño ideal en escritorio */
+	margin: 1.75rem auto;
+}
+
+/* Encabezado flexible y que haga wrap en móviles */
+.modal[data-testid="inline-boleta"] .modal-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.modal[data-testid="inline-boleta"] .modal-header .ms-auto {
+	margin-left: auto !important;
+}
+
+@media (max-width: 767px) {
+	.modal[data-testid="inline-boleta"] .modal-dialog {
+		max-width: 95%;
+		margin: 1rem;
+	}
+	.modal[data-testid="inline-boleta"] .modal-content {
+		border-radius: 12px;
+		overflow: hidden;
+	}
+	.modal[data-testid="inline-boleta"] .modal-body {
+		padding: 1rem;
+	}
+	/* permitir scroll horizontal suave para tablas largas */
+	.modal[data-testid="inline-boleta"] .table-responsive {
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+	/* reducir tamaño de fuente y asegurar quiebre de palabras */
+	.modal[data-testid="inline-boleta"] table,
+	.modal[data-testid="inline-boleta"] td,
+	.modal[data-testid="inline-boleta"] th {
+		font-size: 0.95rem;
+		word-break: break-word;
+	}
+	/* Totales: ocupar todo el ancho en móvil y mostrar por debajo */
+	.modal[data-testid="inline-boleta"] .d-flex.justify-content-end.mt-3 {
+		justify-content: flex-end;
+	}
+	.modal[data-testid="inline-boleta"] .d-flex.justify-content-end.mt-3 > div {
+		min-width: auto !important;
+		width: 100%;
+	}
+	/* Footer: apilar botones en columna para mejor touch target */
+	.modal[data-testid="inline-boleta"] .modal-footer {
+		flex-direction: column;
+		gap: .5rem;
+		align-items: stretch;
+	}
+	.modal[data-testid="inline-boleta"] .modal-footer .me-auto {
+		margin: 0 0 .25rem 0;
+		text-align: center;
+	}
+	.modal[data-testid="inline-boleta"] .modal-footer .btn {
+		width: 100%;
+	}
+}
+
+/* Pequeñas mejoras visuales: icono más pequeño en header en móvil */
+.modal[data-testid="inline-boleta"] img[alt="logo"],
+.modal[data-testid="inline-boleta"] img[data-testid="boleta-logo"] {
+	height: 42px;
+	width: 42px;
+	object-fit: cover;
+}
+
+/* Evitar que celdas con maxWidth (inline styles) provoquen overflow en móviles */
+.modal[data-testid="inline-boleta"] td[style],
+.modal[data-testid="inline-boleta"] td {
+	max-width: 180px !important;
+}
+
 

@@ -2,13 +2,41 @@ import React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import Card from "../components/Card";
-import pasteles from "../data/Pasteles.json";
+import pastelesData from "../data/Pasteles.json";
 
 const Index = () => {
-  const productos = pasteles.slice(0, 4).map((p) => ({
-    ...p,
-    imageUrl: new URL(p.imagen, import.meta.url).href,
-  }));
+  // Leer pasteles locales (si existen) y combinar con el JSON base
+  const rawLocal = localStorage.getItem("pasteles_local");
+  let pastelesLocales = [];
+  try {
+    pastelesLocales = rawLocal ? JSON.parse(rawLocal) : [];
+  } catch {
+    pastelesLocales = [];
+  }
+
+  // Combinar JSON + locales (locales sobrescriben si comparten id)
+  const mapa = new Map();
+  for (const p of pastelesData) mapa.set(p.id, p);
+  for (const p of pastelesLocales || []) mapa.set(p.id, p);
+  const todos = Array.from(mapa.values());
+
+  // Resolver imagenes (manejar data:, http:, o filename relativo)
+  const productos = todos
+    .map((p) => {
+      let imageUrl = "";
+      if (p.imagen) {
+        if (p.imagen.startsWith("data:") || p.imagen.startsWith("http")) {
+          imageUrl = p.imagen;
+        } else {
+          const filename = (p.imagen || "").split("/").pop();
+          imageUrl = filename
+            ? new URL(`../assets/img/${filename}`, import.meta.url).href
+            : "";
+        }
+      }
+      return { ...p, imageUrl };
+    })
+    .slice(0, 4);
 
   return (
     <div className="bg-muted">
@@ -45,8 +73,10 @@ const Index = () => {
               className="carousel-img d-block w-100"
             />
             <div className="carousel-caption d-none d-md-block">
-              <h5 className="text-dark fw-semibold">Pasteleria 1000 sabores</h5>
-              <p className="text-dark">
+              <h5 className="brand-text fw-semibold">
+                Pasteleria 1000 sabores
+              </h5>
+              <p className="carousel-caption-text">
                 Famosa por su participación en un récord Guinness en 1995,
                 cuando colaboró en la creación de la torta más grande del mundo.
               </p>
@@ -89,7 +119,7 @@ const Index = () => {
       </div>
 
       {/* Productos */}
-      <section className="py-5 bg-white text-center">
+      <section className="py-5 bg-white text-center index-products">
         <div className="container">
           <h2 className="mb-4 fw-bold">Productos</h2>
           <div className="row g-4">
