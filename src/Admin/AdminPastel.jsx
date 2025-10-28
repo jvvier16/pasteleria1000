@@ -118,17 +118,34 @@ export default function AdminPasteles() {
    * @returns {Array} Lista de pasteles con origen marcado
    */
   const localesMarcados = useMemo(() => {
-    return (pastelesLocal || []).map((p) => ({
-      ...p,
-      // locales pueden venir con imagen "", Card muestra placeholder
-      _origen: "local",
-    }));
+    return (pastelesLocal || []).map((p) => {
+      // resolver imagen local si viene como filename relativo
+      const filename = (p.imagen || "").split("/").pop();
+      const imageUrl = filename
+        ? new URL(`../assets/img/${filename}`, import.meta.url).href
+        : p.imagen || "";
+      return {
+        ...p,
+        imagen: imageUrl,
+        // locales pueden venir con imagen "", Card muestra placeholder
+        _origen: "local",
+      };
+    });
   }, [pastelesLocal]);
 
   // 🔗 Mostrar solo los pasteles locales en el panel admin (son los editables)
   // - El resto (JSON) se muestra en la tienda pública, pero en admin sólo
   //   queremos permitir editar/Eliminar los que fueron creados localmente.
-  const todos = useMemo(() => localesMarcados || [], [localesMarcados]);
+  // Cambiamos para mostrar también las imágenes de los pasteles JSON en el
+  // panel admin: combinamos los locales (editables) y los del JSON (solo lectura)
+  const todos = useMemo(() => {
+    const locals = localesMarcados || [];
+    // incluir JSON solo si no está ya en locales (evitar duplicados)
+    const jsonOnly = baseJsonResuelto.filter(
+      (b) => !locals.find((l) => String(l.id) === String(b.id))
+    );
+    return [...locals, ...jsonOnly];
+  }, [localesMarcados, baseJsonResuelto]);
 
   /**
    * @function handleEliminar

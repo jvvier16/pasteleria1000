@@ -463,7 +463,12 @@ export default function Pago() {
           <div>
             <div className="card-preview">
               <div className="d-flex justify-content-between align-items-start">
-                <img src={logo} alt="logo" className="logo-small" />
+                <img
+                  src={logo}
+                  alt="logo"
+                  className="logo-small"
+                  data-testid="logo-preview"
+                />
                 <span className="text-capitalize">{cardType}</span>
               </div>
               <div className="number">
@@ -494,21 +499,41 @@ export default function Pago() {
                   style={{ borderRadius: 12, overflow: "hidden" }}
                 >
                   <div
-                    className="modal-header bg-light"
-                    style={{ borderBottom: "1px solid #e9ecef" }}
+                    className="modal-header"
+                    style={{
+                      borderBottom: "1px solid rgba(0,0,0,0.06)",
+                      background:
+                        "linear-gradient(90deg, var(--accent-pink) 0%, rgba(255,245,225,0.6) 100%)",
+                      color: "var(--accent-choco)",
+                    }}
                   >
                     <div className="d-flex align-items-center">
                       <img
                         src={logo}
                         alt="logo"
-                        style={{ height: 42, marginRight: 12 }}
+                        data-testid="boleta-logo"
+                        className="rounded-circle"
+                        style={{
+                          height: 42,
+                          width: 42,
+                          objectFit: "cover",
+                          marginRight: 12,
+                        }}
                       />
                       <div>
-                        <h6 className="mb-0">Pastelería 1000</h6>
+                        <h6
+                          className="mb-0"
+                          style={{ color: "var(--accent-choco)" }}
+                        >
+                          Pastelería 1000
+                        </h6>
                         <small className="text-muted">Boleta electrónica</small>
                       </div>
                     </div>
-                    <div className="ms-auto text-end">
+                    <div
+                      className="ms-auto text-end"
+                      style={{ color: "var(--text-main)" }}
+                    >
                       <div className="fw-semibold">{inlineOrden.id}</div>
                       <small className="text-muted">
                         {new Date(inlineOrden.fecha).toLocaleString()}
@@ -607,7 +632,7 @@ export default function Pago() {
                           style={{ fontSize: 18 }}
                         >
                           <strong>Total</strong>
-                          <strong className="text-success">
+                          <strong style={{ color: "var(--accent-choco)" }}>
                             ${Number(inlineOrden.total).toLocaleString("es-CL")}
                           </strong>
                         </div>
@@ -615,12 +640,29 @@ export default function Pago() {
                     </div>
                   </div>
 
-                  <div className="modal-footer border-top p-3">
-                    <div className="me-auto small text-muted">
-                      Gracias por comprar en Pastelería 1000
+                  <div
+                    className="modal-footer border-top p-3"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, rgba(255,245,225,0.4), transparent)",
+                    }}
+                  >
+                    <div className="me-auto small text-muted d-flex align-items-center">
+                      <img
+                        src={logo}
+                        alt="icono"
+                        data-testid="boleta-footer-logo"
+                        style={{
+                          height: 20,
+                          width: 20,
+                          objectFit: "cover",
+                          marginRight: 8,
+                        }}
+                      />
+                      <span>Gracias por comprar en Pastelería 1000</span>
                     </div>
                     <button
-                      className="btn btn-outline-secondary"
+                      className="btn btn-secondary me-2"
                       onClick={() => window.print()}
                     >
                       <i className="bi bi-printer"></i> Imprimir
