@@ -57,12 +57,35 @@ export default function Login() {
   // Validación del formulario
   const validate = () => {
     const e = {};
-    if (!form.userOrEmail.trim()) e.userOrEmail = "Ingresa usuario o email";
-    if (!form.password) e.password = "Ingresa la contraseña";
-    else if (form.password.length < 12)
-      e.password = "La contraseña debe tener al menos 12 caracteres";
-    else if (form.password.length > 18)
-      e.password = "La contraseña debe tener como máximo 18 caracteres";
+    const userOrEmail = form.userOrEmail.trim();
+
+    // Validación de usuario/email
+    if (!userOrEmail) {
+      e.userOrEmail = "Ingresa usuario o email";
+    } else if (
+      userOrEmail.includes("@") &&
+      !userOrEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    ) {
+      e.userOrEmail = "Ingresa un email válido";
+    }
+
+    // Validación de contraseña
+    if (!form.password) {
+      e.password = "Ingresa la contraseña";
+    } else {
+      if (form.password.length < 12) {
+        e.password = "La contraseña debe tener al menos 12 caracteres";
+      } else if (form.password.length > 18) {
+        e.password = "La contraseña debe tener como máximo 18 caracteres";
+      } else if (!/[A-Z]/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos una mayúscula";
+      } else if (!/[a-z]/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos una minúscula";
+      } else if (!/\d/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos un número";
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -90,7 +113,7 @@ export default function Login() {
 
     if (!found) {
       setLogged(false);
-      setErrors({ ...errors, userOrEmail: "Usuario o email no registrado" });
+      setErrors({ userOrEmail: "Usuario o email no registrado" });
       return;
     }
 
@@ -98,7 +121,7 @@ export default function Login() {
     const expected = found.contrasena || "";
     if (expected !== form.password) {
       setLogged(false);
-      setErrors({ ...errors, password: "Contraseña incorrecta" });
+      setErrors({ password: "Contraseña incorrecta" });
       return;
     }
 
@@ -130,12 +153,18 @@ export default function Login() {
       // Luego el evento de storage para persistencia
       window.dispatchEvent(new Event("storage"));
 
-      // Redirigir si es admin
-      if (session.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
+      // Marcar login como exitoso antes de redirigir para que los tests
+      // y la UI muestren el feedback. Luego navegar en un tick.
+      setLogged(true);
+      setErrors({});
+
+      setTimeout(() => {
+        if (session.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      }, 0);
     } catch (err) {
       console.error("No se pudo guardar session_user", err);
     }
@@ -166,7 +195,8 @@ export default function Login() {
 
         <form
           onSubmit={onSubmit}
-          onReset={() => {
+          onReset={(e) => {
+            e.preventDefault();
             setForm({ userOrEmail: "", password: "" });
             setErrors({});
             setLogged(null);
@@ -176,8 +206,11 @@ export default function Login() {
         >
           {/* Usuario o correo */}
           <div className="mb-3">
-            <label className="form-label">Usuario o Correo</label>
+            <label className="form-label" htmlFor="userOrEmail">
+              Usuario o Correo
+            </label>
             <input
+              id="userOrEmail"
               type="text"
               className={`form-control ${
                 errors.userOrEmail ? "is-invalid" : ""
@@ -187,9 +220,13 @@ export default function Login() {
               onChange={(e) =>
                 setForm({ ...form, userOrEmail: e.target.value })
               }
+              data-testid="login-username"
+              aria-invalid={errors.userOrEmail ? "true" : "false"}
             />
             {errors.userOrEmail && (
-              <div className="invalid-feedback">{errors.userOrEmail}</div>
+              <div className="invalid-feedback" role="alert">
+                {errors.userOrEmail}
+              </div>
             )}
           </div>
 
@@ -198,6 +235,7 @@ export default function Login() {
             <label className="form-label">Contraseña</label>
             <div className="input-group">
               <input
+                id="password"
                 minLength={12}
                 maxLength={18}
                 type={showPassword ? "text" : "password"}
@@ -207,6 +245,8 @@ export default function Login() {
                 placeholder="********"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                data-testid="login-password"
+                aria-invalid={errors.password ? "true" : "false"}
               />
               <button
                 type="button"
@@ -222,10 +262,19 @@ export default function Login() {
           </div>
 
           <div className="d-grid gap-2 mt-3">
-            <button type="submit" className="btn btn-primary">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              data-testid="login-submit"
+              role="button"
+            >
               Ingresar
             </button>
-            <button type="reset" className="btn btn-secondary">
+            <button
+              type="reset"
+              className="btn btn-secondary"
+              data-testid="login-reset"
+            >
               Limpiar
             </button>
           </div>

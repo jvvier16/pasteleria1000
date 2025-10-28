@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { MemoryRouter } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
-import App from "../src/App";
+import App from "../App.jsx";
 
 function mount(path) {
   return render(

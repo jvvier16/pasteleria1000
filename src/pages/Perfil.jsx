@@ -8,15 +8,23 @@ export default function PerfilPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem("session_user");
-    if (!raw) return navigate("/login");
+    if (!raw) {
+      navigate("/login");
+      return;
+    }
     try {
       const u = JSON.parse(raw);
+      if (!u || !u.id) {
+        navigate("/login");
+        return;
+      }
       setForm({
         nombre: u.nombre || "",
         correo: u.correo || u.email || "",
         contrasena: u.contrasena || u.password || "",
       });
-    } catch {
+    } catch (err) {
+      console.error("Error parsing session:", err);
       navigate("/login");
     }
   }, [navigate]);
@@ -69,31 +77,44 @@ export default function PerfilPage() {
                 </div>
               )}
 
-              <form onSubmit={onSubmit}>
+              <form onSubmit={onSubmit} data-testid="perfil-form">
                 <div className="mb-3">
-                  <label className="form-label">Nombre</label>
+                  <label htmlFor="nombre" className="form-label">
+                    Nombre
+                  </label>
                   <input
+                    id="nombre"
                     name="nombre"
                     value={form.nombre}
                     onChange={onChange}
                     className="form-control"
+                    data-testid="perfil-nombre"
+                    aria-label="Nombre"
                   />
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Correo</label>
+                  <label htmlFor="correo" className="form-label">
+                    Correo
+                  </label>
                   <input
+                    id="correo"
                     name="correo"
                     type="email"
                     value={form.correo}
                     onChange={onChange}
                     className="form-control"
+                    data-testid="perfil-correo"
+                    aria-label="Correo"
                   />
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label">Contraseña</label>
+                  <label htmlFor="contrasena" className="form-label">
+                    Contraseña
+                  </label>
                   <input
+                    id="contrasena"
                     name="contrasena"
                     type="password"
                     value={form.contrasena}

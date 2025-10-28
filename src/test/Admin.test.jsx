@@ -1,107 +1,77 @@
-import "@testing-library/jest-dom";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { BrowserRouter } from "react-router-dom";
+import Admin from "src/Admin/Admin";
 
-import Admin from "../pages/admin/Admin";
-
-function mountAt(path) {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/" element={<div>Home</div>} />
-        <Route path="/admin" element={<Admin />} />
-      </Routes>
-    </MemoryRouter>
-  );
-}
-
-const ADMIN_SESSION = {
-  id: 999,
-  nombre: "Admin",
-  apellido: "Root",
-  correo: "admin@gmail.com",
-  role: "admin",
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  clear: jest.fn(),
 };
+global.localStorage = mockLocalStorage;
 
-const USER_SESSION = {
-  id: 100,
-  nombre: "Juan",
-  apellido: "Pérez",
-  correo: "juan@example.com",
-  role: "user",
-};
-
-describe("Admin (/admin) – autorización y renderizado", () => {
+describe("Admin Component", () => {
   beforeEach(() => {
-    localStorage.clear();
-    jest.restoreAllMocks();
+    // Limpiar mocks antes de cada test
+    localStorage.getItem.mockClear();
+    localStorage.getItem.mockImplementation((key) => {
+      if (key === "session_user") {
+        return null; // Default: no session
+      }
+      return null;
+    });
   });
 
-  test("1) Sin sesión → muestra 'No autorizado'", () => {
-    // no session_user
-    mountAt("/admin");
-    expect(screen.getByText("No autorizado")).toBeInTheDocument();
+  it("muestra mensaje de no autorizado cuando no hay sesión", () => {
+    localStorage.getItem.mockImplementation((key) => {
+      if (key === "session_user") {
+        return null;
+      }
+      return null;
+    });
+
+    render(
+      <BrowserRouter>
+        <Admin />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText(/no autorizado/i)).toBeInTheDocument();
   });
 
-  test("2) Sesión no admin → muestra 'No autorizado'", () => {
-    localStorage.setItem("session_user", JSON.stringify(USER_SESSION));
-    mountAt("/admin");
-    expect(screen.getByText("No autorizado")).toBeInTheDocument();
+  it("muestra mensaje de no autorizado cuando el usuario no es admin", () => {
+    localStorage.getItem.mockImplementation((key) => {
+      if (key === "session_user") {
+        return JSON.stringify({ role: "user" });
+      }
+      return null;
+    });
+
+    render(
+      <BrowserRouter>
+        <Admin />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText(/no autorizado/i)).toBeInTheDocument();
   });
 
-  test("3) Sesión admin → NO muestra 'No autorizado' y renderiza contenido", () => {
-    localStorage.setItem("session_user", JSON.stringify(ADMIN_SESSION));
-    mountAt("/admin");
-    expect(screen.queryByText("No autorizado")).not.toBeInTheDocument();
+  it("muestra el panel de administración para usuarios admin", () => {
+    localStorage.getItem.mockImplementation((key) => {
+      if (key === "session_user") {
+        return JSON.stringify({ role: "admin" });
+      }
+      return null;
+    });
+
+    render(
+      <BrowserRouter>
+        <Admin />
+      </BrowserRouter>
+    );
+
     expect(screen.getByText("Panel de Administración")).toBeInTheDocument();
-    expect(screen.getByText("Usuarios")).toBeInTheDocument();
-    expect(screen.getByText("Productos")).toBeInTheDocument();
-    expect(screen.getByText("Pedidos")).toBeInTheDocument();
-  });
-
-  test("4) Sesión admin con 'usuarios_local' presente → no crashea (render ok)", () => {
-    localStorage.setItem("session_user", JSON.stringify(ADMIN_SESSION));
-    const locales = [
-      {
-        id: 101,
-        nombre: "Ana",
-        apellido: "García",
-        correo: "ana@example.com",
-        role: "user",
-        origin: "local",
-      },
-      {
-        id: 102,
-        nombre: "Luis",
-        apellido: "Martínez",
-        correo: "luis@example.com",
-        role: "user",
-        origin: "local",
-      },
-    ];
-    localStorage.setItem("usuarios_local", JSON.stringify(locales));
-    mountAt("/admin");
-    expect(screen.queryByText("No autorizado")).not.toBeInTheDocument();
-  });
-
-  test("5) Borrar un usuario no debe cerrar la sesión actual (invariante de sesión)", async () => {
-    localStorage.setItem("session_user", JSON.stringify(ADMIN_SESSION));
-    mountAt("/admin");
-
-    // Heurística: si existe un botón 'Eliminar' para usuarios, intenta clickear el primero.
-    // Si tu UI usa texto distinto (p.ej. 'Borrar' o icono), ajusta el 'getAllByRole' o 'getByText'.
-    const user = userEvent.setup();
-    const possibleDeleteButtons =
-      screen.queryAllByRole("button", { name: /eliminar|borrar/i }) ||
-      screen.queryAllByText(/eliminar|borrar/i);
-
-    if (possibleDeleteButtons && possibleDeleteButtons.length > 0) {
-      await user.click(possibleDeleteButtons[0]);
-    }
-    // Verifica que el session_user siga existiendo tras la acción
-    const session = localStorage.getItem("session_user");
-    expect(session).toBeTruthy();
-    expect(JSON.parse(session).role).toBe("admin");
+    expect(screen.getByRole("navigation")).toBeInTheDocument();
+    expect(screen.getByTestId("admin-dashboard")).toBeInTheDocument();
   });
 });

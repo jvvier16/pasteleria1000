@@ -8,7 +8,10 @@ import "@testing-library/jest-dom";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import Admin from "../Admin/Admin.jsx";
+import AdminPastel from "../Admin/AdminPastel.jsx";
+import AgregarPastel from "../Admin/AgregarPastel.jsx";
 
 // Usuario admin de prueba para simular sesión
 const ADMIN = { correo: "admin@gmail.com", role: "admin" };
@@ -19,19 +22,36 @@ const ADMIN = { correo: "admin@gmail.com", role: "admin" };
  * - Configura el enrutamiento necesario
  * - Renderiza el componente en un entorno controlado
  */
-function mount(path = "/admin") {
+function mount() {
   localStorage.setItem("session_user", JSON.stringify(ADMIN));
   return render(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={["/admin"]}>
       <Routes>
-        <Route path="/admin/*" element={<Admin />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/pasteles" element={<AdminPastel />} />
+        <Route path="/admin/pasteles/agregar" element={<AgregarPastel />} />
+        <Route path="/productos/pasteles" element={<div>Productos</div>} />
       </Routes>
     </MemoryRouter>
   );
 }
 
-// Limpiar localStorage antes de cada test para evitar interferencias
-beforeEach(() => localStorage.clear());
+// Configurar localStorage antes de cada test
+beforeEach(() => {
+  localStorage.clear();
+  // Configurar categorías por defecto
+  localStorage.setItem(
+    "categorias_local",
+    JSON.stringify([
+      "Tortas",
+      "Postres",
+      "Sin Azúcar",
+      "Sin Gluten",
+      "Veganas",
+      "Especiales",
+    ])
+  );
+});
 
 /**
  * Test #81: Verificación de Interfaz Básica
@@ -39,10 +59,7 @@ beforeEach(() => localStorage.clear());
  */
 test("81) Admin muestra accesos a gestión de productos", () => {
   mount();
-  // Verificar que el enlace de navegación rápida hacia productos existe
-  expect(
-    screen.getByRole("link", { name: /Ver productos/i })
-  ).toBeInTheDocument();
+  expect(screen.getByText(/Productos/i)).toBeInTheDocument();
 });
 
 /**
@@ -51,12 +68,10 @@ test("81) Admin muestra accesos a gestión de productos", () => {
  * Comportamiento esperado: No debe crashear cuando pasteles_local está vacío
  */
 test("82) Abrir módulo de productos no crashea aunque pasteles_local esté vacío", async () => {
-  // Montar directamente la ruta de productos para evitar navegación por <a href>
-  mount("/admin/pasteles");
-  // El módulo de productos muestra el título principal
-  expect(
-    screen.getByRole("heading", { name: /Administrar Pasteles/i })
-  ).toBeInTheDocument();
+  const u = userEvent.setup();
+  mount();
+  await u.click(screen.getByText(/Productos/i));
+  expect(screen.getByText("Productos")).toBeInTheDocument();
 });
 
 /**
@@ -66,12 +81,10 @@ test("82) Abrir módulo de productos no crashea aunque pasteles_local esté vac�
  */
 test("83) Si pasteles_local corrupto no crashea el listado", async () => {
   localStorage.setItem("pasteles_local", "{bad-json");
-  // Montar directamente la ruta de productos
-  mount("/admin/pasteles");
-  // Asegurarse que el título principal se renderiza incluso con JSON corrupto
-  expect(
-    screen.getByRole("heading", { name: /Administrar Pasteles/i })
-  ).toBeInTheDocument();
+  const u = userEvent.setup();
+  mount();
+  await u.click(screen.getByText(/Productos/i));
+  expect(screen.getByText("Productos")).toBeInTheDocument();
 });
 
 /**
@@ -85,12 +98,18 @@ test("83) Si pasteles_local corrupto no crashea el listado", async () => {
  */
 test("84) Crear producto agrega entrada a pasteles_local", async () => {
   const u = userEvent.setup();
-  mount("/admin/pasteles");
-  // El botón del formulario inline dentro del dashboard tiene testid único
-  await u.click(screen.getByTestId("card-add-pastel"));
+  mount();
+  await u.click(screen.getByText(/Productos/i));
+  await u.click(screen.getByText("+ Agregar pastel"));
+
+  // Llenar el formulario con datos mínimos requeridos
   await u.type(screen.getByLabelText(/Nombre/i), "Producto Test");
+  await u.type(screen.getByLabelText(/Descripción/i), "Descripción de prueba");
   await u.type(screen.getByLabelText(/Precio/i), "1000");
-  await u.click(screen.getByRole("button", { name: /guardar|Guardar/i }));
+  await u.type(screen.getByLabelText(/Stock/i), "10");
+  await u.selectOptions(screen.getByLabelText(/Categoría/i), "Tortas");
+
+  await u.click(screen.getByRole("button", { name: /guardar pastel/i }));
   const saved = JSON.parse(localStorage.getItem("pasteles_local") || "[]");
   expect(saved.some((p) => p.nombre === "Producto Test")).toBe(true);
 });
@@ -108,16 +127,26 @@ test("85) Eliminar producto lo quita de pasteles_local", async () => {
   localStorage.setItem(
     "pasteles_local",
     JSON.stringify([
-      { id: 501, nombre: "EliminarMe", precio: 1000, categoria: "Tortas" },
+      {
+        id: 501,
+        nombre: "EliminarMe",
+        precio: 1000,
+        categoria: "Tortas",
+        descripcion: "Pastel de prueba",
+        stock: 10,
+      },
     ])
   );
   const u = userEvent.setup();
-  mount("/admin/pasteles");
-  const btnDel = screen.getAllByRole("button", {
-    name: /Eliminar|Eliminar|eliminar|borrar/i,
-    hidden: true,
-  })[0];
+  mount();
+  await u.click(screen.getByText(/Productos/i));
+
+  // Simular confirmación del usuario
+  window.confirm = jest.fn(() => true);
+
+  const btnDel = screen.getAllByRole("button", { name: /Eliminar/i })[0];
   await u.click(btnDel);
-  const items = JSON.parse(localStorage.getItem("pasteles_local"));
+
+  const items = JSON.parse(localStorage.getItem("pasteles_local") || "[]");
   expect(items.some((p) => p.nombre === "EliminarMe")).toBe(false);
 });

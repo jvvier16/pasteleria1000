@@ -120,7 +120,7 @@ export default function Navbar() {
 
   const isAdmin = Boolean(sessionUser && sessionUser.role === "admin");
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // mostrar modal de confirmación
     try {
       if (!logoutModalInstance.current && window.bootstrap) {
@@ -128,22 +128,28 @@ export default function Navbar() {
           logoutModalRef.current,
           { backdrop: "static" }
         );
+        logoutModalInstance.current.show();
+      } else {
+        // fallback: confirm nativo
+        if (window.confirm("¿Cerrar sesión?")) {
+          await confirmLogout();
+        }
       }
-      logoutModalInstance.current && logoutModalInstance.current.show();
     } catch (err) {
-      // fallback: confirm nativo
+      console.error("Error en handleLogout:", err);
+      // si todo falla, intentar logout directo
       if (window.confirm("¿Cerrar sesión?")) {
-        confirmLogout();
+        await confirmLogout();
       }
     }
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     try {
       // Guardar el usuario actual para el evento
       const currentUser = sessionUser;
 
-      // Eliminar sesión
+      // Eliminar sesión y actualizar estado
       localStorage.removeItem("session_user");
       setSessionUser(null);
 
@@ -155,13 +161,21 @@ export default function Navbar() {
 
       // Ocultar modal si existe
       try {
-        logoutModalInstance.current && logoutModalInstance.current.hide();
-      } catch {}
+        if (logoutModalInstance.current) {
+          logoutModalInstance.current.hide();
+        }
+      } catch (err) {
+        console.error("Error ocultando modal:", err);
+      }
 
-      // Redirigir a inicio
-      navigate("/");
+      // Esperar un tick para que se procesen los cambios
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Redirigir a login
+      navigate("/login");
     } catch (err) {
       console.error("Error durante el cierre de sesión:", err);
+      throw err; // Propagar el error para manejo
     }
   };
 
@@ -424,7 +438,10 @@ export default function Navbar() {
                   <li>
                     <button
                       className="dropdown-item text-danger"
-                      onClick={confirmLogout}
+                      onClick={handleLogout}
+                      data-testid="logout-button"
+                      role="menuitem"
+                      aria-label="Cerrar sesión"
                     >
                       Cerrar sesión
                     </button>

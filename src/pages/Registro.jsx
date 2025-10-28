@@ -36,6 +36,7 @@ const Registro = () => {
     direccion: "",
   });
   const [errors, setErrors] = useState({});
+  const [registroExitoso, setRegistroExitoso] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -61,17 +62,45 @@ const Registro = () => {
     return null;
   };
 
+  const validarEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regex.test(email)) return "Formato de email inválido";
+    return null;
+  };
+
+  const validarContrasena = (pass) => {
+    if (pass.length < 12)
+      return "La contraseña debe tener al menos 12 caracteres";
+    if (pass.length > 18)
+      return "La contraseña debe tener como máximo 18 caracteres";
+    if (!/[A-Z]/.test(pass))
+      return "La contraseña debe contener al menos una mayúscula";
+    if (!/[a-z]/.test(pass))
+      return "La contraseña debe contener al menos una minúscula";
+    if (!/\d/.test(pass))
+      return "La contraseña debe contener al menos un número";
+    return null;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     let newErrors = {};
 
+    // Validación nombre y apellido
+    if (!formData.nombre.trim()) newErrors.nombre = "El nombre es obligatorio";
+    if (!formData.apellido.trim())
+      newErrors.apellido = "El apellido es obligatorio";
+
+    // Validación email
+    const emailError = validarEmail(formData.correo);
+    if (emailError) newErrors.correo = emailError;
+
     // Validación contraseña
-    if (formData.contrasena !== formData.repetirContrasena) {
+    const passError = validarContrasena(formData.contrasena);
+    if (passError) {
+      newErrors.contrasena = passError;
+    } else if (formData.contrasena !== formData.repetirContrasena) {
       newErrors.repetirContrasena = "Las contraseñas no coinciden";
-    }
-    if (formData.contrasena.length < 12 || formData.contrasena.length > 18) {
-      newErrors.contrasena =
-        "La contraseña debe tener entre 12 y 18 caracteres";
     }
 
     // Validación fecha nacimiento
@@ -79,7 +108,7 @@ const Registro = () => {
     if (errFecha) newErrors.fechaNacimiento = errFecha;
 
     // Validación campos vacíos extra
-    if (!formData.direccion.trim()) {
+    if (!formData.direccion?.trim()) {
       newErrors.direccion = "La dirección es obligatoria";
     }
 
@@ -131,18 +160,11 @@ const Registro = () => {
     localStorage.setItem("usuarios_local", JSON.stringify(local));
 
     // Guardar sesión
-    localStorage.setItem(
-      "session_user",
-      JSON.stringify({
-        id: nuevoUsuario.id,
-        nombre: nuevoUsuario.nombre,
-        correo: nuevoUsuario.correo,
-      })
-    );
-    window.dispatchEvent(new Event("storage"));
-
-    alert(`Registro exitoso de ${formData.nombre} ${formData.apellido}`);
-    navigate("/");
+    // Notificar éxito y redirigir a login
+    setRegistroExitoso(true);
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
   };
 
   return (
@@ -150,117 +172,215 @@ const Registro = () => {
       <div className="p-4 rounded-4 shadow bg-white card-max-380">
         <h3 className="text-center mb-4 font-cursive">Registro</h3>
 
-        <form onSubmit={handleSubmit}>
+        {registroExitoso && (
+          <div
+            className="alert alert-success"
+            role="alert"
+            data-testid="registro-exitoso"
+          >
+            ¡Registro exitoso! Redirigiendo al login...
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} data-testid="registro-form">
           {/* Nombre */}
           <div className="mb-3">
-            <label className="form-label">Nombre</label>
+            <label htmlFor="nombre" className="form-label">
+              Nombre
+            </label>
             <input
+              id="nombre"
               type="text"
               name="nombre"
-              className="form-control"
+              className={`form-control ${errors.nombre ? "is-invalid" : ""}`}
               value={formData.nombre}
               onChange={handleChange}
               required
+              data-testid="registro-nombre"
+              aria-invalid={errors.nombre ? "true" : "false"}
             />
+            {errors.nombre && (
+              <div className="invalid-feedback" role="alert">
+                {errors.nombre}
+              </div>
+            )}
           </div>
 
           {/* Apellido */}
           <div className="mb-3">
-            <label className="form-label">Apellido</label>
+            <label htmlFor="apellido" className="form-label">
+              Apellido
+            </label>
             <input
+              id="apellido"
               type="text"
               name="apellido"
-              className="form-control"
+              className={`form-control ${errors.apellido ? "is-invalid" : ""}`}
               value={formData.apellido}
               onChange={handleChange}
               required
+              data-testid="registro-apellido"
+              aria-invalid={errors.apellido ? "true" : "false"}
             />
+            {errors.apellido && (
+              <div className="invalid-feedback" role="alert">
+                {errors.apellido}
+              </div>
+            )}
           </div>
 
           {/* Correo */}
           <div className="mb-3">
-            <label className="form-label">Correo</label>
+            <label htmlFor="correo" className="form-label">
+              Correo
+            </label>
             <input
+              id="correo"
               type="email"
               name="correo"
-              className="form-control"
+              className={`form-control ${errors.correo ? "is-invalid" : ""}`}
               value={formData.correo}
               onChange={handleChange}
               required
+              data-testid="registro-email"
+              aria-invalid={errors.correo ? "true" : "false"}
             />
             {errors.correo && (
-              <small className="text-danger">{errors.correo}</small>
+              <div className="invalid-feedback" role="alert">
+                {errors.correo}
+              </div>
             )}
           </div>
 
           {/* Fecha Nacimiento */}
           <div className="mb-3">
-            <label className="form-label">
+            <label htmlFor="fechaNacimiento" className="form-label">
               Fecha de nacimiento (YYYY-MM-DD)
             </label>
             <input
-              type="text"
+              id="fechaNacimiento"
+              type="date"
               name="fechaNacimiento"
-              className="form-control"
+              className={`form-control ${
+                errors.fechaNacimiento ? "is-invalid" : ""
+              }`}
               value={formData.fechaNacimiento}
               onChange={handleChange}
               required
+              data-testid="registro-fecha"
+              aria-invalid={errors.fechaNacimiento ? "true" : "false"}
             />
             {errors.fechaNacimiento && (
-              <small className="text-danger">{errors.fechaNacimiento}</small>
+              <div className="invalid-feedback" role="alert">
+                {errors.fechaNacimiento}
+              </div>
             )}
           </div>
 
           {/* Dirección */}
           <div className="mb-3">
-            <label className="form-label">Dirección</label>
+            <label htmlFor="direccion" className="form-label">
+              Dirección
+            </label>
             <input
+              id="direccion"
               type="text"
               name="direccion"
-              className="form-control"
+              className={`form-control ${errors.direccion ? "is-invalid" : ""}`}
               value={formData.direccion}
               onChange={handleChange}
               required
+              data-testid="registro-direccion"
+              aria-invalid={errors.direccion ? "true" : "false"}
             />
             {errors.direccion && (
-              <small className="text-danger">{errors.direccion}</small>
+              <div className="invalid-feedback" role="alert">
+                {errors.direccion}
+              </div>
             )}
           </div>
 
           {/* Contraseña */}
           <div className="mb-3">
-            <label className="form-label">Contraseña</label>
+            <label htmlFor="contrasena" className="form-label">
+              Contraseña
+            </label>
             <input
+              id="contrasena"
               type="password"
               name="contrasena"
-              className="form-control"
+              className={`form-control ${
+                errors.contrasena ? "is-invalid" : ""
+              }`}
               value={formData.contrasena}
               onChange={handleChange}
               required
+              minLength={12}
+              maxLength={18}
+              data-testid="registro-password"
+              aria-invalid={errors.contrasena ? "true" : "false"}
             />
             {errors.contrasena && (
-              <small className="text-danger">{errors.contrasena}</small>
+              <div className="invalid-feedback" role="alert">
+                {errors.contrasena}
+              </div>
             )}
           </div>
 
           {/* Repetir Contraseña */}
           <div className="mb-4">
-            <label className="form-label">Repetir Contraseña</label>
+            <label htmlFor="repetirContrasena" className="form-label">
+              Repetir Contraseña
+            </label>
             <input
+              id="repetirContrasena"
               type="password"
               name="repetirContrasena"
-              className="form-control"
+              className={`form-control ${
+                errors.repetirContrasena ? "is-invalid" : ""
+              }`}
               value={formData.repetirContrasena}
               onChange={handleChange}
               required
+              minLength={12}
+              maxLength={18}
+              data-testid="registro-confirm-password"
+              aria-invalid={errors.repetirContrasena ? "true" : "false"}
             />
             {errors.repetirContrasena && (
-              <small className="text-danger">{errors.repetirContrasena}</small>
+              <div className="invalid-feedback" role="alert">
+                {errors.repetirContrasena}
+              </div>
             )}
           </div>
 
-          <button type="submit" className="btn btn-dark w-100">
+          <button
+            type="submit"
+            className="btn btn-dark w-100"
+            data-testid="registro-submit"
+          >
             Registrar
+          </button>
+
+          <button
+            type="reset"
+            className="btn btn-secondary w-100 mt-2"
+            data-testid="registro-reset"
+            onClick={() => {
+              setFormData({
+                nombre: "",
+                apellido: "",
+                correo: "",
+                contrasena: "",
+                repetirContrasena: "",
+                fechaNacimiento: "",
+                direccion: "",
+              });
+              setErrors({});
+              setRegistroExitoso(false);
+            }}
+          >
+            Limpiar
           </button>
         </form>
       </div>

@@ -50,7 +50,14 @@ function App() {
         <Route path="/categorias" element={<Categorias />} />
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/contacto" element={<Contacto />} />
-        <Route path="/pago" element={<Pago />} />
+        <Route
+          path="/pago"
+          element={
+            <RequireAuth>
+              <Pago />
+            </RequireAuth>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Registro />} />
         <Route path="/blog" element={<BlogIndex />} />

@@ -232,7 +232,11 @@ export default function AdminPasteles() {
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h2>Administrar Pasteles</h2>
-        <a href="/admin/pasteles/agregar" className="btn btn-success">
+        <a
+          href="/admin/pasteles/agregar"
+          className="btn btn-success"
+          data-testid="admin-add-pastel-link"
+        >
           + Agregar pastel
         </a>
       </div>

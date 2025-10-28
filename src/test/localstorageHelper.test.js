@@ -6,7 +6,7 @@ import {
   removeFromCart,
   clearCart,
   getTotal,
-} from "../src/utils/localstorageHelper";
+} from "../utils/localstorageHelper";
 
 beforeEach(() => localStorage.clear());
 

@@ -11,7 +11,7 @@
 import "@testing-library/jest-dom";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
-import Perfil from "../pages/Perfil";
+import Perfil from "src/pages/Perfil";
 
 /**
  * Usuario de prueba

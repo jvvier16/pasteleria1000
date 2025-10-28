@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
-import Productos from "../src/pages/Productos.jsx";
+import Productos from "../pages/Productos.jsx";
 
 function mount(search = "") {
   return render(

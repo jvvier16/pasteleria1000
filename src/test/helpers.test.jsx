@@ -3,7 +3,7 @@ import "@testing-library/jest-dom";
 // Estos imports suponen helpers separados por responsabilidades.
 // Ajusta rutas si difieren.
 // TODO: ajusta rutas si difieren
-import { slugify } from "../src/helpers/slugify";
+import { slugify } from "../utils/slugify";
 import {
   getCart,
   setCart,
@@ -11,12 +11,12 @@ import {
   cartTotalMoney,
   addToCart,
   clearCart,
-} from "../src/helpers/cart";
+} from "../utils/cart";
 import {
   getSessionUser,
   setSessionUser,
   clearSessionUser,
-} from "../src/helpers/session";
+} from "../utils/session";
 
 describe("Helpers – slugify", () => {
   test("10) slugify básico: 'Sin Azúcar' → 'sin-azucar'", () => {

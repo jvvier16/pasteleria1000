@@ -3,7 +3,7 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 // TODO: ajusta si difiere
-import Navbar from "../src/components/Navbar.jsx";
+import Navbar from "../components/Navbar.jsx";
 
 function mount() {
   return render(
@@ -71,14 +71,21 @@ test("32) Construye categorías desde Pasteles.json", () => {
 
 test("33) Dropdown usuario sin sesión no muestra 'Cerrar sesión'", () => {
   mount();
-  expect(screen.queryByText(/Cerrar sesión/i)).not.toBeInTheDocument();
+  // Buscar por el role y aria-label específicos del botón de logout
+  expect(
+    screen.queryByRole("menuitem", { name: /cerrar sesión/i })
+  ).not.toBeInTheDocument();
 });
 
 test("34) Con sesión muestra 'Cerrar sesión' en el menú", () => {
+  // Establecer un usuario con nombre para el dropdown
   localStorage.setItem(
     "session_user",
-    JSON.stringify({ id: 5, correo: "a@b.c" })
+    JSON.stringify({ id: 5, nombre: "Usuario Test", correo: "a@b.c" })
   );
   mount();
-  expect(screen.getByText(/Cerrar sesión/i)).toBeInTheDocument();
+  // Buscar por el role y aria-label específicos del botón de logout
+  expect(
+    screen.getByRole("menuitem", { name: /cerrar sesión/i })
+  ).toBeInTheDocument();
 });

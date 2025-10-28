@@ -1,288 +1,402 @@
+/**
+ * Componente: Panel de Administración
+ *
+ * Este componente implementa el panel de administración principal de la pastelería.
+ * Proporciona funcionalidades para:
+ * - Gestión de productos (CRUD)
+ * - Persistencia de datos en localStorage
+ * - Manejo de autenticación y autorización
+ * - Interfaz de usuario intuitiva
+ */
+
 import React, { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
-// Uso de emojis en lugar de react-icons para evitar dependencias faltantes
+import { Link, Routes, Route } from "react-router-dom";
+import AdminPastel from "./AdminPastel";
+import UsuariosAdmin from "./UsuariosAdmin";
+import AdminOrdenes from "./AdminOrdenes";
 
-// Usar los datos existentes en el proyecto
-import productosData from "../data/Pasteles.json";
-import usuariosData from "../data/Usuarios.json";
+import { checkAdmin } from "../utils/adminHelper.js";
+import usuariosBase from "../data/Usuarios.json";
 
-const AdminDashboard = () => {
+export default function Admin() {
+  // Si no es admin, mostrar mensaje de no autorizado
+  const [showProductForm, setShowProductForm] = useState(false);
   const [productos, setProductos] = useState([]);
-  const [usuarios, setUsuarios] = useState([]);
-  const [ordenes, setOrdenes] = useState([]);
-  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ nombre: "", precio: "" });
+  const [stats, setStats] = useState({
+    productos: 0,
+    usuarios: 0,
+    ordenes: 0,
+    inventario: 0,
+  });
 
+  /**
+   * Efecto de carga inicial
+   * - Carga los productos desde localStorage al montar el componente
+   * - Maneja errores de datos corruptos
+   * - Asegura que productos siempre sea un array
+   */
   useEffect(() => {
-    // Cargar datos reales (pueden venir de archivos o API)
-    setProductos(productosData || []);
-    setUsuarios(usuariosData || []);
-    // las órdenes pueden venir de localStorage (pedidos_local) — usar como fuente principal
     try {
-      const raw = localStorage.getItem("pedidos_local");
-      const parsed = raw ? JSON.parse(raw) : [];
-      setOrdenes(Array.isArray(parsed) ? parsed : []);
+      // Cargar y contar productos
+      const saved = localStorage.getItem("pasteles_local");
+      let productos = [];
+      try {
+        const parsed = JSON.parse(saved);
+        productos = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        productos = [];
+      }
+      setProductos(productos);
+
+      // Calcular estadísticas de inventario
+      const inventarioTotal = productos.reduce(
+        (sum, p) => sum + (Number(p.stock) || 0),
+        0
+      );
+
+      // Contar usuarios totales (JSON base + localStorage)
+      const usuariosRaw = localStorage.getItem("usuarios_local");
+      let usuariosLocal = [];
+      try {
+        const parsed = JSON.parse(usuariosRaw);
+        usuariosLocal = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        usuariosLocal = [];
+      }
+
+      // Combinar usuarios sin duplicados — usar correo si existe, si no usar id como clave
+      const keysSet = new Set();
+      const usuariosUnicos = [...usuariosLocal, ...usuariosBase].filter((u) => {
+        // Generar clave única: correo (lowercase) o id fallback o nombre
+        const key =
+          u && u.correo
+            ? u.correo.toLowerCase()
+            : u && u.id !== undefined
+            ? `id:${u.id}`
+            : u && u.nombre
+            ? `name:${u.nombre}`
+            : null;
+        if (!key) return false;
+        if (keysSet.has(key)) return false;
+        keysSet.add(key);
+        return true;
+      });
+
+      // Contar órdenes desde localStorage
+      const ordenesRaw = localStorage.getItem("pedidos_local");
+      let ordenes = [];
+      try {
+        const parsed = JSON.parse(ordenesRaw);
+        ordenes = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        ordenes = [];
+      }
+
+      // Actualizar estadísticas
+      setStats({
+        productos: productos.length,
+        usuarios: usuariosUnicos.length,
+        ordenes: ordenes.length,
+        inventario: inventarioTotal,
+      });
     } catch (err) {
-      setOrdenes([]);
+      console.error("Error cargando datos:", err);
+      setProductos([]);
+      setStats({
+        productos: 0,
+        usuarios: usuariosBase.length, // Mantener al menos los usuarios base
+        ordenes: 0,
+        inventario: 0,
+      });
     }
   }, []);
 
-  // Cálculos dinámicos
-  const totalProductos = productos.length;
-  const totalUsuarios = usuarios.length;
-  const totalOrdenes = ordenes.length;
-  const inventarioActual = 500;
-  const nuevosUsuariosMes = 120;
-  const probAumento = 20;
-
-  // Estilos inline para los botones del admin
-  const buttonStyles = {
-    transition: "all 0.3s ease",
-    border: "none",
-    cursor: "pointer",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-  };
-
-  return (
-    <div className="d-flex bg-light admin-min-vh">
-      {/* Sidebar */}
-      <div className="bg-white border-end p-3 admin-sidebar-width">
-        <h4 className="text-center mb-4 text-primary fw-bold">Panel Admin</h4>
-        <ul className="nav flex-column">
-          <li className="nav-item">
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `nav-link ${
-                  isActive ? "active text-primary fw-semibold" : "text-dark"
-                }`
-              }
-            >
-              Dashboard
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/admin/ordenes"
-              className={({ isActive }) =>
-                isActive ? "nav-link active text-primary" : "nav-link text-dark"
-              }
-            >
-              Órdenes
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/admin/pasteles"
-              className={({ isActive }) =>
-                isActive ? "nav-link active text-primary" : "nav-link text-dark"
-              }
-            >
-              Productos
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/categorias"
-              className={({ isActive }) =>
-                isActive ? "nav-link active text-primary" : "nav-link text-dark"
-              }
-            >
-              Categorías
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/admin/usuarios"
-              className={({ isActive }) =>
-                isActive ? "nav-link active text-primary" : "nav-link text-dark"
-              }
-            >
-              Usuarios
-            </NavLink>
-          </li>
-          <li className="nav-item">
-            <NavLink
-              to="/admin/reportes"
-              className={({ isActive }) =>
-                isActive ? "nav-link active text-primary" : "nav-link text-dark"
-              }
-            >
-              Reportes
-            </NavLink>
-          </li>
-        </ul>
-
-        <hr />
-
-        <div className="mt-auto">
-          <div className="d-flex align-items-center mb-3">
-            <span className="fs-4 me-2 text-secondary">👤</span>
-            <NavLink to="/perfil" className="text-dark">
-              Perfil
-            </NavLink>
-          </div>
-          <button
-            className="btn btn-danger w-100"
-            onClick={() => {
-              try {
-                localStorage.removeItem("session_user");
-                window.dispatchEvent(new Event("storage"));
-              } catch {}
-              navigate("/");
-            }}
-          >
-            <span className="me-2">🚪</span> Cerrar Sesión
-          </button>
+  // Si no es admin, mostrar mensaje de no autorizado
+  const isAdmin = checkAdmin();
+  if (!isAdmin) {
+    console.log("No hay sesión");
+    return (
+      <div className="container py-4">
+        <div
+          className="alert alert-danger"
+          role="alert"
+          data-testid="no-auth-message"
+        >
+          No autorizado. Debes iniciar sesión como administrador.
         </div>
       </div>
+    );
+  }
+  console.log("¿Es admin?", isAdmin);
 
-      {/* Contenido principal */}
-      <div className="flex-grow-1 p-4">
-        <h3 className="fw-bold">Dashboard</h3>
-        <p className="text-muted">Resumen de las actividades diarias</p>
+  /**
+   * Manejador de guardado de productos
+   * @param {Event} e - Evento del formulario
+   *
+   * Flujo:
+   * 1. Previene el envío del formulario
+   * 2. Recupera productos existentes
+   * 3. Crea nuevo producto con ID único
+   * 4. Actualiza localStorage y estado
+   * 5. Limpia y cierra el formulario
+   */
+  const handleSaveProduct = (e) => {
+    e.preventDefault();
+    try {
+      const saved = localStorage.getItem("pasteles_local");
+      const existing = saved ? JSON.parse(saved) : [];
+      const newProduct = {
+        ...formData,
+        id: Date.now(),
+        precio: Number(formData.precio),
+        categoria: "Tortas",
+      };
+      const updated = [...existing, newProduct];
+      localStorage.setItem("pasteles_local", JSON.stringify(updated));
+      setProductos(updated);
+      setShowProductForm(false);
+      setFormData({ nombre: "", precio: "" });
+    } catch (err) {
+      console.error("Error al guardar:", err);
+    }
+  };
 
-        {/* Tarjetas de métricas como botones */}
-        <div className="row g-3 mb-4">
-          <div className="col-md-4">
-            <button
-              onClick={() => navigate("/admin/ordenes")}
-              className="card w-100 border-0 bg-primary text-white h-100 admin-stat-button"
-              style={{
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.transform = "translateY(-5px)")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.transform = "translateY(0)")
-              }
-            >
-              <div className="card-body text-center">
-                <span className="fs-1">🛒</span>
-                <h4 className="mt-3 mb-2">Compras Totales</h4>
-                <h2 className="display-4 fw-bold mb-0">{totalOrdenes}</h2>
-                <small className="text-white-50">Click para ver detalles</small>
+  /**
+   * Manejador de eliminación de productos
+   * @param {number} id - ID del producto a eliminar
+   *
+   * Flujo:
+   * 1. Filtra el producto seleccionado
+   * 2. Actualiza localStorage
+   * 3. Actualiza el estado local
+   * 4. Maneja errores si ocurren
+   */
+  const handleDeleteProduct = (id) => {
+    try {
+      const updated = productos.filter((p) => p.id !== id);
+      localStorage.setItem("pasteles_local", JSON.stringify(updated));
+      setProductos(updated);
+    } catch (err) {
+      console.error("Error al eliminar:", err);
+    }
+  };
+
+  // Si es admin, mostrar el dashboard
+  return (
+    <div className="container py-4" data-testid="admin-dashboard">
+      <h2>Panel de Administración</h2>
+      <div className="row mt-4">
+        {/* Dashboard Cards */}
+        <div className="col-12 mb-4">
+          <div className="row g-4">
+            <div className="col-md-4">
+              <div className="card">
+                <div
+                  className="card-body"
+                  data-testid="stats-productos"
+                  role="region"
+                >
+                  <h5>Productos</h5>
+                  <p className="h3">{stats.productos} productos</p>
+                  <small>Inventario: {stats.inventario} unidades</small>
+                </div>
               </div>
-            </button>
-          </div>
-
-          <div className="col-md-4">
-            <button
-              onClick={() => navigate("/admin/pasteles")}
-              className="card w-100 border-0 bg-success text-white h-100 admin-stat-button"
-              style={{
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.transform = "translateY(-5px)")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.transform = "translateY(0)")
-              }
-            >
-              <div className="card-body text-center">
-                <span className="fs-1">🎂</span>
-                <h4 className="mt-3 mb-2">Productos Activos</h4>
-                <h2 className="display-4 fw-bold mb-0">{totalProductos}</h2>
-                <small className="text-white-50">Click para administrar</small>
+            </div>
+            <div className="col-md-4">
+              <div className="card">
+                <div
+                  className="card-body"
+                  data-testid="stats-usuarios"
+                  role="region"
+                >
+                  <h5>Usuarios</h5>
+                  <p className="h3">{stats.usuarios} usuarios</p>
+                </div>
               </div>
-            </button>
-          </div>
-
-          <div className="col-md-4">
-            <button
-              onClick={() => navigate("/admin/usuarios")}
-              className="card w-100 border-0 bg-info text-white h-100 admin-stat-button"
-              style={{
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.transform = "translateY(-5px)")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.transform = "translateY(0)")
-              }
-            >
-              <div className="card-body text-center">
-                <span className="fs-1">👥</span>
-                <h4 className="mt-3 mb-2">Usuarios Registrados</h4>
-                <h2 className="display-4 fw-bold mb-0">{totalUsuarios}</h2>
-                <small className="text-white-50">Click para gestionar</small>
+            </div>
+            <div className="col-md-4">
+              <div className="card">
+                <div
+                  className="card-body"
+                  data-testid="stats-pedidos"
+                  role="region"
+                >
+                  <h5>Órdenes</h5>
+                  <p className="h3">{stats.ordenes} órdenes</p>
+                </div>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
-        {/* Cuadrícula de accesos con botones */}
-        <div className="row g-3">
-          {[
-            {
-              title: "Órdenes",
-              desc: "Gestión y seguimiento de compras",
-              icon: "🧾",
-              route: "/admin/ordenes",
-              color: "primary",
-            },
-            {
-              title: "Productos",
-              desc: "Administrar pasteles y stock",
-              icon: "🎂",
-              route: "/admin/pasteles",
-              color: "success",
-            },
-            {
-              title: "Usuarios",
-              desc: "Gestión de cuentas",
-              icon: "👥",
-              route: "/admin/usuarios",
-              color: "info",
-            },
-            {
-              title: "Reportes",
-              desc: "Ver estadísticas y gráficos",
-              icon: "📊",
-              route: "/admin/reportes",
-              color: "warning",
-            },
-            {
-              title: "Agregar Pastel",
-              desc: "Crear nuevo producto",
-              icon: "➕",
-              route: "/admin/pasteles/agregar",
-              color: "success",
-            },
-          ].map((card) => (
-            <div key={card.title} className="col-md-4">
-              <button
-                onClick={() => navigate(card.route)}
-                className={`card h-100 w-100 border-0 bg-${card.color} text-white admin-card-button`}
-                style={{
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.transform = "translateY(-5px)")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.transform = "translateY(0)")
-                }
-              >
-                <div className="card-body d-flex flex-column align-items-center text-center p-4">
-                  <div className="mb-3 fs-1">{card.icon}</div>
-                  <h4 className="fw-bold mb-2">{card.title}</h4>
-                  <p className="mb-0 text-white-50">{card.desc}</p>
+        {/* Navigation */}
+        <div className="col-12 mb-4">
+          <nav>
+            <ul className="nav nav-tabs">
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin/usuarios">
+                  Usuarios
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin/pasteles">
+                  Productos
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin/pedidos">
+                  Órdenes
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin/reportes">
+                  Reportes
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        {/* Navigation Cards */}
+        <div className="col-12 mb-4">
+          <h4>Navegación rápida</h4>
+          <div className="row g-4">
+            <div className="col-md-3">
+              <div className="card">
+                <div className="card-body">
+                  <h5>Gestión de productos</h5>
+                  <Link
+                    to="/admin/pasteles"
+                    className="btn btn-primary btn-sm"
+                    data-testid="nav-ver-productos"
+                  >
+                    Ver productos
+                  </Link>
                 </div>
-              </button>
+              </div>
             </div>
-          ))}
+            <div className="col-md-3">
+              <div className="card">
+                <div className="card-body">
+                  <h5>Gestión de usuarios</h5>
+                  <Link to="/admin/usuarios" className="btn btn-primary btn-sm">
+                    Ver usuarios
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-12">
+          <Routes>
+            <Route path="usuarios" element={<UsuariosAdmin />} />
+            <Route path="pasteles/*" element={<AdminPastel />} />
+            <Route path="pedidos" element={<AdminOrdenes />} />
+            <Route
+              path="/"
+              element={
+                <div className="card mb-4">
+                  <div className="card-body">
+                    <p>Selecciona una sección para administrar</p>
+                  </div>
+                </div>
+              }
+            />
+          </Routes>
+          <div className="card mb-4">
+            <div className="card-body">
+              <h3>Gestión de productos</h3>
+              {!showProductForm ? (
+                <>
+                  <button
+                    className="btn btn-primary mb-3"
+                    onClick={() => setShowProductForm(true)}
+                    data-testid="card-add-pastel"
+                  >
+                    + Agregar pastel
+                  </button>
+                  <div className="table-responsive">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Nombre</th>
+                          <th>Precio</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productos.map((p) => (
+                          <tr key={p.id}>
+                            <td>{p.nombre}</td>
+                            <td>${p.precio}</td>
+                            <td>
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleDeleteProduct(p.id)}
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleSaveProduct}>
+                  <div className="mb-3">
+                    <label
+                      htmlFor="admin-product-nombre"
+                      className="form-label"
+                    >
+                      Nombre
+                    </label>
+                    <input
+                      id="admin-product-nombre"
+                      className="form-control"
+                      value={formData.nombre}
+                      onChange={(e) =>
+                        setFormData((f) => ({ ...f, nombre: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label
+                      htmlFor="admin-product-precio"
+                      className="form-label"
+                    >
+                      Precio
+                    </label>
+                    <input
+                      id="admin-product-precio"
+                      type="number"
+                      className="form-control"
+                      value={formData.precio}
+                      onChange={(e) =>
+                        setFormData((f) => ({ ...f, precio: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="btn btn-primary">
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowProductForm(false)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
