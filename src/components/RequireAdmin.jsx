@@ -1,0 +1,29 @@
+// RequireAdmin: protege rutas de administración verificando correo del usuario
+// guardado en `session_user`. Redirige a /login si no es admin.
+import React from "react";
+import { Navigate } from "react-router-dom";
+
+export default function RequireAdmin({ children }) {
+  let user = null;
+  try {
+    const raw = localStorage.getItem("session_user");
+    if (raw) {
+      user = JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error("Error parsing session_user:", err);
+    return <Navigate to="/login" replace />;
+  }
+
+  // Verificar que el usuario existe y tiene role admin
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Verificar el rol del usuario
+  if (user.role === "admin") {
+    return children;
+  }
+
+  return <Navigate to="/login" replace />;
+}
