@@ -19,6 +19,7 @@
  */
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import usuariosData from "../data/Usuarios.json";
 import { useNavigate } from "react-router-dom";
 
@@ -171,6 +172,24 @@ export default function Login() {
 
     setLogged(true);
     setErrors({});
+    // guardar sesión en localStorage
+    try {
+      localStorage.setItem(
+        "session_user",
+        JSON.stringify({
+          id: found.id,
+          nombre: found.nombre || found.username,
+          correo: found.email,
+        })
+      );
+      // disparar evento storage para otras pestañas/componentes
+      window.dispatchEvent(new Event("storage"));
+      // redirigir al origen si venimos de una ruta protegida
+      const dest = location.state?.from?.pathname || "/";
+      navigate(dest, { replace: true });
+    } catch (err) {
+      console.error("No se pudo guardar session_user", err);
+    }
   };
 
   return (
@@ -185,6 +204,13 @@ export default function Login() {
         </div>
 
         <h3 className="mb-3 text-center">Iniciar Sesión</h3>
+
+        {redirectedFrom && (
+          <div className="alert alert-warning w-100">
+            Debes iniciar sesión para acceder a{" "}
+            <strong>{redirectedFrom}</strong>
+          </div>
+        )}
 
         {logged === true && (
           <div className="alert alert-success">Has ingresado correctamente</div>

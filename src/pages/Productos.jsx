@@ -5,10 +5,7 @@ import Card from "../components/Card";
 import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
 import pastelesData from "../data/Pasteles.json";
 import { useLocation } from "react-router-dom";
-
-function useQuery() {
-  return new URLSearchParams(useLocation().search);
-}
+import { addToCart } from "../utils/localstorageHelper";
 
 const normalize = (s) =>
   String(s || "")
@@ -66,6 +63,14 @@ export default function Productos() {
       const hay = normalize(`${p.nombre || ""} ${p.descripcion || ""}`);
       return hay.includes(search);
     });
+    setToast({
+      title: "Carrito",
+      message: `${producto.cantidad} x ${producto.nombre} agregad${
+        producto.cantidad > 1 ? "os" : "o"
+      } al carrito`,
+    });
+    setTimeout(() => setToast(null), 2500);
+  };
 
   return (
     <div className="container mt-4">
