@@ -2,7 +2,7 @@
 // Exporta: getCart, saveCart, addToCart, updateQuantity, removeFromCart, clearCart, getTotal
 const CART_KEY = "pasteleria_cart";
 
-export function getCart() {
+function getCart() {
   try {
     const raw = localStorage.getItem(CART_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -12,7 +12,7 @@ export function getCart() {
   }
 }
 
-export function saveCart(cart) {
+function saveCart(cart) {
   try {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
   } catch (e) {
@@ -20,7 +20,7 @@ export function saveCart(cart) {
   }
 }
 
-export function addToCart(product) {
+function addToCart(product) {
   const qty = Number(product.cantidad) || 1;
   const cart = getCart();
   const existing = cart.find((i) => i.id === product.id);
@@ -42,7 +42,7 @@ export function addToCart(product) {
   return cart;
 }
 
-export function updateQuantity(id, cantidad) {
+function updateQuantity(id, cantidad) {
   // respetar stock si existe
   const cart = getCart().map((i) => {
     if (i.id !== id) return i;
@@ -55,24 +55,25 @@ export function updateQuantity(id, cantidad) {
   return cart;
 }
 
-export function removeFromCart(id) {
+function removeFromCart(id) {
   const cart = getCart().filter((i) => i.id !== id);
   saveCart(cart);
   return cart;
 }
 
-export function clearCart() {
+function clearCart() {
   saveCart([]);
 }
 
-export function getTotal() {
+function getTotal() {
   return getCart().reduce(
     (acc, item) => acc + (Number(item.precio) || 0) * (item.cantidad || 1),
     0
   );
 }
 
-export default {
+// Export named helpers explicitly. Prefer named exports to avoid import confusion
+export {
   getCart,
   saveCart,
   addToCart,

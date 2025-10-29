@@ -8,7 +8,7 @@ export default function AdminCategoria() {
   const [editando, setEditando] = useState(null);
   const [editForm, setEditForm] = useState("");
 
-  // 🔐 Proteger ruta - solo admin
+  //  Proteger ruta - solo admin
   useEffect(() => {
     const sessionRaw = localStorage.getItem("session_user");
     if (!sessionRaw) {
