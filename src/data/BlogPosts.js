@@ -4,7 +4,7 @@ const img = (path) => new URL(path, import.meta.url).href;
 const posts = [
   {
     slug: "/blog/uno",
-    title: "7 trucos para un bizcocho ultra esponjoso",
+    title: "Torta circular de vainilla",
     excerpt:
       "Temperatura ambiente, emulsión correcta y horneado sin sobresaltos: te cuento los secretos que usamos en la pastelería para lograr migas perfectas.",
     image: img("../assets/img/torta circular de vainilla.jpeg"),
@@ -14,7 +14,7 @@ const posts = [
   },
   {
     slug: "/blog/dos",
-    title: "Ganache de chocolate perfecto (y 3 usos irresistibles)",
+    title: "Torta Cuadrada de Chocolate",
     excerpt:
       "Proporciones exactas para distintos cacaos, cómo evitar que se corte y tres aplicaciones fáciles: cobertura brillante, relleno montado y drip.",
     image: img("../assets/img/Torta Cuadrada de Chocolate.webp"),
