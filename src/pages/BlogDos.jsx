@@ -35,7 +35,7 @@ function BlogDos() {
           alt="Ganache brillante en torta de chocolate"
           onError={(e) =>
             (e.currentTarget.src = new URL(
-              "../assets/img/logo.png",
+              "../assets/img/Torta Cuadrada de Chocolate.webp",
               import.meta.url
             ).href)
           }

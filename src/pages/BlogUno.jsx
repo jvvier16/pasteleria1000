@@ -34,7 +34,7 @@ export default function BlogUno() {
           alt="Bizcocho de vainilla esponjoso"
           onError={(e) =>
             (e.currentTarget.src = new URL(
-              "../assets/img/logo.png",
+              "../assets/img/orta circular de vainilla.jpeg",
               import.meta.url
             ).href)
           }
