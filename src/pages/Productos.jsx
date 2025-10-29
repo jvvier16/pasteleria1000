@@ -1,45 +1,67 @@
-import React, { useMemo, useState } from "react";
+// Productos: lista filtrable de pasteles.
+// - Lee la query string `search` para filtrar por nombre/descripcion (normalizado sin tildes).
+// - Resuelve la URL de la imagen basada en el campo `imagen` del JSON.
 import Card from "../components/Card";
-import pasteles from "../data/Pasteles.json";
+import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
+import pastelesData from "../data/Pasteles.json";
 import { useLocation } from "react-router-dom";
 import { addToCart } from "../utils/localstorageHelper";
 
-function Productos() {
-  const location = useLocation();
-  const searchRaw = (
-    new URLSearchParams(location.search).get("search") || ""
-  ).trim();
-  const search = searchRaw.toLowerCase();
+const normalize = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 
-  // Resolver la URL de las imágenes listadas en pasteles.json y memorizar
-  const productos = useMemo(() => {
-    return pasteles
-      .map((p) => {
-        const filename = (p.imagen || "").split("/").pop();
-        const imageUrl = filename
-          ? new URL(`../assets/img/${filename}`, import.meta.url).href
-          : "";
-        return { ...p, imageUrl };
-      })
-      .filter((p) => {
-        if (!search) return true;
-        const hay = `${p.nombre || ""} ${p.descripcion || ""} ${
-          p.categoria || ""
-        }`.toLowerCase();
-        return hay.includes(search);
-      });
-  }, [location.search]);
+export default function Productos() {
+  const query = useQuery();
+  const search = normalize(query.get("search") || "");
 
-  const [toast, setToast] = useState(null);
+  // 1) Leer pasteles creados en localStorage
+  const localRaw = localStorage.getItem("pasteles_local");
+  let pastelesLocales = [];
+  try {
+    pastelesLocales = localRaw ? JSON.parse(localRaw) : [];
+  } catch {
+    pastelesLocales = [];
+  }
 
-  const handleAgregar = (producto) => {
-    addToCart({
-      id: producto.id,
-      nombre: producto.nombre,
-      precio: producto.precio,
-      imagen: producto.imagen,
-      cantidad: producto.cantidad,
-      stock: producto.stock,
+  // 2) Combinar JSON + LocalStorage sin duplicados.
+  // - Queremos mostrar todos los productos (los 20 del JSON) pero permitir
+  //   que los pasteles locales reemplacen/actualicen a los del JSON cuando
+  //   compartan el mismo `id` (por ejemplo, tras editar/crear desde Admin).
+  // - Evita concatenar indiscriminadamente y producir duplicados con los
+  //   mismos ids.
+  const mapa = new Map();
+  // primero cargar JSON (base)
+  for (const p of pastelesData) mapa.set(p.id, p);
+  // luego sobreescribir/añadir locales
+  for (const p of pastelesLocales || []) mapa.set(p.id, p);
+  const todosLosPasteles = Array.from(mapa.values());
+
+  // 3) Resolver imagen y filtrar por search
+  const productos = todosLosPasteles
+    .map((p) => {
+      // Resolver imagen (usando ruta relativa del JSON o ruta completa de local)
+      let imageUrl = "";
+      if (p.imagen) {
+        // Si la imagen ya es una URL completa (ej: data:image/... o http://) usarla directamente
+        if (p.imagen.startsWith("data:") || p.imagen.startsWith("http")) {
+          imageUrl = p.imagen;
+        } else {
+          // Si es ruta relativa, resolverla usando la estructura del proyecto
+          const filename = p.imagen.split("/").pop();
+          imageUrl = filename
+            ? new URL(`../assets/img/${filename}`, import.meta.url).href
+            : "";
+        }
+      }
+      return { ...p, imageUrl };
+    })
+    .filter((p) => {
+      if (!search) return true;
+      const hay = normalize(`${p.nombre || ""} ${p.descripcion || ""}`);
+      return hay.includes(search);
     });
     setToast({
       title: "Carrito",
@@ -52,35 +74,22 @@ function Productos() {
 
   return (
     <div className="container mt-4">
-      <h2>Pasteles</h2>
-      {/* Toast Bootstrap fijo en la esquina */}
-      {toast && (
-        <div
-          className="toast show position-fixed top-0 end-0 m-3"
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-          style={{ zIndex: 1100 }}
-        >
-          <div className="toast-header">
-            <strong className="me-auto">{toast.title}</strong>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Productos</h2>
+        {search && (
+          <div className="d-flex align-items-center">
+            <span className="me-2">
+              Resultados para: <strong>{query.get("search")}</strong>
+            </span>
             <button
-              type="button"
-              className="btn-close"
-              aria-label="Cerrar"
-              onClick={() => setToast(null)}
-            ></button>
+              className="btn btn-outline-secondary btn-sm"
+              onClick={() => (window.location.href = "/productos")}
+            >
+              ✕ Limpiar búsqueda
+            </button>
           </div>
-          <div className="toast-body">{toast.message}</div>
-        </div>
-      )}
-
-      {searchRaw && (
-        <p className="mb-3">
-          Resultados de búsqueda para: <strong>{searchRaw}</strong>
-        </p>
-      )}
-
+        )}
+      </div>
       <div className="cards-grid mt-3">
         {productos.map((prod) => (
           <Card
@@ -88,15 +97,21 @@ function Productos() {
             id={prod.id}
             nombre={prod.nombre}
             imagen={prod.imageUrl}
+            // ocultar la descripción en el listado pero mantener la info de stock en data
+            hideDescription={true}
             descripcion={prod.descripcion || `Stock: ${prod.stock ?? "N/A"}`}
+            stock={prod.stock ?? 0}
+            stockCritico={prod.stockCritico}
+            showStockCritical={false}
             precio={Number(prod.precio)}
             onAgregar={(p) =>
-              handleAgregar({
+              addToCartHelper({
                 id: prod.id,
                 nombre: prod.nombre,
                 precio: Number(prod.precio),
                 imagen: prod.imageUrl,
-                cantidad: p.cantidad,
+                cantidad: 1,
+                stock: prod.stock,
               })
             }
           />
@@ -105,5 +120,3 @@ function Productos() {
     </div>
   );
 }
-
-export default Productos;

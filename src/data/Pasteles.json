@@ -143,5 +143,41 @@
     "imagen": "../assets/img/Torta Especial de Boda.jpeg",
     "categoria": "Especiales",
     "descripcion": "Elegante y deliciosa, pensada para ser el centro de atención en cualquier boda."
-  }
+  },
+  {
+  "id": 17,
+  "nombre": "Torta Tres Leches Tradicional",
+  "precio": 38000,
+  "stock": 10,
+  "imagen": "../assets/img/Torta Tres Leches Tradicional.jpeg",
+  "categoria": "Tortas",
+  "descripcion": "Bizcocho húmedo bañado en mezcla de tres leches y cubierto con merengue suave."
+},
+{
+  "id": 18,
+  "nombre": "Torta Red Velvet",
+  "precio": 42000,
+  "stock": 10,
+  "imagen": "../assets/img/Torta Red Velvet.jpeg",
+  "categoria": "Tortas",
+  "descripcion": "Bizcocho rojo aterciopelado con capas de crema de queso suavemente dulce."
+},
+{
+  "id": 19,
+  "nombre": "Pie de Limón",
+  "precio": 18000,
+  "stock": 10,
+  "imagen": "../assets/img/Pie de Limón.jpeg",
+  "categoria": "Postres",
+  "descripcion": "Base crujiente con relleno cítrico de limón y cobertura de merengue tostado."
+},
+{
+  "id": 20,
+  "nombre": "Roll de Canela",
+  "precio": 1500,
+  "stock": 10,
+  "imagen": "../assets/img/Roll de Canela.jpeg",
+  "categoria": "prostres",
+  "descripcion": "Roll suave y esponjoso con relleno de canela y glaseado dulce encima."
+}
 ]

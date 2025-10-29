@@ -1,71 +1,111 @@
-import { useState } from "react";
+// App: Composición principal de la aplicación.
+// - Incluye el layout (Navbar, Footer).
+// - Define las rutas públicas y las rutas protegidas (RequireAuth / RequireAdmin).
+import React from "react";
 import "./App.css";
-import Card from "./components/Card";
-import pasteles from "./data/Pasteles.json";
-import Navbar from "./pages/Navbar.jsx";
 import { Routes, Route } from "react-router-dom";
-import Index from "./pages/index.jsx";
+
+// Layout
+import Navbar from "./components/Navbar.jsx";
+import Footer from "./components/Footer.jsx";
+
+// Pages
+import Index from "./pages/Index.jsx";
 import Productos from "./pages/Productos.jsx";
 import Ofertas from "./pages/Ofertas.jsx";
-import Admin from "./pages/Admin.jsx";
-import RequireAdmin from "./components/RequireAdmin";
-import Carrito from "./pages/Carrito.jsx";
-import RequireAuth from "./components/RequireAuth";
-import Contacto from "./pages/Contacto.jsx";
-import Pago from "./pages/pago.jsx";
-import Categorias from "./pages/Categorias.jsx";
-import Pedidos from "./pages/Pedidos.jsx";
-import Registro from "./pages/Registro.jsx";
+import Categorias from "./pages/Categoria.jsx";
+import Contacto from "./pages/ContactoPage.jsx";
+import Pago from "./pages/Pago.jsx";
+import BlogIndex from "./pages/BlogIndex.jsx";
+import BlogUno from "./pages/BlogUno.jsx";
+import BlogDos from "./pages/BlogDos.jsx";
 import Login from "./pages/Login.jsx";
+import Registro from "./pages/Registro.jsx";
+import Nosotros from "./pages/Nosotros.jsx";
+import Carrito from "./pages/Carrito.jsx";
 import Perfil from "./pages/Perfil.jsx";
-import Boleta from "./pages/Boleta.jsx";
+import Pedidos from "./pages/Pedidos.jsx";
+import ProductoDetalle from "./pages/ProductoDetalle.jsx";
+//admin Pages
+import Admin from "./Admin/Admin.jsx";
+import AgregarPastel from "./Admin/AgregarPastel.jsx";
+import AdminUsuarios from "./Admin/UsuariosAdmin";
+import AdminPasteles from "./Admin/AdminPastel";
+import AdminReportes from "./Admin/Reportes";
+import AdminOrdenes from "./Admin/AdminOrdenes";
+import AdminCategoria from "./Admin/AdminCategoria";
+
+// Guards
+import RequireAuth from "./components/RequireAuth.jsx";
+import RequireAdmin from "./components/RequireAdmin.jsx";
 
 function App() {
-  const [count, setCount] = useState(0);
-
-  // Resolver la URL de las imágenes listadas en pasteles.json
-  const productos = pasteles.map((p) => {
-    const filename = p.imagen.split("/").pop();
-    const imageUrl = new URL(`./assets/img/${filename}`, import.meta.url).href;
-    return { ...p, imageUrl };
-  });
-
   return (
     <>
       <Navbar />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/productos" element={<Productos />} />
+        <Route path="/productos/:id" element={<ProductoDetalle />} />
+        <Route path="/categorias" element={<Categorias />} />
+        <Route path="/ofertas" element={<Ofertas />} />
+        <Route path="/contacto" element={<Contacto />} />
         <Route
-          path="/admin"
+          path="/pago"
+          element={
+            <RequireAuth>
+              <Pago />
+            </RequireAuth>
+          }
+        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Registro />} />
+        <Route path="/blog" element={<BlogIndex />} />
+        <Route path="/blog/uno" element={<BlogUno />} />
+        <Route path="/blog/dos" element={<BlogDos />} />
+        <Route path="/nosotros" element={<Nosotros />} />
+        <Route
+          path="/admin/pasteles/agregar"
           element={
             <RequireAdmin>
-              <Admin />
+              <AgregarPastel />
             </RequireAdmin>
           }
         />
         <Route
-          path="/carrito"
+          path="/admin/usuarios"
           element={
-            <RequireAuth>
-              <Carrito />
-            </RequireAuth>
+            <RequireAdmin>
+              <AdminUsuarios />
+            </RequireAdmin>
           }
         />
-        <Route path="/contacto" element={<Contacto />} />
-        <Route path="/ofertas" element={<Ofertas />} />
-        <Route path="/pago" element={<Pago />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/categorias" element={<Categorias />} />
         <Route
-          path="/pedidos"
+          path="/admin/pasteles"
           element={
-            <RequireAuth>
-              <Pedidos />
-            </RequireAuth>
+            <RequireAdmin>
+              <AdminPasteles />
+            </RequireAdmin>
           }
         />
-        <Route path="/boleta" element={<Boleta />} />
+        <Route
+          path="/admin/ordenes"
+          element={
+            <RequireAdmin>
+              <AdminOrdenes />
+            </RequireAdmin>
+          }
+        />
+        <Route path="/admin/reportes" element={<AdminReportes />} />
+        <Route
+          path="/admin/categorias"
+          element={
+            <RequireAdmin>
+              <AdminCategoria />
+            </RequireAdmin>
+          }
+        />
+
         <Route
           path="/perfil"
           element={
@@ -74,8 +114,38 @@ function App() {
             </RequireAuth>
           }
         />
-        <Route path="/register" element={<Registro />} />
+
+        <Route
+          path="/carrito"
+          element={
+            <RequireAuth>
+              <Carrito />
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <RequireAdmin>
+              <Admin />
+            </RequireAdmin>
+          }
+        />
+
+        <Route
+          path="/pedidos"
+          element={
+            <RequireAuth>
+              <Pedidos />
+            </RequireAuth>
+          }
+        />
+
+        {/* fallback a index para rutas no definidas */}
+        <Route path="*" element={<Index />} />
       </Routes>
+      <Footer />
     </>
   );
 }

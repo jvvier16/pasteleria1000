@@ -1,4 +1,5 @@
-// Helpers simples para manejar el carrito en localStorage
+// localstorageHelper: funciones utilitarias para manejar el carrito en localStorage.
+// Exporta: getCart, saveCart, addToCart, updateQuantity, removeFromCart, clearCart, getTotal
 const CART_KEY = "pasteleria_cart";
 
 export function getCart() {

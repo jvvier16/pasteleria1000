@@ -1,92 +1,173 @@
+/**
+ * Componente: Login
+ *
+ * Este componente maneja la autenticación de usuarios en la aplicación.
+ * Características principales:
+ * - Combina usuarios de JSON y localStorage para autenticación
+ * - Validación completa de formularios
+ * - Manejo de sesiones con localStorage
+ * - Redirección basada en roles
+ * - Interfaz de usuario amigable con feedback visual
+ *
+ * Flujo de autenticación:
+ * 1. Usuario ingresa credenciales
+ * 2. Se validan los datos localmente
+ * 3. Se busca el usuario en la base de datos combinada
+ * 4. Se verifica la contraseña
+ * 5. Se crea la sesión y se almacena
+ * 6. Se redirige según el rol del usuario
+ */
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import usuariosData from "../data/Usuarios.json";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [form, setForm] = useState({ userOrEmail: "", password: "" });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
-  const [usuarios, setUsuarios] = useState([]);
+  const [usuarios, setUsuarios] = useState([]); // ahora tendrá JSON + localStorage
   const navigate = useNavigate();
-  const location = useLocation();
-  const redirectedFrom = location.state?.from?.pathname;
 
-  // Cargar usuarios desde el JSON
+  //  Cargar usuarios desde JSON + localStorage
   useEffect(() => {
-    // Normalizar claves del JSON (Users.json usa `correo` y `contrasena`)
-    // para que concuerden con la lógica de búsqueda del formulario
-    const normalized = usuariosData.map((u) => ({
-      ...u,
-      // mantener valores existentes si ya existen
-      email: u.correo ?? u.email,
-      password: u.contrasena ?? u.password,
-      // usar nombre como username o derivar desde el email si no hay nombre
-      username:
-        u.nombre ??
-        (u.email
-          ? u.email.split("@")[0]
-          : u.correo
-          ? u.correo.split("@")[0]
-          : ""),
-    }));
-    // además, leer usuarios guardados en localStorage
-    let local = [];
     try {
-      const raw = localStorage.getItem("usuarios_local");
-      local = raw ? JSON.parse(raw) : [];
+      // Leer local
+      const rawLocal = localStorage.getItem("usuarios_local");
+      const usuariosLocal = rawLocal ? JSON.parse(rawLocal) : [];
+
+      // Si no existe, inicializar
+      if (!rawLocal) {
+        localStorage.setItem("usuarios_local", JSON.stringify([]));
+      }
+
+      // Preferir usuarios locales si existen, sino usar JSON
+      // Evitamos concatenar ambos para prevenir duplicados cuando
+      // `usuarios_local` contiene ya las entradas del JSON.
+      setUsuarios(
+        usuariosLocal && usuariosLocal.length ? usuariosLocal : usuariosData
+      );
     } catch (err) {
-      console.error("Error leyendo usuarios_local:", err);
-      local = [];
+      console.error("Error cargando usuarios", err);
+      setUsuarios(usuariosData);
     }
-
-    const normalizedLocal = local.map((u) => ({
-      ...u,
-      email: u.correo ?? u.email,
-      password: u.contrasena ?? u.password,
-      username:
-        u.nombre ??
-        (u.email
-          ? u.email.split("@")[0]
-          : u.correo
-          ? u.correo.split("@")[0]
-          : ""),
-    }));
-
-    setUsuarios([...normalized, ...normalizedLocal]);
   }, []);
 
+  // Validación del formulario
   const validate = () => {
     const e = {};
-    if (!form.userOrEmail.trim()) e.userOrEmail = "Ingresa usuario o email";
-    if (!form.password) e.password = "Ingresa la contraseña";
-    else if (form.password.length < 12)
-      e.password = "La contraseña debe tener al menos 12 caracteres";
-    else if (form.password.length > 18)
-      e.password = "La contraseña debe tener como máximo 18 caracteres";
+    const userOrEmail = form.userOrEmail.trim();
+
+    // Validación de usuario/email
+    if (!userOrEmail) {
+      e.userOrEmail = "Ingresa usuario o email";
+    } else if (
+      userOrEmail.includes("@") &&
+      !userOrEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+    ) {
+      e.userOrEmail = "Ingresa un email válido";
+    }
+
+    // Validación de contraseña
+    if (!form.password) {
+      e.password = "Ingresa la contraseña";
+    } else {
+      if (form.password.length < 12) {
+        e.password = "La contraseña debe tener al menos 12 caracteres";
+      } else if (form.password.length > 18) {
+        e.password = "La contraseña debe tener como máximo 18 caracteres";
+      } else if (!/[A-Z]/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos una mayúscula";
+      } else if (!/[a-z]/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos una minúscula";
+      } else if (!/\d/.test(form.password)) {
+        e.password = "La contraseña debe contener al menos un número";
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
+  // 🚪 Submit login
   const onSubmit = (ev) => {
     ev.preventDefault();
     if (!validate()) return;
 
-    const found = usuarios.find(
-      (u) => u.username === form.userOrEmail || u.email === form.userOrEmail
-    );
+    // Normalizar comparaciones
+    const normalized = (s) => (s || "").toString().toLowerCase();
+
+    const matches = (u) => {
+      const email = normalized(u.correo || u.email);
+      const nombre = normalized(u.nombre || "");
+      const nombreCompleto = normalized(
+        ((u.nombre || "") + " " + (u.apellido || "")).trim()
+      );
+      const input = normalized(form.userOrEmail);
+      return input === email || input === nombre || input === nombreCompleto;
+    };
+
+    // Buscar en la lista combinada
+    const found = usuarios.find(matches);
 
     if (!found) {
       setLogged(false);
-      setErrors({ ...errors, userOrEmail: "Usuario o email no registrado" });
+      setErrors({ userOrEmail: "Usuario o email no registrado" });
       return;
     }
 
-    if (found.password !== form.password) {
+    // Validar contraseña
+    const expected = found.contrasena || "";
+    if (expected !== form.password) {
       setLogged(false);
-      setErrors({ ...errors, password: "Contraseña incorrecta" });
+      setErrors({ password: "Contraseña incorrecta" });
       return;
+    }
+
+    // Guardar session_user con el role real del usuario encontrado
+    try {
+      const session = {
+        id: found.id,
+        nombre:
+          (found.nombre || "") + (found.apellido ? " " + found.apellido : "") ||
+          "Usuario",
+        correo: found.correo || form.userOrEmail,
+        imagen: found.imagen || null,
+        role: found.role || "user", // <-- IMPORTANTE CAMBIO AQUÍ
+      };
+
+      // Guardar sesión en localStorage
+      localStorage.setItem("session_user", JSON.stringify(session));
+
+      // Disparar eventos para notificar el inicio de sesión
+      // Primero el evento personalizado para actualizar el estado
+      window.dispatchEvent(
+        new CustomEvent("userLogin", {
+          detail: session,
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+
+      // Luego el evento de storage para persistencia
+      window.dispatchEvent(new Event("storage"));
+
+      // Marcar login como exitoso antes de redirigir para que los tests
+      // y la UI muestren el feedback. Luego navegar en un tick.
+      setLogged(true);
+      setErrors({});
+
+      setTimeout(() => {
+        if (session.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      }, 0);
+    } catch (err) {
+      console.error("No se pudo guardar session_user", err);
     }
 
     setLogged(true);
@@ -113,20 +194,12 @@ export default function Login() {
 
   return (
     <div className="d-flex justify-content-center align-items-center min-vh-100">
-      <div
-        className="card p-4 shadow login-card"
-        style={{
-          maxWidth: 420,
-          width: "100%",
-          borderRadius: "1rem",
-        }}
-      >
+      <div className="card p-4 shadow login-card card-max-420">
         <div className="login-header mb-3">
           <img
             src={new URL("../assets/img/logo.png", import.meta.url).href}
             alt="logo"
-            className="mx-auto d-block"
-            style={{ width: "100px" }}
+            className="mx-auto d-block logo-100"
           />
         </div>
 
@@ -140,20 +213,16 @@ export default function Login() {
         )}
 
         {logged === true && (
-          <div className="alert alert-success w-100">
-            Has ingresado correctamente
-          </div>
+          <div className="alert alert-success">Has ingresado correctamente</div>
         )}
         {logged === false && (
-          <div className="alert alert-danger w-100">
-            Error al iniciar sesión
-          </div>
+          <div className="alert alert-danger">Error al iniciar sesión</div>
         )}
 
         <form
-          className="text-start"
           onSubmit={onSubmit}
-          onReset={() => {
+          onReset={(e) => {
+            e.preventDefault();
             setForm({ userOrEmail: "", password: "" });
             setErrors({});
             setLogged(null);
@@ -163,11 +232,11 @@ export default function Login() {
         >
           {/* Usuario o correo */}
           <div className="mb-3">
-            <label htmlFor="email" className="form-label">
+            <label className="form-label" htmlFor="userOrEmail">
               Usuario o Correo
             </label>
             <input
-              id="email"
+              id="userOrEmail"
               type="text"
               className={`form-control ${
                 errors.userOrEmail ? "is-invalid" : ""
@@ -177,18 +246,19 @@ export default function Login() {
               onChange={(e) =>
                 setForm({ ...form, userOrEmail: e.target.value })
               }
-              required
+              data-testid="login-username"
+              aria-invalid={errors.userOrEmail ? "true" : "false"}
             />
             {errors.userOrEmail && (
-              <div className="invalid-feedback">{errors.userOrEmail}</div>
+              <div className="invalid-feedback" role="alert">
+                {errors.userOrEmail}
+              </div>
             )}
           </div>
 
-          {/* Contraseña con botón mostrar/ocultar */}
+          {/* Contraseña */}
           <div className="mb-3 position-relative">
-            <label htmlFor="password" className="form-label">
-              Contraseña
-            </label>
+            <label className="form-label">Contraseña</label>
             <div className="input-group">
               <input
                 id="password"
@@ -201,13 +271,13 @@ export default function Login() {
                 placeholder="********"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
+                data-testid="login-password"
+                aria-invalid={errors.password ? "true" : "false"}
               />
               <button
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -217,12 +287,20 @@ export default function Login() {
             )}
           </div>
 
-          {/* Botones apilados */}
           <div className="d-grid gap-2 mt-3">
-            <button type="submit" className="btn btn-primary">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              data-testid="login-submit"
+              role="button"
+            >
               Ingresar
             </button>
-            <button type="reset" className="btn btn-secondary">
+            <button
+              type="reset"
+              className="btn btn-secondary"
+              data-testid="login-reset"
+            >
               Limpiar
             </button>
           </div>

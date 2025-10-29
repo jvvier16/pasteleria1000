@@ -1,3 +1,27 @@
+/**
+ * Componente: Carrito de Compras
+ *
+ * Este componente maneja la visualización y gestión del carrito de compras.
+ * Características principales:
+ * - Listado de productos agregados al carrito
+ * - Actualización de cantidades en tiempo real
+ * - Cálculo automático de subtotales y total
+ * - Persistencia en localStorage
+ * - Sincronización entre pestañas
+ * - Redirección al flujo de pago
+ *
+ * Funcionalidades:
+ * - Eliminar productos individuales
+ * - Actualizar cantidades
+ * - Limpiar carrito completo
+ * - Calcular totales
+ * - Proceder al pago
+ *
+ * Integración:
+ * - Usa localstorageHelper para operaciones del carrito
+ * - Se conecta con el flujo de pago
+ * - Maneja formato de moneda en CLP
+ */
 import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -43,9 +67,12 @@ const Carrito = () => {
   const navigate = useNavigate();
 
   const comprarAhora = () => {
+    // En lugar de crear la orden aquí, redirigimos al flujo de pago
+    // para pedir los datos de la tarjeta y procesar el pago en `/pago`.
     const items = getCart();
     if (!items || items.length === 0) return alert("Tu carrito está vacío");
-    // redirigir al flujo de pago; Pago.jsx leerá el carrito desde localStorage
+
+    // navegar a pago; la página `Pago.jsx` leerá el carrito y procesará la orden
     navigate("/pago");
   };
 
@@ -79,7 +106,7 @@ const Carrito = () => {
                   <tr key={item.id}>
                     <td>{item.nombre}</td>
                     <td>${Number(item.precio).toLocaleString("es-CL")}</td>
-                    <td style={{ width: "90px" }}>
+                    <td className="td-qty">
                       <input
                         type="number"
                         min="1"

@@ -1,3 +1,24 @@
+/**
+ * Componente: Registro
+ *
+ * Este componente maneja el registro de nuevos usuarios en la aplicación.
+ * Características principales:
+ * - Formulario completo de registro con validaciones
+ * - Verificación de duplicados en JSON y localStorage
+ * - Validación de edad (18+ años)
+ * - Validación de contraseña
+ * - Persistencia en localStorage
+ * - Creación automática de sesión post-registro
+ *
+ * Flujo de registro:
+ * 1. Usuario completa el formulario
+ * 2. Se validan todos los campos
+ * 3. Se verifica que el correo no esté duplicado
+ * 4. Se crea el nuevo usuario con rol "user"
+ * 5. Se guarda en localStorage
+ * 6. Se inicia sesión automáticamente
+ * 7. Se redirige al inicio
+ */
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
@@ -11,188 +32,355 @@ const Registro = () => {
     correo: "",
     contrasena: "",
     repetirContrasena: "",
+    fechaNacimiento: "",
+    direccion: "",
   });
   const [errors, setErrors] = useState({});
+  const [registroExitoso, setRegistroExitoso] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validarFechaNacimiento = (fechaStr) => {
+    // formato YYYY-MM-DD
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(fechaStr)) return "Formato inválido (YYYY-MM-DD)";
+
+    const fecha = new Date(fechaStr);
+    if (isNaN(fecha.getTime())) return "Fecha no válida";
+
+    const hoy = new Date();
+    const edad = hoy.getFullYear() - fecha.getFullYear();
+    const m = hoy.getMonth() - fecha.getMonth();
+    const ajustada =
+      m < 0 || (m === 0 && hoy.getDate() < fecha.getDate()) ? edad - 1 : edad;
+
+    if (ajustada < 18) return "Debe tener al menos 18 años";
+    if (ajustada > 90) return "Edad máxima 90 años";
+
+    return null;
+  };
+
+  const validarEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regex.test(email)) return "Formato de email inválido";
+    return null;
+  };
+
+  const validarContrasena = (pass) => {
+    if (pass.length < 12)
+      return "La contraseña debe tener al menos 12 caracteres";
+    if (pass.length > 18)
+      return "La contraseña debe tener como máximo 18 caracteres";
+    if (!/[A-Z]/.test(pass))
+      return "La contraseña debe contener al menos una mayúscula";
+    if (!/[a-z]/.test(pass))
+      return "La contraseña debe contener al menos una minúscula";
+    if (!/\d/.test(pass))
+      return "La contraseña debe contener al menos un número";
+    return null;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.contrasena !== formData.repetirContrasena) {
-      setErrors({ repetirContrasena: "Las contraseñas no coinciden" });
-      return;
+    let newErrors = {};
+
+    // Validación nombre y apellido
+    if (!formData.nombre.trim()) newErrors.nombre = "El nombre es obligatorio";
+    if (!formData.apellido.trim())
+      newErrors.apellido = "El apellido es obligatorio";
+
+    // Validación email
+    const emailError = validarEmail(formData.correo);
+    if (emailError) newErrors.correo = emailError;
+
+    // Validación contraseña
+    const passError = validarContrasena(formData.contrasena);
+    if (passError) {
+      newErrors.contrasena = passError;
+    } else if (formData.contrasena !== formData.repetirContrasena) {
+      newErrors.repetirContrasena = "Las contraseñas no coinciden";
     }
-    // Validación adicional: longitud de contraseña (coherente con Login)
-    if (formData.contrasena.length < 12 || formData.contrasena.length > 18) {
-      setErrors({
-        contrasena: "La contraseña debe tener entre 12 y 18 caracteres",
-      });
+
+    // Validación fecha nacimiento
+    const errFecha = validarFechaNacimiento(formData.fechaNacimiento);
+    if (errFecha) newErrors.fechaNacimiento = errFecha;
+
+    // Validación campos vacíos extra
+    if (!formData.direccion?.trim()) {
+      newErrors.direccion = "La dirección es obligatoria";
+    }
+
+    // Si hay errores se detiene
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    // Leer usuarios existentes desde localStorage (persistencia de usuarios creados por la app)
+    // Leer usuarios del localStorage
     const localRaw = localStorage.getItem("usuarios_local");
     let local = [];
     try {
       local = localRaw ? JSON.parse(localRaw) : [];
-    } catch (err) {
-      console.error("Error parseando usuarios_local", err);
+    } catch {
       local = [];
     }
 
-    // Validar email duplicado (en Usuarios.json y en local)
-    const emailLower = (formData.correo || "").toLowerCase();
+    // Validar mail duplicado
+    const emailLower = formData.correo.toLowerCase();
     const dupInJson = usuariosData.some(
-      (u) => (u.correo || "").toLowerCase() === emailLower
+      (u) => u.correo.toLowerCase() === emailLower
     );
-    const dupInLocal = local.some(
-      (u) => (u.correo || "").toLowerCase() === emailLower
-    );
+    const dupInLocal = local.some((u) => u.correo.toLowerCase() === emailLower);
     if (dupInJson || dupInLocal) {
       setErrors({ correo: "Este correo ya está registrado" });
       return;
     }
 
-    // Determinar nuevo id único usando Usuarios.json + local
+    // Nuevo ID
     const idsJson = usuariosData.map((u) => u.id || 0);
     const idsLocal = local.map((u) => u.id || 0);
     const maxId = Math.max(0, ...idsJson, ...idsLocal);
     const nuevoId = maxId + 1;
 
+    // Crear usuario
     const nuevoUsuario = {
       id: nuevoId,
       nombre: formData.nombre,
       apellido: formData.apellido,
       correo: formData.correo,
       contrasena: formData.contrasena,
+      fechaNacimiento: formData.fechaNacimiento,
+      direccion: formData.direccion,
+      role: "user",
     };
 
     local.push(nuevoUsuario);
-    try {
-      localStorage.setItem("usuarios_local", JSON.stringify(local));
-    } catch (err) {
-      console.error("No se pudo guardar usuario en localStorage", err);
-      alert("Error al guardar usuario. Intenta nuevamente.");
-      return;
-    }
-    // guardar sesión automáticamente
-    try {
-      localStorage.setItem(
-        "session_user",
-        JSON.stringify({
-          id: nuevoUsuario.id,
-          nombre: nuevoUsuario.nombre,
-          correo: nuevoUsuario.correo,
-        })
-      );
-      window.dispatchEvent(new Event("storage"));
-    } catch (err) {
-      console.error("No se pudo guardar session_user", err);
-    }
-    alert(`Registro exitoso de ${formData.nombre} ${formData.apellido}`);
-    // Redirigir al inicio o donde prefieras
-    navigate("/");
+    localStorage.setItem("usuarios_local", JSON.stringify(local));
+
+    // Guardar sesión
+    // Notificar éxito y redirigir a login
+    setRegistroExitoso(true);
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center vh-100"
-      style={{ backgroundColor: "#fff7ec" }}
-    >
-      <div
-        className="p-4 rounded-4 shadow"
-        style={{ backgroundColor: "white", width: "380px" }}
-      >
-        <h3
-          className="text-center mb-4"
-          style={{ color: "#7b3e19", fontFamily: "cursive" }}
-        >
-          Registro
-        </h3>
+    <div className="d-flex justify-content-center align-items-center vh-100 bg-muted">
+      <div className="p-4 rounded-4 shadow bg-white card-max-380">
+        <h3 className="text-center mb-4 font-cursive">Registro</h3>
 
-        <form onSubmit={handleSubmit}>
+        {registroExitoso && (
+          <div
+            className="alert alert-success"
+            role="alert"
+            data-testid="registro-exitoso"
+          >
+            ¡Registro exitoso! Redirigiendo al login...
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} data-testid="registro-form">
+          {/* Nombre */}
           <div className="mb-3">
-            <label className="form-label" style={{ color: "#7b3e19" }}>
+            <label htmlFor="nombre" className="form-label">
               Nombre
             </label>
             <input
+              id="nombre"
               type="text"
               name="nombre"
-              className="form-control"
+              className={`form-control ${errors.nombre ? "is-invalid" : ""}`}
               value={formData.nombre}
               onChange={handleChange}
               required
+              data-testid="registro-nombre"
+              aria-invalid={errors.nombre ? "true" : "false"}
             />
+            {errors.nombre && (
+              <div className="invalid-feedback" role="alert">
+                {errors.nombre}
+              </div>
+            )}
           </div>
 
+          {/* Apellido */}
           <div className="mb-3">
-            <label className="form-label" style={{ color: "#7b3e19" }}>
+            <label htmlFor="apellido" className="form-label">
               Apellido
             </label>
             <input
+              id="apellido"
               type="text"
               name="apellido"
-              className="form-control"
+              className={`form-control ${errors.apellido ? "is-invalid" : ""}`}
               value={formData.apellido}
               onChange={handleChange}
               required
+              data-testid="registro-apellido"
+              aria-invalid={errors.apellido ? "true" : "false"}
             />
+            {errors.apellido && (
+              <div className="invalid-feedback" role="alert">
+                {errors.apellido}
+              </div>
+            )}
           </div>
 
+          {/* Correo */}
           <div className="mb-3">
-            <label className="form-label" style={{ color: "#7b3e19" }}>
+            <label htmlFor="correo" className="form-label">
               Correo
             </label>
             <input
+              id="correo"
               type="email"
               name="correo"
-              className="form-control"
+              className={`form-control ${errors.correo ? "is-invalid" : ""}`}
               value={formData.correo}
               onChange={handleChange}
               required
+              data-testid="registro-email"
+              aria-invalid={errors.correo ? "true" : "false"}
             />
+            {errors.correo && (
+              <div className="invalid-feedback" role="alert">
+                {errors.correo}
+              </div>
+            )}
           </div>
 
+          {/* Fecha Nacimiento */}
           <div className="mb-3">
-            <label className="form-label" style={{ color: "#7b3e19" }}>
+            <label htmlFor="fechaNacimiento" className="form-label">
+              Fecha de nacimiento (YYYY-MM-DD)
+            </label>
+            <input
+              id="fechaNacimiento"
+              type="date"
+              name="fechaNacimiento"
+              className={`form-control ${
+                errors.fechaNacimiento ? "is-invalid" : ""
+              }`}
+              value={formData.fechaNacimiento}
+              onChange={handleChange}
+              required
+              data-testid="registro-fecha"
+              aria-invalid={errors.fechaNacimiento ? "true" : "false"}
+            />
+            {errors.fechaNacimiento && (
+              <div className="invalid-feedback" role="alert">
+                {errors.fechaNacimiento}
+              </div>
+            )}
+          </div>
+
+          {/* Dirección */}
+          <div className="mb-3">
+            <label htmlFor="direccion" className="form-label">
+              Dirección
+            </label>
+            <input
+              id="direccion"
+              type="text"
+              name="direccion"
+              className={`form-control ${errors.direccion ? "is-invalid" : ""}`}
+              value={formData.direccion}
+              onChange={handleChange}
+              required
+              data-testid="registro-direccion"
+              aria-invalid={errors.direccion ? "true" : "false"}
+            />
+            {errors.direccion && (
+              <div className="invalid-feedback" role="alert">
+                {errors.direccion}
+              </div>
+            )}
+          </div>
+
+          {/* Contraseña */}
+          <div className="mb-3">
+            <label htmlFor="contrasena" className="form-label">
               Contraseña
             </label>
             <input
+              id="contrasena"
               type="password"
               name="contrasena"
-              className="form-control"
+              className={`form-control ${
+                errors.contrasena ? "is-invalid" : ""
+              }`}
               value={formData.contrasena}
               onChange={handleChange}
               required
+              minLength={12}
+              maxLength={18}
+              data-testid="registro-password"
+              aria-invalid={errors.contrasena ? "true" : "false"}
             />
+            {errors.contrasena && (
+              <div className="invalid-feedback" role="alert">
+                {errors.contrasena}
+              </div>
+            )}
           </div>
 
+          {/* Repetir Contraseña */}
           <div className="mb-4">
-            <label className="form-label" style={{ color: "#7b3e19" }}>
+            <label htmlFor="repetirContrasena" className="form-label">
               Repetir Contraseña
             </label>
             <input
+              id="repetirContrasena"
               type="password"
               name="repetirContrasena"
-              className="form-control"
+              className={`form-control ${
+                errors.repetirContrasena ? "is-invalid" : ""
+              }`}
               value={formData.repetirContrasena}
               onChange={handleChange}
               required
+              minLength={12}
+              maxLength={18}
+              data-testid="registro-confirm-password"
+              aria-invalid={errors.repetirContrasena ? "true" : "false"}
             />
+            {errors.repetirContrasena && (
+              <div className="invalid-feedback" role="alert">
+                {errors.repetirContrasena}
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
-            className="btn w-100 text-white fw-semibold"
-            style={{
-              backgroundColor: "#198754",
-              borderRadius: "10px",
-              fontSize: "16px",
-            }}
+            className="btn btn-dark w-100"
+            data-testid="registro-submit"
           >
             Registrar
+          </button>
+
+          <button
+            type="reset"
+            className="btn btn-secondary w-100 mt-2"
+            data-testid="registro-reset"
+            onClick={() => {
+              setFormData({
+                nombre: "",
+                apellido: "",
+                correo: "",
+                contrasena: "",
+                repetirContrasena: "",
+                fechaNacimiento: "",
+                direccion: "",
+              });
+              setErrors({});
+              setRegistroExitoso(false);
+            }}
+          >
+            Limpiar
           </button>
         </form>
       </div>

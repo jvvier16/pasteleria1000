@@ -1,36 +1,47 @@
-# Pastelería 1000 Sabores
+# Pastelería 1000
 
-Una aplicación web moderna para la pastelería "1000 Sabores", famosa por su participación en un récord Guinness en 1995 al crear la torta más grande del mundo. Esta plataforma permite a los clientes explorar y comprar una variedad de pasteles, tortas y postres, incluyendo opciones sin azúcar, sin gluten y veganas.
+## Descripción del Proyecto
 
-## 🚀 Características
+Pastelería 1000 es una aplicación web de e-commerce diseñada para una pastelería ficticia que ofrece una amplia variedad de productos dulces. La aplicación permite a los usuarios explorar el catálogo de pasteles, tortas y postres, agregar productos al carrito, gestionar pedidos y realizar pagos de manera segura. Además, incluye un panel de administración para que los propietarios puedan gestionar inventarios, pedidos y usuarios.
 
-- **Catálogo de Productos**: Explora una amplia gama de pasteles organizados por categorías (Tortas, Postres, Sin Azúcar, Sin Gluten, Veganas, Especiales, Otros).
-- **Búsqueda de Productos**: Busca pasteles por nombre o descripción.
-- **Carrito de Compras**: Agrega productos al carrito (funcionalidad básica implementada).
-- **Sistema de Login**: Autenticación de usuarios con validación de credenciales.
-- **Página de Contacto**: Formulario de contacto con validación y enlaces a redes sociales.
-- **Pago Simulado**: Formulario de pago con validación de tarjetas de crédito (Visa, Mastercard, Amex) y algoritmo de Luhn.
-- **Panel de Administración**: Página de administración (placeholder para futuras funcionalidades).
-- **Diseño Responsivo**: Interfaz adaptada para dispositivos móviles y de escritorio usando Bootstrap.
-- **Navegación Intuitiva**: Menú de navegación con categorías dinámicas generadas automáticamente.
+Este proyecto no solo es una herramienta técnica, sino que representa un negocio completo de pastelería, simulando operaciones reales como la gestión de categorías de productos (tortas, postres sin azúcar, veganos, etc.), promociones y ofertas especiales. Está construido con tecnologías modernas para asegurar una experiencia de usuario fluida y responsive.
 
-## 🛠️ Tecnologías Utilizadas
+## Características Principales
 
-- **Frontend**: React 19 con Vite
-- **Enrutamiento**: React Router DOM
-- **Estilos**: Bootstrap 5, CSS personalizado
-- **Iconos**: Lucide React
-- **Datos**: JSON estáticos para productos y usuarios
-- **Validación**: Formularios con validación en tiempo real
-- **Linter**: ESLint con reglas personalizadas
+- **Catálogo de Productos**: Más de 16 productos en categorías como Tortas, Postres, Sin Azúcar, Sin Gluten, Veganos, Especiales y Otros.
+- **Carrito de Compras**: Funcionalidades completas para agregar, eliminar y modificar cantidades de productos.
+- **Autenticación y Autorización**: Registro de usuarios, login/logout, perfiles personales y roles de administrador.
+- **Panel de Administración**: Gestión de productos, categorías, pedidos, reportes y usuarios (requiere permisos de admin).
+- **Sistema de Pedidos**: Historial de pedidos, seguimiento y generación de boletas.
+- **Páginas Informativas**: Información sobre la pastelería, contacto, ofertas y blog.
+- **Responsive Design**: Optimizado para móviles y desktop usando Bootstrap.
+- **Pruebas Automatizadas**: Cobertura completa con Vitest, incluyendo pruebas unitarias e integración para componentes, rutas y flujos de autenticación.
+- **Gestión de Imágenes**: Recursos estáticos para productos y branding.
 
-## 📦 Instalación
+## Tecnologías Utilizadas
+
+- **Frontend**: React 19 con Vite para un desarrollo rápido y eficiente.
+- **Routing**: React Router DOM para navegación SPA.
+- **UI y Estilos**: Bootstrap 5 para diseño responsive, Bootstrap Icons y Lucide React para iconografía.
+- **Linter y Calidad de Código**: ESLint para mantener estándares de código.
+- **Testing**: Vitest con @testing-library/react para pruebas unitarias y de integración, incluyendo cobertura de código.
+- **Build y Dev Tools**: Vite para bundling y servidor de desarrollo.
+- **Datos**: Archivos JSON locales para simular base de datos (productos, usuarios, boletas).
+
+## Instalación y Configuración
+
+### Prerrequisitos
+
+- Node.js (versión 18 o superior)
+- npm o yarn
+
+### Pasos de Instalación
 
 1. Clona el repositorio:
 
    ```bash
    git clone <url-del-repositorio>
-   cd pasteleria
+   cd pasteleria1000
    ```
 
 2. Instala las dependencias:
@@ -45,112 +56,140 @@ Una aplicación web moderna para la pastelería "1000 Sabores", famosa por su pa
    npm run dev
    ```
 
-4. Abre tu navegador en `http://localhost:5173` (o el puerto que indique Vite).
+4. Abre tu navegador en `http://localhost:5173` (o el puerto indicado por Vite).
 
-## 📖 Uso
+### Configuración Adicional
 
-### Navegación
+- Los datos de prueba están en `src/data/` (Pasteles.json, Usuarios.json, Boleta.json).
+- Imágenes de productos en `src/assets/img/`.
+- Para desarrollo, asegúrate de tener configurado ESLint y Vitest.
 
-- **Inicio**: Página principal con carrusel de imágenes y productos destacados.
-- **Productos**: Lista completa de productos con opción de búsqueda.
-- **Categorías**: Dropdown en el navbar con categorías generadas dinámicamente.
-- **Carrito**: Agrega productos al carrito (funcionalidad básica).
-- **Contacto**: Envía mensajes de contacto.
-- **Login**: Inicia sesión con credenciales de usuario.
-- **Pago**: Simula un pago con validación de tarjeta.
+## Scripts Disponibles
 
-### Credenciales de Prueba
-
-Para probar el login, usa cualquiera de estos usuarios de `src/data/Usuarios.json`:
-
-- ana.garcia@gmail.com / AnaGarcia1234
-- luis.martinez@gmail.com / LuisMartinez1
-- sofia.lopez@gmail.com / SofiaLopez12
-
-### Productos
-
-La aplicación incluye 16 productos en categorías como:
-
-- Tortas tradicionales y especiales
-- Postres como Tiramisú
-- Opciones sin azúcar y sin gluten
-- Productos veganos
-- Especiales para cumpleaños y bodas
-
-## 🏗️ Estructura del Proyecto
-
-```
-pasteleria/
-├── public/
-│   └── vite.svg
-├── src/
-│   ├── assets/
-│   │   └── img/          # Imágenes de productos y tienda
-│   ├── components/
-│   │   └── Card.jsx      # Componente para mostrar productos
-│   ├── data/
-│   │   ├── Pasteles.json # Datos de productos
-│   │   └── Usuarios.json # Datos de usuarios
-│   ├── pages/
-│   │   ├── Index.jsx     # Página principal
-│   │   ├── Productos.jsx # Lista de productos
-│   │   ├── Carrito.jsx   # Carrito de compras
-│   │   ├── Login.jsx     # Página de login
-│   │   ├── Contacto.jsx  # Formulario de contacto
-│   │   ├── Pago.jsx      # Formulario de pago
-│   │   ├── Admin.jsx     # Panel de administración
-│   │   ├── Navbar.jsx    # Barra de navegación
-│   │   └── Ofertas.jsx   # Página de ofertas
-│   ├── utils/
-│   │   └── localstorageHelper.js # Utilidades para localStorage
-│   ├── App.jsx           # Componente principal
-│   ├── App.css           # Estilos globales
-│   ├── index.css         # Estilos base
-│   └── main.jsx          # Punto de entrada
-├── package.json
-├── vite.config.js
-├── eslint.config.js
-└── README.md
-```
-
-## 🎨 Estilos y Diseño
-
-- **Tema**: Colores pastel con acentos en rosa (#e67ca3) y verde (#91d7c8).
-- **Tipografía**: Bootstrap por defecto.
-- **Imágenes**: Carrusel con fotos de la tienda y productos.
-- **Responsive**: Diseño adaptativo con grid de Bootstrap.
-
-## 🔧 Scripts Disponibles
-
-- `npm run dev`: Inicia el servidor de desarrollo.
+- `npm run dev`: Inicia el servidor de desarrollo con hot reload.
 - `npm run build`: Construye la aplicación para producción.
-- `npm run lint`: Ejecuta ESLint para verificar el código.
-- `npm run preview`: Vista previa de la build de producción.
+- `npm run preview`: Previsualiza la build de producción localmente.
+- `npm run lint`: Ejecuta ESLint para verificar y corregir el código.
+- `npm test`: Ejecuta las pruebas con Vitest en modo watch.
+- `npm run test:ui`: Ejecuta pruebas con interfaz gráfica (Vitests UI).
+- `npm run test:coverage`: Genera reporte de cobertura de pruebas.
 
-## 📝 Notas de Desarrollo
+## Estructura del Proyecto
 
-- Los datos de productos y usuarios están en archivos JSON estáticos.
-- El carrito y admin son placeholders para futuras implementaciones.
-- La validación de pagos incluye algoritmo de Luhn y detección de tipo de tarjeta.
-- Las imágenes se resuelven dinámicamente desde `src/assets/img/`.
+```
+pasteleria1000/
+├── public/                 # Archivos estáticos (favicon, etc.)
+├── src/
+│   ├── assets/             # Recursos multimedia
+│   │   └── img/            # Imágenes de productos y branding
+│   ├── components/         # Componentes reutilizables
+│   │   ├── Card.jsx        # Tarjeta de producto
+│   │   ├── Navbar.jsx      # Barra de navegación
+│   │   ├── Footer.jsx      # Pie de página
+│   │   ├── RequireAuth.jsx # Guardia de autenticación
+│   │   └── RequireAdmin.jsx # Guardia de admin
+│   ├── data/               # Datos JSON simulados
+│   │   ├── Pasteles.json   # Catálogo de productos
+│   │   ├── Usuarios.json   # Datos de usuarios
+│   │   └── Boleta.json     # Plantillas de boletas
+│   ├── pages/              # Páginas principales
+│   │   ├── Index.jsx       # Página de inicio
+│   │   ├── Productos.jsx   # Lista de productos
+│   │   ├── Carrito.jsx     # Carrito de compras
+│   │   ├── Login.jsx       # Inicio de sesión
+│   │   ├── Registro.jsx    # Registro de usuario
+│   │   ├── Pago.jsx        # Página de pago
+│   │   ├── Perfil.jsx      # Perfil de usuario
+│   │   └── ...             # Otras páginas (Nosotros, Contacto, etc.)
+│   ├── Admin/              # Panel de administración
+│   │   ├── Admin.jsx       # Dashboard principal
+│   │   ├── AdminPastel.jsx # Gestión de pasteles
+│   │   ├── AgregarPastel.jsx # Agregar nuevos productos
+│   │   ├── AdminOrdenes.jsx # Gestión de pedidos
+│   │   ├── Reportes.jsx    # Reportes y estadísticas
+│   │   └── UsuariosAdmin.jsx # Gestión de usuarios
+│   ├── test/               # Pruebas automatizadas
+│   │   ├── *.test.jsx      # Pruebas de componentes y flujos
+│   │   └── setup.js        # Configuración de pruebas
+│   ├── utils/              # Utilidades y helpers
+│   │   ├── cart.js         # Lógica del carrito
+│   │   ├── session.js      # Gestión de sesiones
+│   │   ├── slugify.js      # Utilidad para URLs
+│   │   └── localstorageHelper.js # Helpers para localStorage
+│   ├── App.jsx             # Componente raíz
+│   ├── App.css             # Estilos globales
+│   ├── index.css           # Estilos base
+│   └── main.jsx            # Punto de entrada
+├── scripts/                # Scripts de utilidad
+│   ├── move-tests.js       # Script para mover pruebas
+│   └── move-tests.mjs      # Versión ES module
+├── package.json            # Dependencias y scripts
+├── vite.config.js          # Configuración de Vite
+├── vitest.config.js        # Configuración de Vitest
+├── eslint.config.js        # Configuración de ESLint
+├── setupTests.js           # Setup global para pruebas
+└── README.md               # Este archivo
+```
 
-## 🤝 Contribución
+## Uso de la Aplicación
 
-1. Haz un fork del proyecto.
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`).
-3. Commit tus cambios (`git commit -am 'Agrega nueva funcionalidad'`).
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`).
-5. Abre un Pull Request.
+### Para Clientes
 
-## 📄 Licencia
+1. **Registro/Login**: Crea una cuenta o inicia sesión para acceder a funciones avanzadas.
+2. **Explorar Productos**: Navega por categorías o busca ofertas especiales.
+3. **Carrito**: Agrega productos, ajusta cantidades y revisa el total.
+4. **Pago**: Completa la compra con información de envío y pago.
+5. **Perfil**: Gestiona pedidos, historial y datos personales.
 
-Este proyecto es privado y propiedad de Pastelería 1000 Sabores.
+### Para Administradores
 
-## 📞 Contacto
+1. **Acceso**: Inicia sesión con credenciales de admin (ver Usuarios.json).
+2. **Gestión**: Agrega/edita productos, administra pedidos y genera reportes.
+3. **Usuarios**: Gestiona cuentas de usuarios y permisos.
 
-- **Dirección**: Av. Principal 123, Santiago
-- **Teléfono**: +56 9 1234 5678
-- **Horario**: Lun-Sab 9:00 - 20:00
-- **Redes**: [Instagram](https://instagram.com), [WhatsApp](https://wa.me/56912345678), [Facebook](https://facebook.com)
+## Pruebas
 
-¡Disfruta explorando nuestros deliciosos pasteles!
+El proyecto incluye una suite completa de pruebas con Vitest:
+
+- **Pruebas Unitarias**: Para componentes individuales y utilidades.
+- **Pruebas de Integración**: Flujos completos como autenticación, carrito y admin.
+- **Cobertura**: Más del 80% de cobertura en componentes críticos.
+- **Ejecución**: `npm test` para modo interactivo, `npm run test:coverage` para reporte.
+
+Ejemplos de pruebas incluyen:
+
+- Flujos de login/logout
+- Gestión del carrito
+- Rutas protegidas (admin y auth)
+- Componentes como Navbar, Card, etc.
+
+## Contribución
+
+1. Fork el proyecto.
+2. Crea una rama para tu feature: `git checkout -b feature/nueva-funcionalidad`.
+3. Realiza commits descriptivos: `git commit -am 'Agrega nueva funcionalidad'`.
+4. Push a la rama: `git push origin feature/nueva-funcionalidad`.
+5. Abre un Pull Request con descripción detallada.
+
+### Guías de Desarrollo
+
+- Sigue las reglas de ESLint.
+- Escribe pruebas para nuevas funcionalidades.
+- Mantén la estructura de carpetas.
+- Usa commits en español o inglés descriptivos.
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
+## Contacto y Soporte
+
+Para preguntas, soporte técnico o colaboraciones:
+
+- Email: [tu-email@ejemplo.com]
+- Sitio Web: [www.pasteleria1000.com] (ficticio)
+- Equipo de Desarrollo: Javier (desarrollador principal)
+
+---
+
+_Pastelería 1000: Dulces momentos para todos._
