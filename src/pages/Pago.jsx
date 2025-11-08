@@ -1,33 +1,3 @@
-/**
- * Componente: Pago
- *
- * Este componente maneja el proceso de pago con tarjeta de crédito.
- * Características principales:
- * - Validación de tarjetas de crédito (Visa, Mastercard, Amex)
- * - Visualización interactiva de la tarjeta
- * - Validaciones en tiempo real
- * - Generación de órdenes
- * - Manejo de errores
- * - Redirección a boleta
- *
- * Funcionalidades:
- * - Detección automática del tipo de tarjeta
- * - Formateo de número de tarjeta según tipo
- * - Validación de fecha de expiración
- * - Validación de CVV según tipo de tarjeta
- * - Generación de boleta electrónica
- * - Almacenamiento de pedido en localStorage
- *
- * Flujo de pago:
- * 1. Usuario ingresa datos de tarjeta
- * 2. Se validan todos los campos
- * 3. Se procesa el pago (simulado)
- * 4. Se genera la orden
- * 5. Se limpia el carrito
- * 6. Se muestra confirmación
- * 7. Se abre la boleta en nueva ventana
- * 8. Se redirige al inicio
- */
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
@@ -308,6 +278,7 @@ export default function Pago() {
         subtotal,
         impuestos,
         total,
+        estado: "pendiente",
       };
 
       const rawPedidos = localStorage.getItem("pedidos_local");
@@ -317,7 +288,13 @@ export default function Pago() {
 
       // limpiar carrito
       localStorage.removeItem("pasteleria_cart");
-      window.dispatchEvent(new Event("storage"));
+      // Notificar tanto storage como un evento personalizado para actualizar la UI en la misma pestaña
+      try {
+        window.dispatchEvent(new Event("storage"));
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new Event("pedidos:updated"));
+      } catch (e) {}
 
       // Mostrar confirmación y abrir boleta en nueva ventana
       setShowConfirmation(true);

@@ -43,8 +43,13 @@ export default function AdminReportes() {
 
     load();
     const onStorage = () => load();
+    const onCustom = () => load();
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("reportes:updated", onCustom);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("reportes:updated", onCustom);
+    };
   }, [navigate]);
 
   /**

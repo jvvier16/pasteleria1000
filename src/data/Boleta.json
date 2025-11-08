@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1",
+    "fecha": "2025-11-08T10:00:00Z",
+    "cliente": {
+      "nombre": "Usuario Demo",
+      "correo": "demo@example.com"
+    },
+    "items": [
+      {
+        "id": "1",
+        "nombre": "Torta de Chocolate",
+        "cantidad": 1,
+        "precio": 25000
+      }
+    ],
+    "total": 25000,
+    "estado": "pendiente"
+  },
+  {
+    "id": "2",
+    "fecha": "2025-11-08T09:30:00Z",
+    "cliente": {
+      "nombre": "María González",
+      "correo": "maria@example.com"
+    },
+    "items": [
+      {
+        "id": "2",
+        "nombre": "Torta de Vainilla",
+        "cantidad": 2,
+        "precio": 20000
+      }
+    ],
+    "total": 40000,
+    "estado": "procesado"
+  },
+  {
+    "id": "3",
+    "fecha": "2025-11-07T15:45:00Z",
+    "cliente": {
+      "nombre": "Juan Pérez",
+      "correo": "juan@example.com"
+    },
+    "items": [
+      {
+        "id": "3",
+        "nombre": "Torta de Fresa",
+        "cantidad": 1,
+        "precio": 30000
+      }
+    ],
+    "total": 30000,
+    "estado": "enviado"
+  }
+]

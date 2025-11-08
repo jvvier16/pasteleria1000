@@ -33,8 +33,13 @@ function Contacto() {
         createdAt: new Date().toISOString(),
       });
       localStorage.setItem("reportes_contacto", JSON.stringify(arr));
-      // notificar cambios
-      window.dispatchEvent(new Event("storage"));
+      // notificar cambios: emitir storage (compat) y un evento personalizado para la misma pestaña
+      try {
+        window.dispatchEvent(new Event("storage"));
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new Event("reportes:updated"));
+      } catch (e) {}
     } catch (err) {
       console.error("No se pudo guardar el mensaje de contacto", err);
     }
@@ -111,9 +116,7 @@ function Contacto() {
                     Enviar mensaje
                   </button>
                   {sent && (
-                    <div className="text-success">
-                      Mensaje enviado (simulado)
-                    </div>
+                    <div className="text-success">Mensaje enviado</div>
                   )}
                 </div>
               </form>

@@ -43,11 +43,21 @@ const Registro = () => {
   };
 
   const validarFechaNacimiento = (fechaStr) => {
-    // formato YYYY-MM-DD
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!regex.test(fechaStr)) return "Formato inválido (YYYY-MM-DD)";
+    // Aceptar YYYY-MM-DD o DD-MM-YYYY (normalizaremos a YYYY-MM-DD)
+    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const ddmmyyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
+    let fecha;
 
-    const fecha = new Date(fechaStr);
+    if (isoRegex.test(fechaStr)) {
+      fecha = new Date(fechaStr);
+    } else if (ddmmyyyyRegex.test(fechaStr)) {
+      // convertir DD-MM-YYYY a YYYY-MM-DD para parseo seguro
+      const [dd, mm, yyyy] = fechaStr.split("-");
+      fecha = new Date(`${yyyy}-${mm}-${dd}`);
+    } else {
+      return "Formato inválido (YYYY-MM-DD o DD-MM-YYYY)";
+    }
+
     if (isNaN(fecha.getTime())) return "Fecha no válida";
 
     const hoy = new Date();
@@ -80,6 +90,27 @@ const Registro = () => {
     if (!/\d/.test(pass))
       return "La contraseña debe contener al menos un número";
     return null;
+  };
+
+  // Normaliza una fecha a formato ISO YYYY-MM-DD si es posible
+  const normalizeToISO = (fechaStr) => {
+    if (!fechaStr) return fechaStr;
+    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const ddmmyyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
+    if (isoRegex.test(fechaStr)) return fechaStr;
+    if (ddmmyyyyRegex.test(fechaStr)) {
+      const [dd, mm, yyyy] = fechaStr.split("-");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    // Fallback: intentar parsear con Date y formatear
+    const d = new Date(fechaStr);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+    return fechaStr;
   };
 
   const handleSubmit = (e) => {
@@ -144,14 +175,15 @@ const Registro = () => {
     const maxId = Math.max(0, ...idsJson, ...idsLocal);
     const nuevoId = maxId + 1;
 
-    // Crear usuario
+    // Crear usuario (normalizar fecha a YYYY-MM-DD)
+    const fechaNorm = normalizeToISO(formData.fechaNacimiento);
     const nuevoUsuario = {
       id: nuevoId,
       nombre: formData.nombre,
       apellido: formData.apellido,
       correo: formData.correo,
       contrasena: formData.contrasena,
-      fechaNacimiento: formData.fechaNacimiento,
+      fechaNacimiento: fechaNorm,
       direccion: formData.direccion,
       role: "user",
     };

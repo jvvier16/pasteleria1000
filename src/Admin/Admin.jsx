@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import AdminPastel from "./AdminPastel";
 import UsuariosAdmin from "./UsuariosAdmin";
 import AdminOrdenes from "./AdminOrdenes";
@@ -405,7 +405,13 @@ export default function Admin() {
               >
                 <div
                   className="card-body d-flex flex-column align-items-center justify-content-center text-center p-4"
-                  onClick={() => navigate(card.route)}
+                  onClick={() => {
+                    // Navegar de forma robusta: si la ruta proporcionada es absoluta
+                    // la usamos tal cual; si es relativa, la convertimos a /admin/.. para
+                    // asegurar que se muestre el módulo correcto dentro del panel.
+                    const dest = card.route && card.route.startsWith("/") ? card.route : `/admin/${card.route}`;
+                    navigate(dest);
+                  }}
                 >
                   <div className="mb-2 fs-2">{card.icon}</div>
                   <h6 className="fw-bold text-white">{card.title}</h6>
@@ -534,12 +540,7 @@ export default function Admin() {
 
         {/* Rutas internas del admin (módulos) */}
         <div>
-          <Routes>
-            <Route path="usuarios" element={<UsuariosAdmin />} />
-            <Route path="pasteles/*" element={<AdminPastel />} />
-            <Route path="pedidos" element={<AdminOrdenes />} />
-            <Route path="/" element={<></>} />
-          </Routes>
+          <Outlet />
         </div>
       </main>
     </div>

@@ -4,6 +4,9 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+// Global animations (no color changes) - bundle with the app
+import "./styles/animations.css";
+import "./utils/animations.js";
 import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";

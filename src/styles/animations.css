@@ -1,0 +1,342 @@
+/* Global animations - no color changes */
+:root {
+  --anim-ease: cubic-bezier(.22,.9,.36,1);
+}
+
+/* If JS is not present, show content without animations */
+.no-js .reveal { opacity: 1; transform: none; }
+
+/* Base reveal: fade + slight slide-up */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity .56s var(--anim-ease), transform .56s var(--anim-ease);
+}
+.reveal.in-view,
+html.is-loaded .reveal.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Slightly slower for headers / important sections */
+.slide-up { transition-duration: .66s; }
+
+/* Cascading delay helpers */
+.fade-delay-1 { transition-delay: .06s; }
+.fade-delay-2 { transition-delay: .14s; }
+.fade-delay-3 { transition-delay: .22s; }
+
+/* Cards / products - respect existing colors (use inherit) */
+.card, .product, .producto {
+  background: inherit;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform .28s var(--anim-ease), box-shadow .28s var(--anim-ease);
+}
+.card:hover, .product:hover, .producto:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 18px 40px rgba(0,0,0,.12);
+}
+
+/* Buttons / CTAs keep their colors; add subtle motion */
+button, .btn, .cta, a.btn {
+  transition: transform .16s var(--anim-ease), box-shadow .16s var(--anim-ease);
+}
+button:active, .btn:active, .cta:active { transform: scale(.99); }
+
+/* Inputs and form fields */
+input, textarea, .input-anim {
+  transition: box-shadow .18s ease, transform .18s ease;
+  will-change: box-shadow, transform;
+}
+input:focus, textarea:focus, .input-anim:focus {
+  box-shadow: 0 8px 20px rgba(0,0,0,.06);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+/* Microinteraction: pulse (paused by default so it doesn't distract) */
+@keyframes pulse-cta { 0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)} }
+.cta.pulse, .btn.pulse { animation: pulse-cta 3.5s ease-in-out infinite; animation-play-state: paused; }
+.cta.pulse:hover, .btn.pulse:hover { animation-play-state: running; }
+
+/* Performance / accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .card, .product, .cta, .btn { transition: none !important; animation: none !important; transform: none !important; }
+}
+
+/* Utility layout helper that can be used by components */
+.anim-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+/* Payment card 3D preview */
+.card-preview {
+  width: 320px;
+  height: 200px;
+  perspective: 1200px;
+  margin: 0.5rem 0;
+}
+.card-3d {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(.22,.9,.36,1), box-shadow .28s ease;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+}
+.card-3d:hover {
+  transform: rotateX(4deg) rotateY(-6deg) translateY(-6px);
+}
+.card-3d.flipped {
+  transform: rotateY(180deg);
+}
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  color: white;
+}
+.card-face.front {
+  background: linear-gradient(135deg, rgba(0,0,0,0.6), rgba(0,0,0,0.35));
+}
+.card-face.back {
+  background: linear-gradient(135deg, rgba(40,40,40,0.95), rgba(20,20,20,0.9));
+  transform: rotateY(180deg);
+}
+.card-number { font-size: 18px; letter-spacing: 2px; }
+.card-name { font-size: 14px; text-transform: uppercase; }
+.card-exp { font-size: 13px; }
+.card-back .magstripe { height: 36px; background: rgba(0,0,0,0.85); margin-top: 12px; border-radius:4px; }
+.card-back .cvv-box { display:flex; justify-content:flex-end; align-items:center; margin-top:18px; }
+.card-back .cvv { background: #fff; color:#000; padding:6px 10px; border-radius:4px; font-weight:600; }
+
+/* small responsive tweak */
+@media (max-width: 480px) {
+  .card-preview { width: 260px; height: 164px; }
+}
+
+/* Card flip animation */
+.payment-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.payment-card {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.card-preview-container {
+  perspective: 1000px;
+}
+
+.card-preview {
+  position: relative;
+  width: 320px;
+  height: 200px;
+  transform-style: preserve-3d;
+  transition: transform 0.7s;
+}
+
+.card-preview .number {
+  letter-spacing: 2px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.card-preview .name {
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.card-preview .exp {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.card-preview .logo-small {
+  max-height: 40px;
+}
+
+.card-preview .text-capitalize {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.card-preview.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 15px;
+  background: linear-gradient(45deg, #f3e7e9, #e3eeff);
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  padding: 0;
+  display: block;
+}
+
+.card-back-strip {
+  width: 100%;
+  height: 50px;
+  background: #333;
+  margin-top: 30px;
+}
+
+.card-back-cvv {
+  text-align: right;
+  padding: 20px;
+}
+
+.card-back-cvv label {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.card-back-cvv div {
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+  min-height: 40px;
+  text-align: right;
+  padding-right: 10px;
+  width: 100%;
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+.card-preview .focused {
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+  border-radius: 5px;
+  padding: 2px;
+  margin: -2px;
+}
+
+@media (max-width: 992px) {
+  .payment-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .payment-card {
+    padding: 1.5rem;
+  }
+
+  .card-preview {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    aspect-ratio: 1.586; /* Credit card aspect ratio */
+  }
+}
+
+/* Carousel image fit - ensure images adapt to carousel height and keep center */
+.carousel .carousel-inner { max-height: 60vh; overflow: hidden; }
+.carousel .carousel-item { height: 60vh; }
+
+/* Use background-based slides to preserve aspect ratio and cover the area cleanly */
+.carousel-bg {
+  width: 100%;
+  height: 60vh;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  .carousel .carousel-inner { max-height: 40vh; }
+  .carousel .carousel-item { height: 40vh; }
+  .carousel-bg { height: 40vh; }
+}
+
+/* Ensure index product cards have subtle reveal stagger */
+.index-products .reveal { will-change: opacity, transform; }
+
+/* Profile avatar styles */
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: inline-block;
+  background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.02));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  color: rgba(0,0,0,0.55);
+}
+.avatar-actions { display:flex; gap:0.5rem; align-items:center; }
+.avatar-input { display:none; }
+
+/* Profile page enhancements */
+.profile-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+.profile-side {
+  min-width: 220px;
+  max-width: 320px;
+}
+.profile-main {
+  flex: 1 1 auto;
+}
+.profile-panel {
+  padding: 1.25rem;
+  border-radius: 12px;
+  /* subtle panel background that keeps original colors but improves contrast */
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,250,250,0.96));
+  box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+  color: var(--text-main, #222);
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.profile-name { font-size: 1.25rem; font-weight:700; color: var(--text-main, #222); }
+.profile-email { color: rgba(0,0,0,0.6); font-size: .95rem }
+.profile-stats { display:flex; gap: .75rem; margin-top: .75rem }
+.profile-stat { background: rgba(0,0,0,0.03); padding: 6px 10px; border-radius: 8px; font-size: .9rem }
+.profile-cta { margin-top: 1rem }
+.field-error { color: #b91c1c; font-size: .9rem; margin-top: .35rem }
+
+@media (max-width: 768px) {
+  .profile-card { flex-direction: column; }
+  .profile-side { max-width: none; width: 100%; }
+}

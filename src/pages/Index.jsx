@@ -68,7 +68,7 @@ const Index = () => {
       {/* Carrusel */}
       <div
         id="carouselExampleIndicators"
-        className="carousel slide"
+        className="carousel slide reveal slide-up"
         data-bs-ride="carousel"
       >
         <div className="carousel-indicators">
@@ -92,16 +92,19 @@ const Index = () => {
 
         <div className="carousel-inner">
           <div className="carousel-item active">
-            <img
-              src={new URL("../assets/img/tienda.png", import.meta.url).href}
-              alt="tienda"
-              className="carousel-img d-block w-100"
+            <div
+              role="img"
+              aria-label="tienda"
+              className="carousel-bg"
+              style={{
+                backgroundImage: `url(${new URL("../assets/img/tienda.png", import.meta.url).href})`,
+              }}
             />
             <div className="carousel-caption d-none d-md-block">
-              <h5 className="brand-text fw-semibold">
+              <h5 className="brand-text fw-semibold reveal fade-in fade-delay-1">
                 Pasteleria 1000 sabores
               </h5>
-              <p className="carousel-caption-text">
+              <p className="carousel-caption-text reveal fade-in fade-delay-2">
                 Famosa por su participación en un récord Guinness en 1995,
                 cuando colaboró en la creación de la torta más grande del mundo.
               </p>
@@ -109,18 +112,24 @@ const Index = () => {
           </div>
 
           <div className="carousel-item">
-            <img
-              src={new URL("../assets/img/local.jpg", import.meta.url).href}
-              alt="local"
-              className="carousel-img d-block w-100"
+            <div
+              role="img"
+              aria-label="local"
+              className="carousel-bg"
+              style={{
+                backgroundImage: `url(${new URL("../assets/img/local.jpg", import.meta.url).href})`,
+              }}
             />
           </div>
 
           <div className="carousel-item">
-            <img
-              src={new URL("../assets/img/vitrina.png", import.meta.url).href}
-              alt="vitrina"
-              className="carousel-img d-block w-100"
+            <div
+              role="img"
+              aria-label="vitrina"
+              className="carousel-bg"
+              style={{
+                backgroundImage: `url(${new URL("../assets/img/vitrina.png", import.meta.url).href})`,
+              }}
             />
           </div>
         </div>
@@ -146,11 +155,12 @@ const Index = () => {
       {/* Productos */}
       <section className="py-5 bg-white text-center index-products">
         <div className="container">
-          <h2 className="mb-4 fw-bold">Productos</h2>
+          <h2 className="mb-4 fw-bold reveal slide-up">Productos</h2>
           <div className="row g-4">
             {productos.map((p) => (
               <div className="col-md-3" key={p.id}>
-                <Card
+                <div className="reveal fade-in fade-delay-2">
+                  <Card
                   id={p.id}
                   nombre={p.nombre}
                   descripcion={p.descripcion || ""}
@@ -161,7 +171,8 @@ const Index = () => {
                   onAgregar={handleAddToCart}
                   showAdminControls={false}
                   showStockCritical={false}
-                />
+                  />
+                </div>
               </div>
             ))}
           </div>

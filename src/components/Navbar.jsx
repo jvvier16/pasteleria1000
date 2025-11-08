@@ -430,7 +430,7 @@ export default function Navbar() {
                     </Link>
                   </li>
                   <li>
-                    <Link className="dropdown-item" to="/pedidos">
+                    <Link className="dropdown-item" to={isAdmin ? "/admin/pedidos" : "/pedidos"}>
                       Mis pedidos
                     </Link>
                   </li>

@@ -20,7 +20,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import usuariosData from "../data/Usuarios.json";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Login() {
   const [form, setForm] = useState({ userOrEmail: "", password: "" });
@@ -29,6 +29,7 @@ export default function Login() {
   const [logged, setLogged] = useState(null);
   const [usuarios, setUsuarios] = useState([]); // ahora tendrá JSON + localStorage
   const navigate = useNavigate();
+  const location = useLocation();
 
   //  Cargar usuarios desde JSON + localStorage
   useEffect(() => {
@@ -159,6 +160,12 @@ export default function Login() {
       setErrors({});
 
       setTimeout(() => {
+        // If the user was redirected here by RequireAuth, go back to the original page
+        const fromPath = location?.state?.from?.pathname;
+        if (fromPath) {
+          navigate(fromPath);
+          return;
+        }
         if (session.role === "admin") {
           navigate("/admin");
         } else {

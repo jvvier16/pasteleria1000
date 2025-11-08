@@ -65,48 +65,6 @@ function App() {
         <Route path="/blog/dos" element={<BlogDos />} />
         <Route path="/nosotros" element={<Nosotros />} />
         <Route
-          path="/admin/pasteles/agregar"
-          element={
-            <RequireAdmin>
-              <AgregarPastel />
-            </RequireAdmin>
-          }
-        />
-        <Route
-          path="/admin/usuarios"
-          element={
-            <RequireAdmin>
-              <AdminUsuarios />
-            </RequireAdmin>
-          }
-        />
-        <Route
-          path="/admin/pasteles"
-          element={
-            <RequireAdmin>
-              <AdminPasteles />
-            </RequireAdmin>
-          }
-        />
-        <Route
-          path="/admin/ordenes"
-          element={
-            <RequireAdmin>
-              <AdminOrdenes />
-            </RequireAdmin>
-          }
-        />
-        <Route path="/admin/reportes" element={<AdminReportes />} />
-        <Route
-          path="/admin/categorias"
-          element={
-            <RequireAdmin>
-              <AdminCategoria />
-            </RequireAdmin>
-          }
-        />
-
-        <Route
           path="/perfil"
           element={
             <RequireAuth>
@@ -124,14 +82,14 @@ function App() {
           }
         />
 
-        <Route
-          path="/admin"
-          element={
-            <RequireAdmin>
-              <Admin />
-            </RequireAdmin>
-          }
-        />
+        <Route path="/admin/*" element={<RequireAdmin><Admin /></RequireAdmin>}>
+          <Route path="pasteles/agregar" element={<AgregarPastel />} />
+          <Route path="usuarios" element={<AdminUsuarios />} />
+          <Route path="pasteles/*" element={<AdminPasteles />} />
+          <Route path="pedidos" element={<AdminOrdenes />} />
+          <Route path="reportes" element={<AdminReportes />} />
+          <Route path="categorias" element={<AdminCategoria />} />
+        </Route>
 
         <Route
           path="/pedidos"
