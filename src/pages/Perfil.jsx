@@ -149,26 +149,7 @@ export default function PerfilPage() {
                     <input id="contrasena" name="contrasena" type="password" value={form.contrasena} onChange={onChange} className="form-control" />
                   </div>
 
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-dark">Guardar cambios</button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => {
-                          try {
-                            const raw = localStorage.getItem('session_user');
-                            const u = raw ? JSON.parse(raw) : {};
-                            const dest = u && u.role === 'admin' ? '/admin/pedidos' : '/pedidos';
-                            // pasar state para que la página de órdenes sepa que venimos desde perfil
-                            navigate(dest, { state: { fromPerfil: true } });
-                          } catch (e) {
-                            navigate('/pedidos', { state: { fromPerfil: true } });
-                          }
-                        }}
-                    >
-                      Ver mis pedidos
-                    </button>
-                  </div>
+                 
                 </form>
               </div>
             </main>

@@ -82,6 +82,18 @@ const Categorias = () => {
     setTimeout(() => setToast(null), 2500);
   };
 
+  // Special discounts view: compute discounted products (e.g., 20% off on productos >= 40000)
+  const DISCOUNT_PERCENT = 20;
+  const discountedProducts = useMemo(() => {
+    return pasteles
+      .filter((p) => Number(p.precio || 0) >= 40000)
+      .map((p) => ({
+        ...p,
+        imageUrl: p.imageUrl || ((p.imagen || "").split("/").pop() ? new URL(`../assets/img/${(p.imagen||"").split("/").pop()}`, import.meta.url).href : ""),
+        discountedPrice: Math.round(Number(p.precio || 0) * (1 - DISCOUNT_PERCENT / 100)),
+      }));
+  }, []);
+
   // si la url contiene ?cat=slug, seleccionar esa categoria al cargar
   const location = useLocation();
 
@@ -125,6 +137,14 @@ const Categorias = () => {
         role="toolbar"
         aria-label="Filtros de categorías"
       >
+        <button
+          className={`btn btn-sm ${selectedCategory === "__descuentos" ? "btn-primary" : "btn-outline-secondary"}`}
+          onClick={() => setSelectedCategory("__descuentos")}
+          data-testid={`categoria-descuentos`}
+          aria-pressed={selectedCategory === "__descuentos"}
+        >
+          Descuentos
+        </button>
         <button
           className={`btn btn-sm ${
             selectedCategory ? "btn-outline-secondary" : "btn-primary"
@@ -175,31 +195,59 @@ const Categorias = () => {
 
       {/* Categorías */}
       <div className="d-flex justify-content-center flex-wrap gap-3 mb-5">
-        {categorias.map((cat) => (
-          <div
-            key={cat.id}
-            className="card text-center shadow-sm fixed-width-8rem"
-          >
-            <img
-              src={
-                cat.productos[0]?.imageUrl || "https://via.placeholder.com/100"
-              }
-              className="card-img-top"
-              alt={cat.nombre}
-            />
-            <div className="card-body p-2">
-              <h6 className="card-title">{cat.nombre}</h6>
+        {/** Render category tiles, including Descuentos tile which shows discount badge if applicable */}
+        {selectedCategory !== "__descuentos" && (
+          <>
+            {categorias.map((cat) => {
+              const hasDiscount = cat.productos.some((p) => Number(p.precio || 0) >= 40000);
+              return (
+                <div key={cat.id} className="card text-center shadow-sm fixed-width-8rem position-relative">
+                  {hasDiscount && <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>}
+                  <img src={cat.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt={cat.nombre} />
+                  <div className="card-body p-2">
+                    <h6 className="card-title">{cat.nombre}</h6>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/** Descuentos tile: a large card summarizing discounted products */}
+        {selectedCategory === "__descuentos" && (
+          <div className="card text-center shadow-sm p-3 w-100">
+            <div className="d-flex align-items-center justify-content-between">
+              <div>
+                <h5 className="mb-1">Ofertas Especiales</h5>
+                <p className="mb-0 text-muted">Descuentos del {DISCOUNT_PERCENT}% en productos seleccionados</p>
+              </div>
+              <div>
+                <span className="discount-badge">-{DISCOUNT_PERCENT}%</span>
+              </div>
+            </div>
+            <div className="row g-3 mt-3">
+              {discountedProducts.slice(0, 6).map((p) => (
+                <div key={p.id} className="col-md-2 text-center">
+                  <img src={p.imageUrl || "https://via.placeholder.com/100"} alt={p.nombre} style={{width: '100%', height: 80, objectFit: 'cover', borderRadius: 6}} />
+                  <div className="mt-2">
+                    <div className="small text-muted">{p.nombre}</div>
+                    <div className="fw-bold text-discounted">${Number(p.discountedPrice).toLocaleString('es-CL')}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Productos por categoría */}
+      {/** If selectedCategory is __descuentos, we render a synthetic category showing discountedProducts */}
       {categoriasAMostrar.map((cat) => (
         <section key={cat.id} id={`${slugify(cat.nombre)}`} className="mb-5">
           <h3 className="mb-4 fw-bold">{cat.nombre}</h3>
           <div className="row g-4">
-            {cat.productos.map((prod) => (
+            {/** If this is the discounts synthetic category, render discounted products with badge */}
+            {(selectedCategory === "__descuentos" ? discountedProducts : cat.productos).map((prod) => (
               <div key={prod.id} className="col-md-3">
                 <Card
                   id={prod.id}
@@ -210,6 +258,8 @@ const Categorias = () => {
                   stock={prod.stock}
                   origen={"json"}
                   onAgregar={handleAddToCart}
+                  discountPercent={selectedCategory === "__descuentos" ? DISCOUNT_PERCENT : 0}
+                  discountedPrice={selectedCategory === "__descuentos" ? prod.discountedPrice : null}
                 />
               </div>
             ))}

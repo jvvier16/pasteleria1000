@@ -27,6 +27,11 @@ function Card({
   onEliminar, // function(id)
   showAdminControls = true, // si false, ocultar botones Editar/Eliminar incluso para origen 'local'
   showStockCritical = true, // si false, no mostrar la alerta de stock crítico
+  // descuento opcional: porcentaje y precio descontado
+  discountPercent = 0,
+  discountedPrice = null,
+  // control display of (No editable) note for json-origin items
+  showEditableNote = true,
 }) {
   // compatibilidad: permitir usar tanto `titulo` como `nombre`, `contenido` o `descripcion`
   const title = titulo || nombre || "Producto";
@@ -93,6 +98,12 @@ function Card({
       )}
 
       <div className="card-body d-flex flex-column">
+        {/* Discount badge (animated) */}
+        {discountPercent > 0 && (
+          <div className="discount-badge" data-testid="discount-badge">
+            -{discountPercent}%
+          </div>
+        )}
         <h5 className="card-title">{title}</h5>
         {!hideDescription && <p className="card-text flex-grow-1">{desc}</p>}
 
@@ -127,9 +138,16 @@ function Card({
         )}
 
         <p className="card-text fw-bold text-success mb-2">
-          {typeof price === "number"
-            ? `$${price.toLocaleString("es-CL")}`
-            : price}
+          {discountedPrice ? (
+            <>
+              <span className="price-original">${Number(price).toLocaleString("es-CL")}</span>
+              <span className="price-discounted">${Number(discountedPrice).toLocaleString("es-CL")}</span>
+            </>
+          ) : typeof price === "number" ? (
+            `$${price.toLocaleString("es-CL")}`
+          ) : (
+            price
+          )}
         </p>
 
         {/* Botón público: Agregar a carrito (se mantiene siempre visible) */}
@@ -156,7 +174,7 @@ function Card({
 
         {/* Sección de administración */}
         <div className="mt-2">
-          {origen === "json" && (
+          {origen === "json" && showEditableNote && (
             <small className="text-muted">(No editable)</small>
           )}
 

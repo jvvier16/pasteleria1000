@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
+import { addToCart } from "../utils/cart.js";
 import pastelesData from "../data/Pasteles.json";
 
 /**
@@ -47,6 +48,7 @@ export default function AdminPasteles() {
   // Ref al modal y a la instancia de Bootstrap
   const modalRef = useRef(null);
   const modalInstanceRef = useRef(null);
+  const [showInlineEditor, setShowInlineEditor] = useState(false);
 
   // 🔐 Proteger ruta (solo admin)
   useEffect(() => {
@@ -163,6 +165,28 @@ export default function AdminPasteles() {
     localStorage.setItem("pasteles_local", JSON.stringify(next));
   };
 
+  // Permitir agregar al carrito desde el panel admin
+  const handleAgregar = (product) => {
+    try {
+      // product puede venir con cantidad, fallback a 1
+      const qty = Number(product.cantidad) || 1;
+      addToCart(product, qty);
+      // avisar a listeners (cart UI) que hubo un cambio
+      try {
+        window.dispatchEvent(new Event("cart:updated"));
+      } catch (e) {}
+      // feedback inmediato
+      try {
+        // si hay alguna interfaz de notificaciones, mejor usarla; por ahora alert
+        alert(`${product.nombre || product.titulo || 'Producto'} agregado al carrito`);
+      } catch (e) {}
+      return true;
+    } catch (err) {
+      console.error("Error agregando al carrito desde AdminPastel:", err);
+      return false;
+    }
+  };
+
   /**
    * @function handleEditar
    * @description Abre el modal de edición para un pastel específico
@@ -182,7 +206,7 @@ export default function AdminPasteles() {
       categoria: pastel.categoria || "",
     });
 
-    // Mostrar modal Bootstrap
+  // Mostrar modal Bootstrap
     try {
       // requiere bootstrap JS vía CDN: window.bootstrap.Modal
       if (!modalInstanceRef.current) {
@@ -194,10 +218,13 @@ export default function AdminPasteles() {
         );
       }
       modalInstanceRef.current.show();
+      setShowInlineEditor(false);
     } catch (e) {
       console.error(
         "Bootstrap Modal no disponible. Asegúrate de incluir el JS de Bootstrap por CDN."
       );
+      // Mostrar formulario inline como fallback
+      setShowInlineEditor(true);
     }
   };
 
@@ -242,6 +269,7 @@ export default function AdminPasteles() {
       if (modalInstanceRef.current) {
         modalInstanceRef.current.hide();
       }
+      setShowInlineEditor(false);
     } catch {}
   };
 
@@ -257,6 +285,53 @@ export default function AdminPasteles() {
           + Agregar pastel
         </a>
       </div>
+      {/* Inline editor fallback (cuando el modal de Bootstrap no esté disponible) */}
+      {showInlineEditor && (
+        <div className="card mb-4">
+          <div className="card-body">
+            <h5 className="card-title">Editar pastel (inline)</h5>
+            <form onSubmit={handleGuardar}>
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Nombre</label>
+                  <input type="text" className="form-control" value={editForm.nombre} onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} required />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Categoría</label>
+                  <select className="form-select" value={editForm.categoria} onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })} required>
+                    <option value="">Selecciona una categoría...</option>
+                    {categorias.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Descripción</label>
+                <textarea className="form-control" value={editForm.descripcion} onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })} required />
+              </div>
+              <div className="row">
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Precio</label>
+                  <input type="number" className="form-control" value={editForm.precio} onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })} required min="0" step="1" />
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Stock</label>
+                  <input type="number" className="form-control" value={editForm.stock} onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })} required min="0" step="1" />
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Stock Crítico</label>
+                  <input type="number" className="form-control" value={editForm.stockCritico} onChange={(e) => setEditForm({ ...editForm, stockCritico: e.target.value })} min="0" step="1" />
+                </div>
+              </div>
+              <div className="d-flex gap-2">
+                <button type="submit" className="btn btn-primary">Guardar cambios</button>
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowInlineEditor(false)}>Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Grid de cards (similar a Productos) */}
       <div className="cards-grid mt-3">
@@ -272,6 +347,7 @@ export default function AdminPasteles() {
             origen={p._origen} // "json" o "local"
             onEditar={handleEditar}
             onEliminar={handleEliminar}
+            onAgregar={handleAgregar}
           />
         ))}
       </div>

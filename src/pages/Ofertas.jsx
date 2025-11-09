@@ -18,10 +18,16 @@ const resolveImage = (imgPath) => {
 
 const Ofertas = () => {
   // filtrar pasteles con precio mayor a 45000
+  const DISCOUNT = 20; // percent
   const ofertados = (pasteles || [])
     .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
     .filter((p) => p.precio >= 40000)
-    .map((p) => ({ ...p, imageUrl: resolveImage(p.imagen) }));
+    .map((p) => ({
+      ...p,
+      imageUrl: resolveImage(p.imagen),
+      discountedPrice: Math.round(Number(p.precio || 0) * (1 - DISCOUNT / 100)),
+      discountPercent: DISCOUNT,
+    }));
 
   const [toast, setToast] = useState(null);
 
@@ -60,7 +66,15 @@ const Ofertas = () => {
 
   return (
     <div className="container py-4">
-      <h3 className="mb-4">Ofertas especiales</h3>
+      <div className="offers-hero mb-4 p-4 rounded-3 text-white d-flex align-items-center justify-content-between">
+        <div>
+          <h3 className="mb-1">Ofertas especiales</h3>
+          <p className="mb-0 small">Aprovecha descuentos seleccionados — hoy {DISCOUNT}% off en productos seleccionados</p>
+        </div>
+        <div className="text-end">
+          <span className="badge bg-light text-dark">-{DISCOUNT}%</span>
+        </div>
+      </div>
       {toast && (
         <div
           className="toast show position-fixed bottom-0 end-0 m-3"
@@ -84,18 +98,21 @@ const Ofertas = () => {
       <div className="row g-4">
         {ofertados.map((p) => {
           const precioOriginal = Number(p.precio || 0);
-          const precioDescuento = Math.round(precioOriginal * 0.8);
+          const precioDescuento = p.discountedPrice;
           return (
             <div className="col-md-3" key={p.id}>
               <Card
                 id={p.id}
                 nombre={p.nombre}
                 descripcion={p.descripcion || ""}
-                precio={precioDescuento}
+                precio={precioOriginal}
                 imagen={p.imageUrl}
                 stock={p.stock}
                 origen={"json"}
                 onAgregar={handleAddToCart}
+                discountPercent={p.discountPercent}
+                discountedPrice={precioDescuento}
+                showEditableNote={false}
               />
             </div>
           );

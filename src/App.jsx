@@ -24,7 +24,7 @@ import Registro from "./pages/Registro.jsx";
 import Nosotros from "./pages/Nosotros.jsx";
 import Carrito from "./pages/Carrito.jsx";
 import Perfil from "./pages/Perfil.jsx";
-import Pedidos from "./pages/Pedidos.jsx";
+import Pedidos from "./Admin/Pedidos.jsx";
 import ProductoDetalle from "./pages/ProductoDetalle.jsx";
 //admin Pages
 import Admin from "./Admin/Admin.jsx";
@@ -32,7 +32,7 @@ import AgregarPastel from "./Admin/AgregarPastel.jsx";
 import AdminUsuarios from "./Admin/UsuariosAdmin";
 import AdminPasteles from "./Admin/AdminPastel";
 import AdminReportes from "./Admin/Reportes";
-import AdminOrdenes from "./Admin/AdminOrdenes";
+import AdminOrdenes from "./Admin/AdminOrdenes.jsx";
 import AdminCategoria from "./Admin/AdminCategoria";
 
 // Guards
@@ -83,6 +83,7 @@ function App() {
         />
 
         <Route path="/admin/*" element={<RequireAdmin><Admin /></RequireAdmin>}>
+          <Route index element={<AdminOrdenes />} />
           <Route path="pasteles/agregar" element={<AgregarPastel />} />
           <Route path="usuarios" element={<AdminUsuarios />} />
           <Route path="pasteles/*" element={<AdminPasteles />} />
