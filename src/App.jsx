@@ -3,7 +3,7 @@
 // - Define las rutas públicas y las rutas protegidas (RequireAuth / RequireAdmin).
 import React from "react";
 import "./App.css";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // Layout
 import Navbar from "./components/Navbar.jsx";
@@ -38,6 +38,13 @@ import AdminCategoria from "./Admin/AdminCategoria";
 // Guards
 import RequireAuth from "./components/RequireAuth.jsx";
 import RequireAdmin from "./components/RequireAdmin.jsx";
+import RequireVendedor from "./components/RequireVendedor.jsx";
+// Vendedor pages
+import Vendedor from "./vendedor/Vendedor.jsx";
+import ProductosVendedor from "./vendedor/ProductosVendedor.jsx";
+import ProductoDetalleVendedor from "./vendedor/ProductoDetalleVendedor.jsx";
+import OrdenesVendedor from "./vendedor/OrdenesVendedor.jsx";
+import OrdenDetalleVendedor from "./vendedor/OrdenDetalleVendedor.jsx";
 
 function App() {
   return (
@@ -103,6 +110,23 @@ function App() {
 
         {/* fallback a index para rutas no definidas */}
         <Route path="*" element={<Index />} />
+      </Routes>
+      
+      <Routes>
+        <Route
+          path="/vendedor/*"
+          element={
+            <RequireVendedor>
+              <Vendedor />
+            </RequireVendedor>
+          }
+        >
+          <Route index element={<Navigate to="productos" replace />} />
+          <Route path="productos" element={<ProductosVendedor />} />
+          <Route path="productos/:id" element={<ProductoDetalleVendedor />} />
+          <Route path="ordenes" element={<OrdenesVendedor />} />
+          <Route path="ordenes/:id" element={<OrdenDetalleVendedor />} />
+        </Route>
       </Routes>
       <Footer />
     </>

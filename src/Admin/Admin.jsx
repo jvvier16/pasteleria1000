@@ -408,6 +408,10 @@ export default function Admin() {
               </div>
             </div>
           </>
+        ) : location.pathname.startsWith("/admin/pasteles") ? (
+          <div>
+            <AdminPastel />
+          </div>
         ) : (
           <div>
             <Outlet />

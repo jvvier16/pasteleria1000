@@ -57,7 +57,7 @@
     "contrasena": "JavierRojas13",
     "role": "user",
     "fechaNacimiento": "1993-07-10",
-    "direccion": "Santiago Centro, Santiago"
+    "direccion": "Puente Alto, Santiago"
   },
   {
     "id": 7,
@@ -65,17 +65,19 @@
     "apellido": "tienda",
     "correo": "admin@gmail.com",
     "contrasena": "JavierRojas12",
-    "role": "admin"
+    "role": "admin",
+    "fechaNacimiento": "1990-01-01",
+    "direccion": "Santiago, Chile"
   },
   {
-    "id": 8,
-    "nombre": "Camila",
-    "apellido": "Hernández",
-    "correo": "camila.hernandez@gmail.com",
-    "contrasena": "CamilaHer90",
-    "role": "user",
+     "id": 8,
+    "nombre": "aracelly",
+    "apellido": "zenteno",
+    "correo": "aracelly.zenteno@gmail.com",
+    "contrasena": "Aracellyzen90",
+    "role": "vendedor",
     "fechaNacimiento": "1988-04-12",
-    "direccion": "Ñuñoa, Santiago"
+    "direccion": "Puente Alto, Santiago"
   },
   {
     "id": 9,

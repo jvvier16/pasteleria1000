@@ -5,7 +5,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 const Footer = () => {
   return (
-    <footer className="bg-dark text-light pt-5 pb-3 mt-5">
+    <footer className="bg-dark text-light pt-5 pb-3 mt-5 reveal slide-up">
       <div className="container">
         <div className="row text-center text-md-start">
           {/* Columna 1 */}
@@ -18,35 +18,6 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Columna 2 */}
-          <div className="col-md-4 mb-4">
-            <h6 className="fw-bold text-warning">Enlaces Rápidos</h6>
-            <ul className="list-unstyled">
-              <li>
-                <a href="/" className="text-light text-decoration-none">
-                  Inicio
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/productos"
-                  className="text-light text-decoration-none"
-                >
-                  Productos
-                </a>
-              </li>
-              <li>
-                <a href="/nosotros" className="text-light text-decoration-none">
-                  Nosotros
-                </a>
-              </li>
-              <li>
-                <a href="/contacto" className="text-light text-decoration-none">
-                  Contacto
-                </a>
-              </li>
-            </ul>
-          </div>
 
           {/* Columna 3 */}
           <div className="col-md-4 mb-4">

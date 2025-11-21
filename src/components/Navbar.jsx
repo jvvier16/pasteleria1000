@@ -119,6 +119,10 @@ export default function Navbar() {
   }, []);
 
   const isAdmin = Boolean(sessionUser && sessionUser.role === "admin");
+  const isVendedor = Boolean(
+    sessionUser &&
+      (sessionUser.role === "vendedor" || sessionUser.rol === "vendedor")
+  );
 
   const handleLogout = async () => {
     // mostrar modal de confirmación
@@ -199,7 +203,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg site-navbar px-4 py-2">
+      <nav className="navbar navbar-expand-lg site-navbar px-4 py-2 reveal slide-up">
         <Link className="navbar-brand d-flex align-items-center" to="/">
           <img
             src={new URL("../assets/img/logo.png", import.meta.url).href}
@@ -339,6 +343,13 @@ export default function Navbar() {
               <li className="nav-item">
                 <Link className="nav-link text-danger fw-semibold" to="/admin">
                   Admin
+                </Link>
+              </li>
+            )}
+            {isVendedor && (
+              <li className="nav-item">
+                <Link className="nav-link nav-vendedor fw-semibold text-dark" to="/vendedor/productos">
+                  Panel Vendedor
                 </Link>
               </li>
             )}

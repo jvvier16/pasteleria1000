@@ -426,15 +426,80 @@ body {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	height: 40px; /* altura consistente */
-	padding: 6px 12px;
-	border-radius: 10px;
+	height: 36px; /* altura compacta */
+	padding: 4px 10px; /* menos padding para apretar elementos */
+	border-radius: 8px;
 }
 
 /* Ajustes específicos para el toggle que usamos como botón link */
 .site-navbar .nav-link.dropdown-toggle.btn-link {
 	padding: 6px 12px;
 	color: inherit;
+}
+
+/* Compact navbar tweaks */
+.site-navbar {
+	padding-top: 6px;
+	padding-bottom: 6px;
+}
+.site-navbar .navbar-brand {
+	gap: 8px;
+	display: inline-flex;
+	align-items: center;
+}
+.site-navbar .navbar-brand .logo {
+	width: 36px; /* más pequeño */
+	height: 36px;
+}
+.site-navbar .brand-text {
+	font-size: 0.98rem;
+	font-weight: 700;
+}
+.site-navbar .navbar-nav {
+	gap: 6px;
+}
+.site-navbar .nav-link {
+	font-size: 0.95rem;
+	padding: 4px 8px;
+}
+.site-navbar .btn-user,
+.site-navbar .btn-cart,
+.site-navbar .btn-search,
+.site-navbar .btn-login,
+.site-navbar .btn-register {
+	padding: 6px 10px;
+	font-size: 0.9rem;
+}
+
+/* Specific tighter styling for vendor links to pack them together */
+.site-navbar .nav-vendedor {
+	padding: 2px 6px !important;
+	margin-left: 4px;
+	margin-right: 4px;
+	font-size: 0.9rem;
+}
+.site-navbar .navbar-nav .nav-item + .nav-item { /* reduce gap between items */
+	margin-left: 4px;
+}
+
+/* Reduce espacio del toggler en móvil */
+.navbar-toggler {
+	padding: 6px 8px;
+}
+
+/* Ajustes finos del badge */
+.cart-badge {
+  top: -4px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  font-size: 0.72rem;
+  padding: 0 5px;
+}
+
+/* Ensure dropdown alignment doesn't push layout */
+.site-navbar .dropdown-menu {
+	margin-top: 6px;
 }
 
 /* Asegurar que los badges y smalls no rompan la altura del botón */
@@ -584,6 +649,41 @@ body {
 	0% { transform: scale(1); box-shadow: 0 6px 18px rgba(255,77,109,0.18); }
 	50% { transform: scale(1.05); box-shadow: 0 10px 26px rgba(255,77,109,0.26); }
 	100% { transform: scale(1); box-shadow: 0 6px 18px rgba(255,77,109,0.18); }
+}
+
+/* Cart badge bump animation */
+.cart-badge-container {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+}
+.cart-badge {
+	position: absolute;
+	top: -6px;
+	right: -8px;
+	background: #ff6b6b;
+	color: white;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	border-radius: 999px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.75rem;
+	font-weight: 700;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+	transform-origin: center;
+}
+.cart-badge.bump {
+	animation: cart-bump 350ms ease-out;
+}
+@keyframes cart-bump {
+	0% { transform: scale(1); }
+	10% { transform: scale(1.25); }
+	30% { transform: scale(0.95); }
+	50% { transform: scale(1.08); }
+	100% { transform: scale(1); }
 }
 
 

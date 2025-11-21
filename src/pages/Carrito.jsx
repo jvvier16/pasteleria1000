@@ -79,7 +79,7 @@ const Carrito = () => {
   const total = getTotal();
 
   return (
-    <div className="container py-4">
+    <div className="container py-4 reveal slide-up">
       <div className="alert alert-primary text-center">
         <strong>¡Carrito de la Pastelería!</strong> Aquí puedes revisar los
         pasteles que agregaste y el total se actualizará automáticamente.
@@ -102,8 +102,8 @@ const Carrito = () => {
                 </tr>
               </thead>
               <tbody>
-                {carrito.map((item) => (
-                  <tr key={item.id}>
+                {carrito.map((item, i) => (
+                  <tr key={item.id} className={`reveal fade-delay-${(i % 3) + 1}`}>
                     <td>{item.nombre}</td>
                     <td>${Number(item.precio).toLocaleString("es-CL")}</td>
                     <td className="td-qty">

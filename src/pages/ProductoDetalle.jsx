@@ -57,7 +57,7 @@ const ProductoDetalle = () => {
   };
 
   return (
-    <div className="container py-4">
+    <div className="container py-4 reveal slide-up">
       <nav aria-label="breadcrumb" className="mb-3">
         <ol className="breadcrumb">
           <li className="breadcrumb-item">
@@ -70,11 +70,11 @@ const ProductoDetalle = () => {
       </nav>
 
       <div className="row g-4 align-items-start">
-        <div className="col-12 col-md-6">
+        <div className="col-12 col-md-6 reveal fade-delay-1">
           {imageUrl ? (
             <img
               src={imageUrl}
-              className="img-fluid rounded shadow-sm"
+              className="img-fluid rounded shadow-sm hover-zoom"
               alt={prod.nombre}
             />
           ) : (
@@ -82,7 +82,7 @@ const ProductoDetalle = () => {
           )}
         </div>
         <div className="col-12 col-md-6">
-          <h1 className="h3 fw-bold mb-3">{prod.nombre}</h1>
+          <h1 className="h3 fw-bold mb-3 reveal fade-delay-2">{prod.nombre}</h1>
           <p className="text-muted mb-2">{prod.descripcion}</p>
           {typeof prod.stock !== "undefined" && (
             <p

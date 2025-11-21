@@ -49,6 +49,8 @@ export default function AdminPasteles() {
   const modalRef = useRef(null);
   const modalInstanceRef = useRef(null);
   const [showInlineEditor, setShowInlineEditor] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({ nombre: "", precio: "" });
 
   // 🔐 Proteger ruta (solo admin)
   useEffect(() => {
@@ -277,14 +279,84 @@ export default function AdminPasteles() {
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h2>Administrar Pasteles</h2>
-        <a
-          href="/admin/pasteles/agregar"
-          className="btn btn-success"
-          data-testid="admin-add-pastel-link"
-        >
-          + Agregar pastel
-        </a>
+        <div className="d-flex gap-2">
+          <a
+            href="/admin/pasteles/agregar"
+            className="btn btn-success"
+            data-testid="admin-add-pastel-link"
+          >
+            + Agregar pastel
+          </a>
+          <button
+            type="button"
+            className="btn btn-outline-primary"
+            data-testid="card-add-pastel"
+            onClick={() => setShowAddForm((s) => !s)}
+          >
+            {showAddForm ? "Cerrar" : "+ Agregar pastel"}
+          </button>
+        </div>
       </div>
+      {showAddForm && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            try {
+              const saved = localStorage.getItem("pasteles_local");
+              const existing = saved ? JSON.parse(saved) : [];
+              const newProduct = {
+                id: Date.now(),
+                nombre: (addForm.nombre || "").trim(),
+                descripcion: "",
+                precio: Number(addForm.precio) || 0,
+                stock: 0,
+                categoria: "Tortas",
+                imagen: "",
+              };
+              const updated = Array.isArray(existing) ? [...existing, newProduct] : [newProduct];
+              localStorage.setItem("pasteles_local", JSON.stringify(updated));
+              setPastelesLocal(updated);
+              setAddForm({ nombre: "", precio: "" });
+              setShowAddForm(false);
+            } catch (err) {
+              console.error("Error al crear producto:", err);
+            }
+          }}
+          className="card mb-3"
+        >
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label htmlFor="add-nombre" className="form-label">Nombre</label>
+                <input
+                  id="add-nombre"
+                  name="nombre"
+                  className="form-control"
+                  value={addForm.nombre}
+                  onChange={(e) => setAddForm((f) => ({ ...f, nombre: e.target.value }))}
+                />
+              </div>
+              <div className="col-md-3 mb-3">
+                <label htmlFor="add-precio" className="form-label">Precio</label>
+                <input
+                  id="add-precio"
+                  name="precio"
+                  type="number"
+                  className="form-control"
+                  value={addForm.precio}
+                  onChange={(e) => setAddForm((f) => ({ ...f, precio: e.target.value }))}
+                />
+              </div>
+              <div className="col-md-3 d-flex align-items-end mb-3">
+                <div className="d-flex gap-2">
+                  <button type="submit" className="btn btn-primary">Guardar</button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
       {/* Inline editor fallback (cuando el modal de Bootstrap no esté disponible) */}
       {showInlineEditor && (
         <div className="card mb-4">

@@ -1,11 +1,27 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import Card from "../components/Card";
 import pastelesData from "../data/Pasteles.json";
 import { addToCart } from "../utils/localstorageHelper";
 
 const Index = () => {
+  useEffect(() => {
+    try {
+      const el = document.getElementById("carouselExampleIndicators");
+      if (el && window.bootstrap && window.bootstrap.Carousel) {
+        // initialize carousel via bootstrap in SPA context
+        const inst = new window.bootstrap.Carousel(el, { ride: "carousel" });
+        return () => {
+          try {
+            inst.dispose();
+          } catch {}
+        };
+      }
+    } catch (err) {
+      // no-op if bootstrap not available
+      // console.debug("Bootstrap carousel init error:", err);
+    }
+  }, []);
   // Leer pasteles locales (si existen) y combinar con el JSON base
   const rawLocal = localStorage.getItem("pasteles_local");
   let pastelesLocales = [];

@@ -38,6 +38,14 @@ html.is-loaded .reveal.in-view {
   box-shadow: 0 18px 40px rgba(0,0,0,.12);
 }
 
+/* small image hover zoom used in detalle */
+.hover-zoom { transition: transform .36s var(--anim-ease); transform-origin: center; }
+.hover-zoom:hover { transform: scale(1.03) translateY(-4px); }
+
+/* slightly larger reveal delays for cards grid */
+.reveal.fade-in { opacity: 0; transform: translateY(8px); }
+.reveal.fade-in.in-view { opacity: 1; transform: translateY(0); }
+
 /* Buttons / CTAs keep their colors; add subtle motion */
 button, .btn, .cta, a.btn {
   transition: transform .16s var(--anim-ease), box-shadow .16s var(--anim-ease);

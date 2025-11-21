@@ -15,13 +15,14 @@ export default function RequireAdmin({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Verificar que el usuario existe y tiene role admin
+  // Verificar que el usuario existe
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Verificar el rol del usuario
-  if (user.role === "admin") {
+  // Verificar el rol del usuario (soportar 'role' y 'rol' por compatibilidad)
+  const userRole = user.role || user.rol || user.roleName || null;
+  if (userRole === "admin") {
     return children;
   }
 

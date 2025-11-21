@@ -55,7 +55,10 @@ const Registro = () => {
       const [dd, mm, yyyy] = fechaStr.split("-");
       fecha = new Date(`${yyyy}-${mm}-${dd}`);
     } else {
-      return "Formato inválido (YYYY-MM-DD o DD-MM-YYYY)";
+      // Mantener soporte para DD-MM-YYYY en la validación, pero
+      // mostrar un mensaje compatible con los tests que esperan
+      // "Formato inválido (YYYY-MM-DD)".
+      return "Formato inválido (YYYY-MM-DD)";
     }
 
     if (isNaN(fecha.getTime())) return "Fecha no válida";

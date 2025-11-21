@@ -75,7 +75,7 @@ function Card({
   }, [showAdded]);
 
   return (
-    <div className="card h-100">
+    <div className="card h-100 reveal fade-delay-2">
       {/* Imagen o placeholder de texto si no hay imagen */}
       {imgSrc ? (
         <img
@@ -153,7 +153,7 @@ function Card({
         {/* Botón público: Agregar a carrito (se mantiene siempre visible) */}
         <button
           type="button"
-          className="btn btn-primary mt-auto btn-agregar-carrito"
+          className="btn btn-primary mt-auto btn-agregar-carrito cta pulse"
           data-id={id}
           data-nombre={title}
           data-precio={price}

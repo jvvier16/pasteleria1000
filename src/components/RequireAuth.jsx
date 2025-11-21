@@ -14,8 +14,12 @@ export default function RequireAuth({ children }) {
     user = null;
   }
 
-  // If there's a session_user, allow access
-  if (user && (user.id || user.correo || user.email)) return children;
+  // If there's a session_user, allow access (accept several common id/email keys)
+  if (
+    user &&
+    (user.id || user.correo || user.email || user.nombre || user.name)
+  )
+    return children;
 
   // Otherwise redirect to login preserving the intended location
   return <Navigate to="/login" state={{ from: location }} replace />;

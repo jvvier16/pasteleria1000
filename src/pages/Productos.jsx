@@ -69,7 +69,7 @@ export default function Productos() {
 
   return (
     <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 reveal slide-up">
         <h2>Productos</h2>
         {search && (
           <div className="d-flex align-items-center">
@@ -86,13 +86,12 @@ export default function Productos() {
         )}
       </div>
       <div className="cards-grid mt-3">
-        {productos.map((prod) => (
+        {productos.map((prod, i) => (
           <Card
             key={prod.id}
             id={prod.id}
             nombre={prod.nombre}
             imagen={prod.imageUrl}
-            // ocultar la descripción en el listado pero mantener la info de stock en data
             hideDescription={true}
             descripcion={prod.descripcion || `Stock: ${prod.stock ?? "N/A"}`}
             stock={prod.stock ?? 0}
