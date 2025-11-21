@@ -65,6 +65,7 @@ export default function Pago() {
   const cardType = detectCardType(number);
   const formattedNumber = formatCardNumber(number);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const [inlineOrden, setInlineOrden] = useState(null);
 
   const getMaxDigitsFor = (type) => {
@@ -392,6 +393,8 @@ export default function Pago() {
                     maxLength={4}
                     value={cvv}
                     onChange={(e) => setCvv(onlyDigits(e.target.value))}
+                    onFocus={() => setFlipped(true)}
+                    onBlur={() => setFlipped(false)}
                   />
                   {errors.cvv && (
                     <div className="field-error">{errors.cvv}</div>
@@ -438,22 +441,29 @@ export default function Pago() {
           </div>
 
           <div>
-            <div className="card-preview">
-              <div className="d-flex justify-content-between align-items-start">
-                <img
-                  src={logo}
-                  alt="logo"
-                  className="logo-small"
-                  data-testid="logo-preview"
-                />
-                <span className="text-capitalize">{cardType}</span>
-              </div>
-              <div className="number">
-                {formattedNumber || "#### #### #### ####"}
-              </div>
-              <div className="d-flex justify-content-between align-items-center">
-                <div className="name">{name || "NOMBRE APELLIDO"}</div>
-                <div className="exp">{expiry || "MM/AA"}</div>
+            <div className={`credit-card ${flipped ? "flipped" : ""}`}>
+              <div className="card-inner">
+                <div className="card-face front">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <img src={logo} alt="logo" className="card-logo" data-testid="logo-preview" />
+                    <span className="text-capitalize">{cardType}</span>
+                  </div>
+                  <div className="number">{formattedNumber || "#### #### #### ####"}</div>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="name">{name || "NOMBRE APELLIDO"}</div>
+                    <div className="exp">{expiry || "MM/AA"}</div>
+                  </div>
+                </div>
+
+                <div className="card-face back">
+                  <div style={{ height: 40, background: "#000", borderRadius: 6 }}></div>
+                  <div className="mt-3 d-flex justify-content-end">
+                    <div className="card-cvv-box" data-testid="card-cvv">
+                      {cvv || (cardType === "amex" ? "****" : "***")}
+                    </div>
+                  </div>
+                  <div className="mt-auto small text-muted">Pastelería 1000 Sabores</div>
+                </div>
               </div>
             </div>
           </div>

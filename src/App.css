@@ -6,21 +6,21 @@
 }
 
 :root {
-	/* Paleta centralizada */
-	--brand-pink: #e67ca3;
-	--navbar-bg: #fbe4ec;
-	--nav-link: #6b4f4f;
-	--nav-link-hover: #d63384;
-	--btn-login: #7ea6f2;
-	--btn-register: #4f80e1;
-	--btn-user-bg: #ffd6e0;
-	--btn-user-color: #6b4f4f;
-	--btn-cart: #7bc47f;
-	--btn-search: #91d7c8;
-	--muted-bg: #f8f9fa;
-	--card-gradient-start: #6b3e26;
-	--card-gradient-end: #a0633f;
-	--accent-text: #7b3e19;
+	/* Paleta pastel inspirada en pastelería: rosa, crema, chocolate y acentos dorados */
+	--brand-pink: #f7a8c2; /* pastel rosa */
+	--navbar-bg: #fff6f7; /* crema muy claro para navbar */
+	--nav-link: #6b3e2a; /* marrón chocolate para texto */
+	--nav-link-hover: #d86b96; /* rosa más vivo al hover */
+	--btn-login: #ffd6e0; /* botón sutil */
+	--btn-register: #f7a8c2; /* acento rosa */
+	--btn-user-bg: #fff0f3; /* fondo usuario */
+	--btn-user-color: #6b3e2a; /* texto marrón */
+	--btn-cart: #ffd59a; /* melocotón/apricot para carrito */
+	--btn-search: #bfeadf; /* menta suave para busqueda */
+	--muted-bg: #fffaf6; /* fondo general crema */
+	--card-gradient-start: #f7a8c2; /* gradiente card inicio (rosa) */
+	--card-gradient-end: #ffd59a;   /* gradiente card fin (apricot) */
+	--accent-text: #7b3e19; /* marrón oscuro para acentos */
 	--success-green: #198754;
 	--footer-text: #ffffff;
 	--social-instagram: #E1306C;
@@ -28,8 +28,9 @@
 	--social-facebook: #1877F2;
 	--error-red: #b00020;
 	--card-bg: #ffffff;
-	--border-muted: #eeeeee;
-	--text-default: #333333;
+	--border-muted: #f3e6e8;
+	--text-default: #3b2b2b;
+	--app-bg: #fffaf6; /* fondo de la app */
 }
 
 /* Imagen dentro de la tarjeta */
@@ -133,9 +134,9 @@ header .nav-link {
 	height: 200px;
 	border-radius: 12px;
 	padding: 1rem 1.25rem;
-	color: #fff;
-	background: linear-gradient(135deg, #6b3e26 0%, #a0633f 100%);
-	box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+	color: var(--text-default);
+	background: linear-gradient(135deg, var(--card-gradient-start) 0%, var(--card-gradient-end) 100%);
+	box-shadow: 0 8px 30px rgba(0,0,0,0.12);
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
@@ -327,6 +328,8 @@ footer li,
 /* === FONT GLOBAL === */
 body {
 	font-family: 'Quicksand', sans-serif;
+	background-color: var(--app-bg);
+	color: var(--text-default);
 }
 
 /* === NAVBAR PASTEL ROSADO === */
@@ -684,6 +687,64 @@ body {
 	30% { transform: scale(0.95); }
 	50% { transform: scale(1.08); }
 	100% { transform: scale(1); }
+}
+
+/* Credit card flip styles */
+.credit-card {
+	width: 320px;
+	height: 200px;
+	perspective: 1200px;
+}
+.credit-card .card-inner {
+	width: 100%;
+	height: 100%;
+	position: relative;
+	transform-style: preserve-3d;
+	transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.credit-card.flipped .card-inner {
+	transform: rotateY(180deg);
+}
+.credit-card .card-face {
+	position: absolute;
+	inset: 0;
+	backface-visibility: hidden;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 16px;
+}
+.credit-card .card-face.back {
+	transform: rotateY(180deg);
+	/* Mantener los mismos colores/gradiente que el frente para consistencia visual */
+	background: linear-gradient(135deg, var(--card-gradient-start) 0%, var(--card-gradient-end) 100%);
+	color: var(--text-default);
+}
+.credit-card .card-face.front {
+	background: linear-gradient(135deg, var(--card-gradient-start) 0%, var(--card-gradient-end) 100%);
+	color: var(--text-default);
+}
+.card-logo {
+	width: 56px;
+	height: 56px;
+	object-fit: cover;
+	border-radius: 8px;
+}
+.card-cvv-box {
+	/* Caja semi-transparente para mantener contraste sobre el gradiente */
+	background: rgba(255,255,255,0.92);
+	color: #111;
+	padding: 8px 10px;
+	border-radius: 6px;
+	font-weight: 700;
+	letter-spacing: 2px;
+}
+
+@media (max-width: 767px) {
+	.credit-card { width: 280px; height: 170px; }
 }
 
 
