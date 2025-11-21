@@ -118,7 +118,8 @@ export default function PerfilPage() {
                     Cambiar foto
                     <input className="avatar-input" type="file" accept="image/*" onChange={handleAvatarChange} />
                   </label>
-                  <button className="btn btn-outline-danger btn-sm" onClick={logout}>Cerrar sesión</button>
+                  <button className="btn btn-outline-danger btn-sm me-2" onClick={logout}>Cerrar sesión</button>
+                  <button className="btn btn-outline-secondary btn-sm" onClick={removeAvatar} type="button">Eliminar foto</button>
                 </div>
               </div>
             </aside>
@@ -149,7 +150,11 @@ export default function PerfilPage() {
                     <input id="contrasena" name="contrasena" type="password" value={form.contrasena} onChange={onChange} className="form-control" />
                   </div>
 
-                 
+                  <div className="d-flex gap-2">
+                    <button type="submit" className="btn btn-primary">Guardar cambios</button>
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => { setSaved(false); }}>Cancelar</button>
+                  </div>
+                
                 </form>
               </div>
             </main>

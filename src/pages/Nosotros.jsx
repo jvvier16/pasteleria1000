@@ -114,43 +114,12 @@ const Nosotros = () => {
           <div className="row g-4 justify-content-center">
             <div className="col-12 col-sm-6 col-md-4 d-flex">
               <div className="card border-0 shadow-sm w-100 text-center p-3">
-                <div
-                  className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: "50%",
-                    background: "#6f42c1",
-                    color: "#fff",
-                    fontSize: 28,
-                    fontWeight: 700,
-                  }}
-                  aria-hidden
-                >
-                  JR
-                </div>
-                <h5 className="mb-1">Javier Rojas</h5>
-                <small className="text-muted">Miembro del equipo</small>
-              </div>
-            </div>
-
-            <div className="col-12 col-sm-6 col-md-4 d-flex">
-              <div className="card border-0 shadow-sm w-100 text-center p-3">
-                <div
-                  className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: "50%",
-                    background: "#d63384",
-                    color: "#fff",
-                    fontSize: 28,
-                    fontWeight: 700,
-                  }}
-                  aria-hidden
-                >
-                  AZ
-                </div>
+                <img
+                  src={new URL("../assets/img/primera.jpeg", import.meta.url).href}
+                  alt="Aracelly Zenteno"
+                  className="mx-auto mb-3 rounded-circle"
+                  style={{ width: 96, height: 96, objectFit: "cover" }}
+                />
                 <h5 className="mb-1">Aracelly Zenteno</h5>
                 <small className="text-muted">Miembro del equipo</small>
               </div>
@@ -158,21 +127,25 @@ const Nosotros = () => {
 
             <div className="col-12 col-sm-6 col-md-4 d-flex">
               <div className="card border-0 shadow-sm w-100 text-center p-3">
-                <div
-                  className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: "50%",
-                    background: "#198754",
-                    color: "#fff",
-                    fontSize: 28,
-                    fontWeight: 700,
-                  }}
-                  aria-hidden
-                >
-                  MJ
-                </div>
+                <img
+                  src={new URL("../assets/img/segunda.jpeg", import.meta.url).href}
+                  alt="Javier Rojas"
+                  className="mx-auto mb-3 rounded-circle"
+                  style={{ width: 96, height: 96, objectFit: "cover" }}
+                />
+                <h5 className="mb-1">Javier Rojas</h5>
+                <small className="text-muted">Miembro del equipo</small>
+              </div>
+            </div>
+
+            <div className="col-12 col-sm-6 col-md-4 d-flex">
+              <div className="card border-0 shadow-sm w-100 text-center p-3">
+                <img
+                  src={new URL("../assets/img/tecera.jpeg", import.meta.url).href}
+                  alt="Matias Jara"
+                  className="mx-auto mb-3 rounded-circle"
+                  style={{ width: 96, height: 96, objectFit: "cover" }}
+                />
                 <h5 className="mb-1">Matias Jara</h5>
                 <small className="text-muted">Miembro del equipo</small>
               </div>

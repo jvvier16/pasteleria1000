@@ -45,6 +45,7 @@ import ProductosVendedor from "./vendedor/ProductosVendedor.jsx";
 import ProductoDetalleVendedor from "./vendedor/ProductoDetalleVendedor.jsx";
 import OrdenesVendedor from "./vendedor/OrdenesVendedor.jsx";
 import OrdenDetalleVendedor from "./vendedor/OrdenDetalleVendedor.jsx";
+import EditarPastelVendedor from "./vendedor/EditarPastelVendedor.jsx";
 
 function App() {
   return (
@@ -124,6 +125,7 @@ function App() {
           <Route index element={<Navigate to="productos" replace />} />
           <Route path="productos" element={<ProductosVendedor />} />
           <Route path="productos/:id" element={<ProductoDetalleVendedor />} />
+          <Route path="productos/:id/editar" element={<EditarPastelVendedor />} />
           <Route path="ordenes" element={<OrdenesVendedor />} />
           <Route path="ordenes/:id" element={<OrdenDetalleVendedor />} />
         </Route>

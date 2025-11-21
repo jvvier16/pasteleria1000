@@ -16,9 +16,15 @@ import UsuariosAdmin from "./UsuariosAdmin";
 import AdminOrdenes from "./AdminOrdenes";
 
 import { checkAdmin } from "../utils/adminHelper.js";
+import { getSessionUser } from "../utils/session";
+
 import usuariosBase from "../data/Usuarios.json";
 
 export default function Admin() {
+  const sessionUser = getSessionUser();
+  const displayName = sessionUser ? ((sessionUser.nombre || "") + (sessionUser.apellido ? " " + sessionUser.apellido : "")).trim() : "Administrador";
+  const avatarSrc = sessionUser?.avatar || sessionUser?.imagen || null;
+
   // Si no es admin, mostrar mensaje de no autorizado
   const [showProductForm, setShowProductForm] = useState(false);
   const [productos, setProductos] = useState([]);
@@ -185,7 +191,18 @@ export default function Admin() {
     <div className="d-flex" data-testid="admin-dashboard">
       {/* Sidebar */}
       <aside className="bg-white border-end p-3" style={sidebarStyle}>
-        <h4 className="text-center mb-4 text-primary fw-bold">
+        <div className="text-center mb-3">
+          {avatarSrc ? (
+            <img src={avatarSrc} alt={displayName} className="rounded-circle mb-2" style={{width:80, height:80, objectFit:'cover'}} />
+          ) : (
+            <div className="mx-auto mb-2 d-flex align-items-center justify-content-center rounded-circle" style={{width:80, height:80, background:'#f3e6f0', color:'#4a3b4a', fontWeight:700}}>
+              {displayName.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase()}
+            </div>
+          )}
+          <h5 className="mb-0">{displayName}</h5>
+          <div className="small text-muted">{sessionUser?.role || 'admin'}</div>
+        </div>
+        <h4 className="text-center mb-2 text-primary fw-bold">
           Panel de Administración
         </h4>
         <nav role="navigation" aria-label="Admin sidebar">

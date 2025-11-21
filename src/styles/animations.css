@@ -348,3 +348,33 @@ input:focus, textarea:focus, .input-anim:focus {
   .profile-card { flex-direction: column; }
   .profile-side { max-width: none; width: 100%; }
 }
+
+/* Vendedor panel styles */
+.vendedor-panel {
+  background: linear-gradient(180deg, #ffffff, #fbfbfc);
+  border-right: 1px solid rgba(0,0,0,0.04);
+  padding-top: 1.25rem;
+}
+.vendedor-avatar img { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; }
+.vendedor-nav .nav-link { color: #374151; border-radius: 8px; padding: 8px 10px; transition: background .18s ease, transform .12s ease; }
+.vendedor-nav .nav-link:hover { background: rgba(59,130,246,0.06); transform: translateX(4px); color: #1f2937; text-decoration: none; }
+.vendedor-nav .nav-link.active { background: linear-gradient(90deg, rgba(59,130,246,0.12), rgba(99,102,241,0.06)); color: #0f172a; font-weight:700; }
+.profile-stat { background: rgba(59,130,246,0.06); padding: 8px 10px; border-radius: 8px; min-width: 80px; }
+.profile-stat .stat-value { font-size: 1.05rem; color: #0f172a; }
+
+/* Small shimmer for the header CTA */
+@keyframes shimmer-cta { 0%{opacity:.9; transform:translateY(0)}50%{opacity:1; transform:translateY(-2px)}100%{opacity:.9; transform:translateY(0)} }
+.vendedor-panel .btn-primary { box-shadow: 0 8px 22px rgba(59,130,246,0.08); }
+.vendedor-panel .btn-primary:hover { animation: shimmer-cta 1.4s ease-in-out 1; }
+
+/* Make the aside slightly sticky on large screens */
+@media (min-width: 768px) {
+  .vendedor-panel { position: sticky; top: 1rem; height: calc(100vh - 2rem); overflow: auto; }
+}
+
+/* Orders preview inside the vendedor panel */
+.orders-panel { margin-top: .75rem; }
+.orders-preview .list-group-item { padding: .45rem .6rem; border-radius: 8px; margin-bottom: .35rem; }
+.order-badge { display:inline-block; min-width:26px; text-align:center; padding:3px 6px; background: linear-gradient(90deg,#f97316,#fb923c); color:#fff; border-radius:999px; font-weight:700; font-size:.8rem }
+.orders-preview .text-truncate { color: #0f172a; }
+.orders-preview .small.text-muted { color: rgba(15,23,42,0.6); }

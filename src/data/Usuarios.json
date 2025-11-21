@@ -56,7 +56,8 @@
     "correo": "javier.rojas@gmail.com",
     "contrasena": "JavierRojas13",
     "role": "user",
-    "fechaNacimiento": "1993-07-10",
+    "fechaNacimiento": "2005-11-14",
+    "imagen": "../assets/img/segunda.jpeg",
     "direccion": "Puente Alto, Santiago"
   },
   {
@@ -70,24 +71,26 @@
     "direccion": "Santiago, Chile"
   },
   {
-     "id": 8,
+    "id": 8,
     "nombre": "aracelly",
     "apellido": "zenteno",
     "correo": "aracelly.zenteno@gmail.com",
     "contrasena": "Aracellyzen90",
     "role": "vendedor",
-    "fechaNacimiento": "1988-04-12",
+    "fechaNacimiento": "2006-03-23",
+    "imagen": "../assets/img/primera.jpeg",
     "direccion": "Puente Alto, Santiago"
   },
   {
     "id": 9,
     "nombre": "Matías",
-    "apellido": "Pérez",
-    "correo": "matias.perez@gmail.com",
-    "contrasena": "MatiasPerez22",
-    "role": "user",
-    "fechaNacimiento": "1995-11-03",
-    "direccion": "La Florida, Santiago"
+    "apellido": "Jara",
+    "correo": "matias.jara@gmail.com",
+    "contrasena": "MatiasJara22",
+    "role": "admin",
+    "fechaNacimiento": "2005-04-08",
+    "imagen": "../assets/img/tecera.jpeg",
+    "direccion": "Puente Alto, Santiago"
   },
   {
     "id": 10,

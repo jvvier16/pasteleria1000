@@ -128,14 +128,30 @@ export default function Login() {
 
     // Guardar session_user con el role real del usuario encontrado
     try {
+      // Resolve imagen: allow JSON to provide a relative asset path like
+      // "../assets/img/segunda.jpeg" and convert it to an absolute URL
+      let imagenUrl = null;
+      try {
+        if (found.imagen) {
+          const raw = String(found.imagen);
+          if (raw.startsWith("data:") || raw.startsWith("http") || raw.startsWith("/")) {
+            imagenUrl = raw;
+          } else {
+            imagenUrl = new URL(raw, import.meta.url).href;
+          }
+        }
+      } catch (err) {
+        imagenUrl = found.imagen || null;
+      }
+
       const session = {
         id: found.id,
         nombre:
           (found.nombre || "") + (found.apellido ? " " + found.apellido : "") ||
           "Usuario",
         correo: found.correo || form.userOrEmail,
-        imagen: found.imagen || null,
-        role: found.role || "user", // <-- IMPORTANTE CAMBIO AQUÍ
+        imagen: imagenUrl,
+        role: found.role || "user",
       };
 
       // Guardar sesión en localStorage

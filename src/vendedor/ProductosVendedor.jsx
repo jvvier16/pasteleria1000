@@ -73,9 +73,9 @@ export default function ProductosVendedor() {
                       <Link to={`${p.id}`} className="btn btn-outline-primary btn-sm">
                         Ver detalle
                       </Link>
-                      <button className="btn btn-outline-secondary btn-sm" disabled>
+                      <Link to={`${p.id}/editar`} className="btn btn-outline-secondary btn-sm">
                         Editar
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

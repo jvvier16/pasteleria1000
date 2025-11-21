@@ -339,6 +339,21 @@ body {
 	box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
 
+/* Ensure navbar and its dropdowns overlay page content */
+.site-navbar {
+	position: relative;
+	z-index: 1050;
+}
+.site-navbar .dropdown {
+	position: relative; /* create stacking context for dropdown-menu */
+}
+.site-navbar .dropdown-menu {
+	z-index: 2050 !important; /* place above most page elements */
+}
+.collapse.navbar-collapse {
+	overflow: visible; /* allow dropdowns to extend outside collapse */
+}
+
 .site-navbar .nav-link {
 	color: var(--nav-link) !important;
 	font-weight: 600;

@@ -431,11 +431,12 @@ export default function Navbar() {
                   type="button"
                   data-bs-toggle="dropdown"
                 >
-                  {sessionUser.imagen ? (
+                  {(sessionUser.avatar || sessionUser.imagen) ? (
                     <img
-                      src={sessionUser.imagen}
+                      src={sessionUser.avatar || sessionUser.imagen}
                       alt={sessionUser.nombre}
                       className="rounded-circle me-2 avatar-small"
+                      loading="lazy"
                     />
                   ) : (
                     <div className="rounded-circle bg-dark text-white d-inline-flex justify-content-center align-items-center me-2 avatar-placeholder">

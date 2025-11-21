@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Card from "../components/Card";
 import pastelesData from "../data/Pasteles.json";
@@ -22,6 +23,8 @@ const Index = () => {
       // console.debug("Bootstrap carousel init error:", err);
     }
   }, []);
+  const location = useLocation();
+  const showCarousel = !location.pathname.startsWith("/vendedor");
   // Leer pasteles locales (si existen) y combinar con el JSON base
   const rawLocal = localStorage.getItem("pasteles_local");
   let pastelesLocales = [];
@@ -82,11 +85,12 @@ const Index = () => {
   return (
     <div className="bg-muted">
       {/* Carrusel */}
-      <div
-        id="carouselExampleIndicators"
-        className="carousel slide reveal slide-up"
-        data-bs-ride="carousel"
-      >
+      {showCarousel && (
+        <div
+          id="carouselExampleIndicators"
+          className="carousel slide reveal slide-up"
+          data-bs-ride="carousel"
+        >
         <div className="carousel-indicators">
           <button
             type="button"
@@ -166,34 +170,37 @@ const Index = () => {
         >
           <span className="carousel-control-next-icon"></span>
         </button>
-      </div>
+        </div>
+      )}
 
       {/* Productos */}
-      <section className="py-5 bg-white text-center index-products">
-        <div className="container">
-          <h2 className="mb-4 fw-bold reveal slide-up">Productos</h2>
-          <div className="row g-4">
-            {productos.map((p) => (
-              <div className="col-md-3" key={p.id}>
-                <div className="reveal fade-in fade-delay-2">
-                  <Card
-                  id={p.id}
-                  nombre={p.nombre}
-                  descripcion={p.descripcion || ""}
-                  precio={p.precio}
-                  imagen={p.imageUrl}
-                  stock={p.stock}
-                  origen={localIds.has(String(p.id)) ? "local" : "json"}
-                  onAgregar={handleAddToCart}
-                  showAdminControls={false}
-                  showStockCritical={false}
-                  />
+      {showCarousel && (
+        <section className="py-5 bg-white text-center index-products">
+          <div className="container">
+            <h2 className="mb-4 fw-bold reveal slide-up">Productos</h2>
+            <div className="row g-4">
+              {productos.map((p) => (
+                <div className="col-md-3" key={p.id}>
+                  <div className="reveal fade-in fade-delay-2">
+                    <Card
+                      id={p.id}
+                      nombre={p.nombre}
+                      descripcion={p.descripcion || ""}
+                      precio={p.precio}
+                      imagen={p.imageUrl}
+                      stock={p.stock}
+                      origen={localIds.has(String(p.id)) ? "local" : "json"}
+                      onAgregar={handleAddToCart}
+                      showAdminControls={false}
+                      showStockCritical={false}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 };
