@@ -13,6 +13,7 @@ export default function Navbar() {
   const [categorias, setCategorias] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  const [bump, setBump] = useState(false);
   const [cartTotalMoney, setCartTotalMoney] = useState(0);
   const [sessionUser, setSessionUser] = useState(null);
   const navigate = useNavigate();
@@ -61,7 +62,16 @@ export default function Navbar() {
     const updateCart = () => {
       try {
         const cart = getCart();
-        setCartCount(cart.reduce((acc, i) => acc + (i.cantidad || 1), 0));
+        const newCount = cart.reduce((acc, i) => acc + (i.cantidad || 1), 0);
+        // trigger bump animation only when count increases
+        setCartCount((prev) => {
+          if (newCount > prev) {
+            setBump(true);
+            // remove bump after animation
+            setTimeout(() => setBump(false), 400);
+          }
+          return newCount;
+        });
         setCartTotalMoney(
           cart.reduce(
             (acc, i) => acc + (Number(i.precio) || 0) * (i.cantidad || 1),
@@ -108,11 +118,13 @@ export default function Navbar() {
 
     // Escuchar eventos de storage y custom events
     window.addEventListener("storage", onStorage);
+    window.addEventListener("cartUpdated", updateCart);
     window.addEventListener("userLogin", updateUser);
     window.addEventListener("userLogout", updateUser);
 
     return () => {
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("cartUpdated", updateCart);
       window.removeEventListener("userLogin", updateUser);
       window.removeEventListener("userLogout", updateUser);
     };
@@ -465,11 +477,23 @@ export default function Navbar() {
 
             {/* Botón Carrito */}
             <button
-              className="btn d-flex align-items-center btn-cart"
+              className="btn d-flex align-items-center btn-cart position-relative"
               onClick={() => navigate("/carrito")}
+              aria-label="Ir al carrito"
             >
-              <ShoppingCart className="me-1" size={16} />
-              Carrito
+              <span className="cart-badge-container d-inline-flex align-items-center me-2">
+                <ShoppingCart size={16} />
+                {cartCount > 0 && (
+                  <span
+                    data-testid="cart-badge"
+                    className={`cart-badge${bump ? " bump" : ""}`}
+                    aria-live="polite"
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </span>
+              <span>Carrito</span>
             </button>
           </div>
         </div>

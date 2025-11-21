@@ -39,6 +39,14 @@ function addToCart(product) {
     cart.push(toAdd);
   }
   saveCart(cart);
+  // notify other parts of the app in the same window
+  try {
+    if (typeof window !== "undefined" && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent("cartUpdated", { detail: cart }));
+    }
+  } catch (e) {
+    // ignore in non-browser envs
+  }
   return cart;
 }
 
@@ -52,17 +60,32 @@ function updateQuantity(id, cantidad) {
     return { ...i, cantidad: desired };
   });
   saveCart(cart);
+  try {
+    if (typeof window !== "undefined" && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent("cartUpdated", { detail: cart }));
+    }
+  } catch (e) {}
   return cart;
 }
 
 function removeFromCart(id) {
   const cart = getCart().filter((i) => i.id !== id);
   saveCart(cart);
+  try {
+    if (typeof window !== "undefined" && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent("cartUpdated", { detail: cart }));
+    }
+  } catch (e) {}
   return cart;
 }
 
 function clearCart() {
   saveCart([]);
+  try {
+    if (typeof window !== "undefined" && window.dispatchEvent) {
+      window.dispatchEvent(new CustomEvent("cartUpdated", { detail: [] }));
+    }
+  } catch (e) {}
 }
 
 function getTotal() {
