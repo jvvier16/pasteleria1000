@@ -19,24 +19,19 @@ beforeEach(() => localStorage.clear());
 test("41) Renderiza categorías agrupadas", () => {
   mount();
   // Verificar que al menos una categoría conocida está presente
-  const tortas = screen.queryByTestId("categoria-tortas");
-  const sinAzucar = screen.queryByTestId("categoria-sin-azucar");
-  expect(tortas || sinAzucar).toBeInTheDocument();
-
-  // Verificar que se muestran los botones de filtro
-  const filtros = screen.getByRole("toolbar", {
-    name: /filtros de categorías/i,
-  });
-  expect(filtros).toBeInTheDocument();
+  // Verificar que al menos una categoría tile conocida está presente
+  const tortasTile = screen.queryByTestId("categoria-tile-tortas");
+  const sinAzucarTile = screen.queryByTestId("categoria-tile-sin-azucar");
+  expect(tortasTile || sinAzucarTile).toBeInTheDocument();
 });
 
 test("42) Soporta ?cat=slug (selección automática y scroll)", () => {
   // Montar con una categoría específica en la URL
   mount("/categorias?cat=tortas");
 
-  // Verificar que el botón de la categoría está seleccionado
-  const categoriaBtn = screen.getByTestId("categoria-tortas");
-  expect(categoriaBtn).toHaveAttribute("aria-pressed", "true");
+  // Verificar que el tile de la categoría está seleccionado
+  const categoriaTile = screen.getByTestId("categoria-tile-tortas");
+  expect(categoriaTile).toHaveAttribute("aria-pressed", "true");
 
   // Verificar que se muestra la sección de la categoría
   const seccion = screen.getAllByRole("heading", { name: /tortas/i })[0];
@@ -123,9 +118,9 @@ test("46) Slugify interno elimina tildes y espacios", () => {
   // Montar el componente con una categoría que tiene tildes y espacios
   mount("/categorias?cat=sin-azucar");
 
-  // Verificar que la categoría "Sin Azúcar" está seleccionada
-  const categoriaBtn = screen.getByTestId("categoria-sin-azucar");
-  expect(categoriaBtn).toHaveAttribute("aria-pressed", "true");
+  // Verificar que la categoría "Sin Azúcar" está seleccionada (tile)
+  const categoriaTile = screen.getByTestId("categoria-tile-sin-azucar");
+  expect(categoriaTile).toHaveAttribute("aria-pressed", "true");
 
   // Verificar que muestra los productos de esa categoría
   const categoriaHeader = screen.getAllByRole("heading", {

@@ -131,7 +131,7 @@ const Categorias = () => {
 
   return (
     <div className="container py-4">
-      {/* Barra de filtros eliminada: los tiles ahora actúan como controles seleccionables */}
+      {/* NOTE: toolbar removed — category selection is now performed via image tiles below */}
 
       {/* Toast de notificación */}
       {toast && (
@@ -225,8 +225,8 @@ const Categorias = () => {
                   className={`card category-card text-center shadow-sm fixed-width-8rem position-relative ${
                     selectedCategory === cat.nombre ? "active" : ""
                   }`}
-                  aria-pressed={selectedCategory === cat.nombre}
-                  data-testid={`categoria-tile-${slugify(cat.nombre)}`}
+                    aria-pressed={selectedCategory === cat.nombre}
+                    data-testid={`categoria-tile-${slugify(cat.nombre)}`}
                 >
                   {hasDiscount && <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>}
                   <img src={cat.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt={cat.nombre} />
