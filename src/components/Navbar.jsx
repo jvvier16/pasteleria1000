@@ -130,11 +130,9 @@ export default function Navbar() {
     };
   }, []);
 
-  const isAdmin = Boolean(sessionUser && sessionUser.role === "admin");
-  const isVendedor = Boolean(
-    sessionUser &&
-      (sessionUser.role === "vendedor" || sessionUser.rol === "vendedor")
-  );
+  const userRole = sessionUser ? (sessionUser.role || sessionUser.rol || sessionUser.roleName || "").toString().toLowerCase() : "";
+  const isAdmin = Boolean(userRole === "admin" || userRole === "tester");
+  const isVendedor = Boolean(userRole === "vendedor" || userRole === "tester");
 
   const handleLogout = async () => {
     // mostrar modal de confirmación
@@ -446,6 +444,9 @@ export default function Navbar() {
                     </div>
                   )}
                   {sessionUser.nombre}
+                  {userRole === "tester" && (
+                    <span className="badge bg-warning text-dark ms-2" style={{fontSize:'.65rem'}}>TESTER</span>
+                  )}
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end">
                   <li>
@@ -499,6 +500,22 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* Dev helper: quick login as tester (only in dev) */}
+      {import.meta.env && import.meta.env.DEV && (
+        <div style={{ position: 'fixed', right: 12, bottom: 12, zIndex: 2000 }}>
+          <button
+            className="btn btn-sm btn-outline-primary"
+            title="Quick login as tester (dev only)"
+            onClick={() => {
+              const tester = { id: 6, nombre: 'Javier', apellido: 'Rojas', correo: 'javier.rojas@gmail.com', role: 'tester', imagen: '../assets/img/segunda.jpeg' };
+              localStorage.setItem('session_user', JSON.stringify(tester));
+              window.dispatchEvent(new Event('storage'));
+              window.location.reload();
+            }}
+          >Login tester</button>
+        </div>
+      )}
 
       {/* Modal de confirmación de logout (Bootstrap) */}
       <div

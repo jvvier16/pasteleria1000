@@ -6,6 +6,7 @@ export default function PerfilPage() {
   const [form, setForm] = useState({ nombre: "", correo: "", contrasena: "" });
   const [saved, setSaved] = useState(false);
   const [avatar, setAvatar] = useState(null);
+  const [misPedidos, setMisPedidos] = useState([]);
 
   useEffect(() => {
     const raw = localStorage.getItem("session_user");
@@ -24,12 +25,65 @@ export default function PerfilPage() {
         correo: u.correo || u.email || "",
         contrasena: u.contrasena || u.password || "",
       });
-      if (u.avatar) setAvatar(u.avatar);
+      // Support multiple possible image fields saved in session_user
+      const rawAvatar = u.avatar || u.imagen || u.image || u.avatarUrl || null;
+      if (rawAvatar) {
+        // if it's a relative asset path like '../assets/img/xxx', convert via new URL
+        const resolve = (val) => {
+          if (!val) return null;
+          if (typeof val !== "string") return null;
+          if (val.startsWith("data:") || val.startsWith("http") || val.startsWith("/") ) return val;
+          // handle relative imports pointing to assets
+          if (val.includes("assets/img") || val.startsWith("../assets") || val.startsWith("./assets")) {
+            try {
+              return new URL(val, import.meta.url).href;
+            } catch (e) {
+              return val;
+            }
+          }
+          return val;
+        };
+        setAvatar(resolve(rawAvatar));
+      }
     } catch (err) {
       console.error("Error parsing session:", err);
       navigate("/login");
     }
   }, [navigate]);
+
+  // Cargar pedidos del usuario
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("pedidos_local");
+      const all = raw ? JSON.parse(raw) : [];
+      const rawUser = localStorage.getItem("session_user");
+      const u = rawUser ? JSON.parse(rawUser) : null;
+      if (!u) return setMisPedidos([]);
+      const uid = u.id !== undefined ? u.id : null;
+      const mail = (u.correo || u.email || "").toString().toLowerCase();
+      const filtered = Array.isArray(all)
+        ? all.filter((p) => {
+            // soportar varias formas: userId, user_id, correo, email
+            if (uid !== null && (p.userId === uid || p.user_id === uid)) return true;
+            const pMail = (p.correo || p.email || "").toString().toLowerCase();
+            if (pMail && mail && pMail === mail) return true;
+            // also support orders that include a cliente object with correo or id
+            if (p.cliente) {
+              if (typeof p.cliente === "object") {
+                if (p.cliente.id !== undefined && uid !== null && p.cliente.id === uid) return true;
+                const cMail = (p.cliente.correo || p.cliente.email || "").toString().toLowerCase();
+                if (cMail && mail && cMail === mail) return true;
+              }
+            }
+            return false;
+          })
+        : [];
+      setMisPedidos(filtered);
+    } catch (err) {
+      console.error("Error cargando pedidos:", err);
+      setMisPedidos([]);
+    }
+  }, []);
 
   // Handlers del formulario
   const onChange = (e) =>
@@ -55,6 +109,7 @@ export default function PerfilPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      // reader.result is a data URL, store and display it
       setAvatar(reader.result);
     };
     reader.readAsDataURL(file);
@@ -67,6 +122,8 @@ export default function PerfilPage() {
       const raw = localStorage.getItem('session_user');
       const existing = raw ? JSON.parse(raw) : {};
       delete existing.avatar;
+      delete existing.imagen;
+      delete existing.image;
       localStorage.setItem('session_user', JSON.stringify(existing));
       window.dispatchEvent(new Event('storage'));
     } catch (e) {
@@ -87,7 +144,7 @@ export default function PerfilPage() {
           <div className="profile-card reveal slide-up">
             <aside className="profile-side">
               <div className="profile-panel text-center">
-                <div className="profile-avatar mx-auto mb-3" style={{width:120,height:120}} aria-hidden={!avatar}>
+                <div className="profile-avatar mx-auto mb-3" style={{width:140,height:140}} aria-hidden={!avatar}>
                   {avatar ? (
                     <img src={avatar} alt="Avatar" />
                   ) : (
@@ -156,6 +213,29 @@ export default function PerfilPage() {
                   </div>
                 
                 </form>
+              </div>
+
+              <div className="mt-4">
+                <h5 className="mb-3">Mis órdenes</h5>
+                {misPedidos.length === 0 ? (
+                  <div className="alert alert-info">No tienes órdenes registradas.</div>
+                ) : (
+                  <div className="list-group">
+                    {misPedidos.map((o) => (
+                      <div key={o.id} className="list-group-item list-group-item-action flex-column align-items-start">
+                        <div className="d-flex w-100 justify-content-between">
+                          <h6 className="mb-1">Orden #{o.id}</h6>
+                          <small className="text-muted">{o.fecha || o.createdAt || ''}</small>
+                        </div>
+                        <p className="mb-1 small text-muted">Estado: <strong>{o.estado || o.status || '—'}</strong></p>
+                        {o.total !== undefined && <div className="small">Total: ${Number(o.total).toLocaleString('es-CL')}</div>}
+                        {o.items && Array.isArray(o.items) && (
+                          <div className="mt-2 small text-muted">Productos: {o.items.length}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </main>
           </div>

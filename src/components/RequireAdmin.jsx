@@ -21,8 +21,9 @@ export default function RequireAdmin({ children }) {
   }
 
   // Verificar el rol del usuario (soportar 'role' y 'rol' por compatibilidad)
-  const userRole = user.role || user.rol || user.roleName || null;
-  if (userRole === "admin") {
+  const userRole = (user.role || user.rol || user.roleName || "").toString().toLowerCase();
+  // Permitir también a usuarios con rol 'tester' como administradores de prueba
+  if (userRole === "admin" || userRole === "tester") {
     return children;
   }
 

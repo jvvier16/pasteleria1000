@@ -13,7 +13,9 @@ export default function RequireVendedor({ children }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (user.role === "vendedor") return children;
+  const userRole = (user.role || user.rol || user.roleName || "").toString().toLowerCase();
+  // Allow testers to access vendor/admin areas for QA
+  if (userRole === "vendedor" || userRole === "tester") return children;
 
   return <Navigate to="/login" replace />;
 }

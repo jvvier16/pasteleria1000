@@ -55,7 +55,7 @@
     "apellido": "Rojas",
     "correo": "javier.rojas@gmail.com",
     "contrasena": "JavierRojas13",
-    "role": "user",
+    "role": "tester",
     "fechaNacimiento": "2005-11-14",
     "imagen": "../assets/img/segunda.jpeg",
     "direccion": "Puente Alto, Santiago"

@@ -96,23 +96,14 @@ export default function Admin() {
     }
   }, []);
 
-  // Si no es admin, mostrar mensaje de no autorizado
-  const isAdmin = checkAdmin();
-  if (!isAdmin) {
-    console.log("No hay sesión");
-    return (
-      <div className="container py-4">
-        <div
-          className="alert alert-danger"
-          role="alert"
-          data-testid="no-auth-message"
-        >
-          No autorizado. Debes iniciar sesión como administrador.
-        </div>
-      </div>
-    );
-  }
-  console.log("¿Es admin?", isAdmin);
+  // Comprobar si el usuario tiene permisos de admin (no hacemos return temprano)
+  // Para evitar errores de hooks, renderizamos siempre el mismo árbol de componentes
+  // y mostramos un banner de 'No autorizado' cuando corresponda.
+  // Además permitimos localmente que la cuenta de QA `tester` vea el panel
+  // sin modificar la utilidad global `checkAdmin()` (para no romper tests).
+  const normalizedRole = (sessionUser?.role || sessionUser?.rol || sessionUser?.roleName || "").toString().toLowerCase();
+  const isAdmin = checkAdmin() || normalizedRole === "tester";
+  console.log("¿Es admin?", isAdmin, "role:", normalizedRole);
 
   /**
    * Manejador de guardado de productos
@@ -243,10 +234,19 @@ export default function Admin() {
 
       {/* Main */}
       <main style={mainStyle} className="bg-light">
+        {/* Si no es admin mostrar mensaje de no autorizado */}
+        {!isAdmin && (
+          <div className="container py-4">
+            <div className="alert alert-danger" role="alert" data-testid="no-auth-message">
+              No autorizado. Debes iniciar sesión como administrador.
+            </div>
+          </div>
+        )}
+
         {/* Decidir si mostramos el dashboard (cuando estamos en /admin)
             o el contenido del submódulo (Outlet) cuando navegamos a
             /admin/pedidos, /admin/pasteles, etc. */}
-        {location.pathname === "/admin" || location.pathname === "/admin/" ? (
+        {isAdmin && (location.pathname === "/admin" || location.pathname === "/admin/") ? (
           <>
             <div className="d-flex align-items-center justify-content-between mb-3">
               <div>

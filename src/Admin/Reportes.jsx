@@ -26,7 +26,8 @@ export default function AdminReportes() {
       const raw = localStorage.getItem("session_user");
       if (!raw) return navigate("/");
       const s = JSON.parse(raw);
-      if (s.role !== "admin") return navigate("/");
+      const role = (s?.role || s?.rol || s?.roleName || "").toString().toLowerCase();
+      if (role !== "admin" && role !== "tester") return navigate("/");
     } catch {
       navigate("/");
     }

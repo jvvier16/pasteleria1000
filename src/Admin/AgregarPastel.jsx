@@ -52,7 +52,8 @@ const AgregarPastel = () => {
 
     try {
       const session = JSON.parse(sessionRaw);
-      if (session.role !== "admin") {
+      const role = (session?.role || session?.rol || session?.roleName || "").toString().toLowerCase();
+      if (role !== "admin" && role !== "tester") {
         navigate("/"); // no admin
         return;
       }
