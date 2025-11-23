@@ -501,21 +501,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Dev helper: quick login as tester (only in dev) */}
-      {import.meta.env && import.meta.env.DEV && (
-        <div style={{ position: 'fixed', right: 12, bottom: 12, zIndex: 2000 }}>
-          <button
-            className="btn btn-sm btn-outline-primary"
-            title="Quick login as tester (dev only)"
-            onClick={() => {
-              const tester = { id: 6, nombre: 'Javier', apellido: 'Rojas', correo: 'javier.rojas@gmail.com', role: 'tester', imagen: '../assets/img/segunda.jpeg' };
-              localStorage.setItem('session_user', JSON.stringify(tester));
-              window.dispatchEvent(new Event('storage'));
-              window.location.reload();
-            }}
-          >Login tester</button>
-        </div>
-      )}
+      {/* Dev helper removed to avoid fixed-position element in app DOM */}
 
       {/* Modal de confirmación de logout (Bootstrap) */}
       <div

@@ -157,87 +157,85 @@ const Categorias = () => {
       {/* Categorías */}
       <div className="d-flex justify-content-center flex-wrap gap-3 mb-5">
         {/** Render category tiles as selectable buttons (click / keyboard) */}
-        {selectedCategory !== "__descuentos" && (
-          <>
-            {/* 'Todas' tile: muestra todas las categorías al hacer click */}
+        <>
+          {/* 'Todas' tile: muestra todas las categorías al hacer click */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedCategory(null)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setSelectedCategory(null);
+              }
+            }}
+            className={`card category-card text-center shadow-sm fixed-width-8rem position-relative ${
+              selectedCategory === null ? "active" : ""
+            }`}
+            aria-pressed={!selectedCategory}
+            data-testid={`categoria-tile-todas`}
+          >
+            <img src={categorias[0]?.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt="Todas" />
+            <div className="card-body p-2">
+              <h6 className="card-title">Todas</h6>
+            </div>
+          </div>
+
+          {/* synthetic Discounts tile so the grid behaves like the toolbar buttons */}
+          {discountedProducts.length > 0 && (
             <div
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedCategory(null)}
+              onClick={() => setSelectedCategory("__descuentos")}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setSelectedCategory(null);
+                  setSelectedCategory("__descuentos");
                 }
               }}
               className={`card category-card text-center shadow-sm fixed-width-8rem position-relative ${
-                selectedCategory === null ? "active" : ""
+                selectedCategory === "__descuentos" ? "active" : ""
               }`}
-              aria-pressed={!selectedCategory}
-              data-testid={`categoria-tile-todas`}
+              aria-pressed={selectedCategory === "__descuentos"}
+              data-testid={`categoria-tile-descuentos`}
             >
-              <img src={categorias[0]?.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt="Todas" />
+              <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>
+              <img src={discountedProducts[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt="Descuentos" />
               <div className="card-body p-2">
-                <h6 className="card-title">Todas</h6>
+                <h6 className="card-title">Ofertas</h6>
               </div>
             </div>
+          )}
 
-            {/* synthetic Discounts tile so the grid behaves like the toolbar buttons */}
-            {discountedProducts.length > 0 && (
+          {categorias.map((cat) => {
+            const hasDiscount = cat.productos.some((p) => Number(p.precio || 0) >= 40000);
+            return (
               <div
+                key={cat.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedCategory("__descuentos")}
+                onClick={() => setSelectedCategory(cat.nombre)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setSelectedCategory("__descuentos");
+                    setSelectedCategory(cat.nombre);
                   }
                 }}
                 className={`card category-card text-center shadow-sm fixed-width-8rem position-relative ${
-                  selectedCategory === "__descuentos" ? "active" : ""
+                  selectedCategory === cat.nombre ? "active" : ""
                 }`}
-                aria-pressed={selectedCategory === "__descuentos"}
-                data-testid={`categoria-tile-descuentos`}
+                aria-pressed={selectedCategory === cat.nombre}
+                data-testid={`categoria-tile-${slugify(cat.nombre)}`}
               >
-                <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>
-                <img src={discountedProducts[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt="Descuentos" />
+                {hasDiscount && <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>}
+                <img src={cat.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt={cat.nombre} />
                 <div className="card-body p-2">
-                  <h6 className="card-title">Ofertas</h6>
+                  <h6 className="card-title">{cat.nombre}</h6>
                 </div>
               </div>
-            )}
-
-            {categorias.map((cat) => {
-              const hasDiscount = cat.productos.some((p) => Number(p.precio || 0) >= 40000);
-              return (
-                <div
-                  key={cat.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedCategory(cat.nombre)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedCategory(cat.nombre);
-                    }
-                  }}
-                  className={`card category-card text-center shadow-sm fixed-width-8rem position-relative ${
-                    selectedCategory === cat.nombre ? "active" : ""
-                  }`}
-                    aria-pressed={selectedCategory === cat.nombre}
-                    data-testid={`categoria-tile-${slugify(cat.nombre)}`}
-                >
-                  {hasDiscount && <div className="discount-badge">-{DISCOUNT_PERCENT}%</div>}
-                  <img src={cat.productos[0]?.imageUrl || "https://via.placeholder.com/100"} className="card-img-top" alt={cat.nombre} />
-                  <div className="card-body p-2">
-                    <h6 className="card-title">{cat.nombre}</h6>
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )}
+            );
+          })}
+        </>
 
         {/** Descuentos tile: a large card summarizing discounted products */}
         {selectedCategory === "__descuentos" && (
