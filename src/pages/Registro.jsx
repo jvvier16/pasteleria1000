@@ -23,6 +23,7 @@ import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
 import usuariosData from "../data/Usuarios.json";
+import { Eye, EyeOff } from "lucide-react";
 
 const Registro = () => {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ const Registro = () => {
   });
   const [errors, setErrors] = useState({});
   const [registroExitoso, setRegistroExitoso] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -203,9 +206,17 @@ const Registro = () => {
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100 bg-muted">
-      <div className="p-4 rounded-4 shadow bg-white card-max-380">
-        <h3 className="text-center mb-4 font-cursive">Registro</h3>
+    <div className="d-flex justify-content-center align-items-center min-vh-100">
+      <div className="card p-4 shadow login-card card-max-420">
+        <div className="login-header mb-3">
+          <img
+            src={new URL("../assets/img/logo.png", import.meta.url).href}
+            alt="logo"
+            className="mx-auto d-block logo-100"
+          />
+        </div>
+
+        <h3 className="mb-3 text-center">Registro</h3>
 
         {registroExitoso && (
           <div
@@ -217,7 +228,11 @@ const Registro = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} data-testid="registro-form">
+        <form
+          onSubmit={handleSubmit}
+          data-testid="registro-form"
+          noValidate
+        >
           {/* Nombre */}
           <div className="mb-3">
             <label htmlFor="nombre" className="form-label">
@@ -336,27 +351,36 @@ const Registro = () => {
           </div>
 
           {/* Contraseña */}
-          <div className="mb-3">
+          <div className="mb-3 position-relative">
             <label htmlFor="contrasena" className="form-label">
               Contraseña
             </label>
-            <input
-              id="contrasena"
-              type="password"
-              name="contrasena"
-              className={`form-control ${
-                errors.contrasena ? "is-invalid" : ""
-              }`}
-              value={formData.contrasena}
-              onChange={handleChange}
-              required
-              minLength={12}
-              maxLength={18}
-              data-testid="registro-password"
-              aria-invalid={errors.contrasena ? "true" : "false"}
-            />
+            <div className="input-group">
+              <input
+                id="contrasena"
+                type={showPassword ? "text" : "password"}
+                name="contrasena"
+                className={`form-control ${
+                  errors.contrasena ? "is-invalid" : ""
+                }`}
+                value={formData.contrasena}
+                onChange={handleChange}
+                required
+                minLength={12}
+                maxLength={18}
+                data-testid="registro-password"
+                aria-invalid={errors.contrasena ? "true" : "false"}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors.contrasena && (
-              <div className="invalid-feedback" role="alert">
+              <div className="invalid-feedback d-block" role="alert">
                 {errors.contrasena}
               </div>
             )}
@@ -367,56 +391,67 @@ const Registro = () => {
             <label htmlFor="repetirContrasena" className="form-label">
               Repetir Contraseña
             </label>
-            <input
-              id="repetirContrasena"
-              type="password"
-              name="repetirContrasena"
-              className={`form-control ${
-                errors.repetirContrasena ? "is-invalid" : ""
-              }`}
-              value={formData.repetirContrasena}
-              onChange={handleChange}
-              required
-              minLength={12}
-              maxLength={18}
-              data-testid="registro-confirm-password"
-              aria-invalid={errors.repetirContrasena ? "true" : "false"}
-            />
+            <div className="input-group">
+              <input
+                id="repetirContrasena"
+                type={showConfirmPassword ? "text" : "password"}
+                name="repetirContrasena"
+                className={`form-control ${
+                  errors.repetirContrasena ? "is-invalid" : ""
+                }`}
+                value={formData.repetirContrasena}
+                onChange={handleChange}
+                required
+                minLength={12}
+                maxLength={18}
+                data-testid="registro-confirm-password"
+                aria-invalid={errors.repetirContrasena ? "true" : "false"}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors.repetirContrasena && (
-              <div className="invalid-feedback" role="alert">
+              <div className="invalid-feedback d-block" role="alert">
                 {errors.repetirContrasena}
               </div>
             )}
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-dark w-100"
-            data-testid="registro-submit"
-          >
-            Registrar
-          </button>
+          <div className="d-grid gap-2 mt-3">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              data-testid="registro-submit"
+            >
+              Registrar
+            </button>
 
-          <button
-            type="reset"
-            className="btn btn-secondary w-100 mt-2"
-            data-testid="registro-reset"
-            onClick={() => {
-              setFormData({
-                nombre: "",
-                apellido: "",
-                correo: "",
-                contrasena: "",
-                repetirContrasena: "",
-                fechaNacimiento: "",
-                direccion: "",
-              });
-              setErrors({});
-              setRegistroExitoso(false);
-            }}
-          >
-            Limpiar
-          </button>
+            <button
+              type="reset"
+              className="btn btn-secondary"
+              data-testid="registro-reset"
+              onClick={() => {
+                setFormData({
+                  nombre: "",
+                  apellido: "",
+                  correo: "",
+                  contrasena: "",
+                  repetirContrasena: "",
+                  fechaNacimiento: "",
+                  direccion: "",
+                });
+                setErrors({});
+                setRegistroExitoso(false);
+              }}
+            >
+              Limpiar
+            </button>
+          </div>
         </form>
       </div>
     </div>
