@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
 import pastelesData from "../data/Pasteles.json";
@@ -67,6 +67,19 @@ export default function Pago() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [flipped, setFlipped] = useState(false);
   const [inlineOrden, setInlineOrden] = useState(null);
+  const paypalRef = useRef(null);
+  const [paypalLoaded, setPaypalLoaded] = useState(false);
+
+  // Por defecto usar 'sb' (sandbox) para que el botón aparezca en modo demo
+  const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
+  const PAYPAL_CURRENCY = import.meta.env.VITE_PAYPAL_CURRENCY || "USD";
+  // Tipo de cambio CLP -> USD (valor: cuántos CLP = 1 USD). Configurable vía .env: VITE_CLP_USD_RATE
+  const CLP_USD_RATE = Number(import.meta.env.VITE_CLP_USD_RATE) || 800;
+
+  const clpToUsd = (clp) => {
+    const n = Number(clp) || 0;
+    return n / (CLP_USD_RATE || 1);
+  };
 
   const getMaxDigitsFor = (type) => {
     if (type === "amex") return 15;
@@ -322,6 +335,284 @@ export default function Pago() {
     }
   };
 
+  // Helper: calcular totales y items desde el carrito local
+  const computeCartTotals = () => {
+    const rawCart = localStorage.getItem("pasteleria_cart");
+    const cart = rawCart ? JSON.parse(rawCart) : [];
+
+    const rawPastelesLocal = localStorage.getItem("pasteles_local");
+    let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
+    const merged = [...pastelesLocal];
+    pastelesData.forEach((base) => {
+      if (!merged.find((p) => String(p.id) === String(base.id))) merged.push({ ...base });
+    });
+
+    const items = (Array.isArray(cart) ? cart : []).map((c) => {
+      const prod = merged.find((p) => String(p.id) === String(c.id));
+      return {
+        id: c.id,
+        cantidad: c.cantidad || 1,
+        precio: Number((prod && prod.precio) || c.precio || 0),
+        nombre: (prod && prod.nombre) || c.nombre || `ID ${c.id}`,
+      };
+    });
+
+    const subtotal = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
+    const impuestos = Number((subtotal * 0.19).toFixed(2));
+    const total = Number((subtotal + impuestos).toFixed(2));
+    return { items, subtotal, impuestos, total, merged };
+  };
+
+  // Procesar captura exitosa (común para server/client/simulación)
+  const processCapture = (capture) => {
+    try {
+      const { items, subtotal, impuestos, total, merged } = computeCartTotals();
+
+      // actualizar stock en merged
+      items.forEach((c) => {
+        const prod = merged.find((p) => String(p.id) === String(c.id));
+        const qty = Number(c.cantidad || 1);
+        if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
+      });
+      try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
+
+      let cliente = { nombre: 'Cliente', correo: '' };
+      try {
+        const rawSession = localStorage.getItem('session_user');
+        if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
+      } catch (err) {}
+
+      const orden = {
+        id: `PAYPAL-${Date.now()}`,
+        fecha: new Date().toISOString(),
+        cliente,
+        items,
+        subtotal,
+        impuestos,
+        total,
+        estado: 'pagado',
+        paypalCapture: capture,
+      };
+
+      const rawPedidos = localStorage.getItem('pedidos_local');
+      const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
+      pedidos.push(orden);
+      localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
+
+      // limpiar carrito
+      localStorage.removeItem('pasteleria_cart');
+      try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+
+      sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
+      setInlineOrden(orden);
+      setShowConfirmation(true);
+    } catch (err) {
+      console.error('Error procesando captura localmente', err);
+    }
+  };
+
+  // (Simulación removida) use `processCapture(capture)` cuando necesites procesar capturas manualmente
+
+  // Cargar SDK de PayPal y renderizar botones (sandbox/production según client id)
+  useEffect(() => {
+    // Cargar SDK solo si hay un total mayor que 0
+    const { total } = computeCartTotals();
+    if (!total || Number(total) <= 0) return;
+
+    if (!PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID === "YOUR_PAYPAL_CLIENT_ID") return;
+
+    const existing = document.querySelector(`script[src*="paypal.com/sdk/js"]`);
+    if (existing) {
+      setPaypalLoaded(true);
+      if (window.paypal && paypalRef.current) {
+        try {
+          window.paypal.Buttons && window.paypal.Buttons(paypalButtonsConfig()).render(paypalRef.current);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=${PAYPAL_CURRENCY}`;
+    script.async = true;
+    script.onload = () => {
+      setPaypalLoaded(true);
+      if (paypalRef.current && window.paypal) {
+        try {
+          window.paypal.Buttons && window.paypal.Buttons(paypalButtonsConfig()).render(paypalRef.current);
+        } catch (e) {
+          console.error("Error rendering PayPal Buttons", e);
+        }
+      }
+    };
+    script.onerror = (err) => {
+      console.error("Error loading PayPal SDK", err);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      // No remover el script para no romper otras páginas, pero cleanup si fuera necesario
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [PAYPAL_CLIENT_ID, PAYPAL_CURRENCY]);
+
+  const paypalButtonsConfig = () => ({
+    createOrder: async (data, actions) => {
+      const { items, subtotal, impuestos, total } = computeCartTotals();
+      // convertir montos CLP -> USD para PayPal
+      const usdSubtotal = clpToUsd(subtotal);
+      const usdImpuestos = clpToUsd(impuestos);
+      const usdTotal = clpToUsd(total);
+      // Intentar crear la orden en el servidor si el endpoint existe
+      try {
+        const resp = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            total: Number(usdTotal).toFixed(2),
+            currency: 'USD',
+            items: items.map((it) => ({ name: it.nombre, unit_amount: Number(clpToUsd(it.precio)).toFixed(2), quantity: Number(it.cantidad || 1) }))
+          })
+        });
+        const json = await resp.json().catch(() => null);
+        if (resp.ok && json && (json.id || json.orderID)) {
+          return json.id || json.orderID;
+        }
+        // si el servidor responde con error, hacemos fallback a create en cliente
+      } catch (err) {
+        console.warn('Fallo create-order server, usando createOrder cliente', err);
+      }
+
+      // Fallback: crear orden en el cliente (como antes) usando USD convertidos
+      return actions.order.create({
+        purchase_units: [
+          {
+            amount: {
+              currency_code: 'USD',
+              value: usdTotal.toFixed(2),
+              breakdown: {
+                item_total: { currency_code: 'USD', value: usdSubtotal.toFixed(2) },
+                tax_total: { currency_code: 'USD', value: usdImpuestos.toFixed(2) },
+              },
+            },
+            items: items.map((it) => ({
+              name: it.nombre,
+              unit_amount: { currency_code: 'USD', value: clpToUsd(it.precio).toFixed(2) },
+              quantity: String(it.cantidad || 1),
+            })),
+          },
+        ],
+      });
+    },
+    onApprove: async (data, actions) => {
+      // data.orderID viene de PayPal
+      const orderID = data.orderID || (data && data.orderID) || null;
+      // Intentar capturar en el servidor
+      try {
+        if (orderID) {
+          const resp = await fetch('/api/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderID })
+          });
+          const json = await resp.json().catch(() => null);
+          if (resp.ok && json) {
+            // usar la respuesta del servidor como detalle de captura
+            const capture = json;
+            const { items, subtotal, impuestos, total, merged } = computeCartTotals();
+            // actualizar stock local
+            items.forEach((c) => {
+              const prod = merged.find((p) => String(p.id) === String(c.id));
+              const qty = Number(c.cantidad || 1);
+              if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
+            });
+            try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
+
+            let cliente = { nombre: 'Cliente', correo: '' };
+            try {
+              const rawSession = localStorage.getItem('session_user');
+              if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
+            } catch (err) {}
+
+            const orden = {
+              id: `PAYPAL-${Date.now()}`,
+              fecha: new Date().toISOString(),
+              cliente,
+              items,
+              subtotal,
+              impuestos,
+              total,
+              estado: 'pagado',
+              paypalCapture: capture,
+            };
+
+            const rawPedidos = localStorage.getItem('pedidos_local');
+            const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
+            pedidos.push(orden);
+            localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
+            localStorage.removeItem('pasteleria_cart');
+            try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+            sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
+            setInlineOrden(orden);
+            setShowConfirmation(true);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Error capture-order server, cayendo al capture cliente', err);
+      }
+
+      // Fallback: captura en el cliente
+      try {
+        const capture = await actions.order.capture();
+        const { items, subtotal, impuestos, total, merged } = computeCartTotals();
+        items.forEach((c) => {
+          const prod = merged.find((p) => String(p.id) === String(c.id));
+          const qty = Number(c.cantidad || 1);
+          if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
+        });
+        try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
+
+        let cliente = { nombre: 'Cliente', correo: '' };
+        try {
+          const rawSession = localStorage.getItem('session_user');
+          if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
+        } catch (err) {}
+
+        const orden = {
+          id: `PAYPAL-${Date.now()}`,
+          fecha: new Date().toISOString(),
+          cliente,
+          items,
+          subtotal,
+          impuestos,
+          total,
+          estado: 'pagado',
+          paypalCapture: capture,
+        };
+
+        const rawPedidos = localStorage.getItem('pedidos_local');
+        const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
+        pedidos.push(orden);
+        localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
+        localStorage.removeItem('pasteleria_cart');
+        try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+        sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
+        setInlineOrden(orden);
+        setShowConfirmation(true);
+      } catch (err) {
+        console.error('Error en captura PayPal (cliente)', err);
+        alert('Hubo un error procesando el pago con PayPal.');
+      }
+    },
+    onError: (err) => {
+      console.error("PayPal Buttons error", err);
+      alert("Error al procesar PayPal. Reintente más tarde.");
+    },
+  });
+
   return (
     <>
       <main className="container my-5">
@@ -439,6 +730,34 @@ export default function Pago() {
               )}
             </form>
           </div>
+
+          {/* Sección PayPal: si se configuró VITE_PAYPAL_CLIENT_ID se renderiza el botón */}
+          {(() => {
+            const { total } = computeCartTotals();
+            return (
+              <div className="paypal-box">
+                <div className="paypal-title">PayPal</div>
+                <div className="paypal-amount">
+                  {(() => {
+                    const usdTotal = clpToUsd(total || 0);
+                    return `Total (USD): $${Number(usdTotal || 0).toFixed(2)} USD`;
+                  })()}
+                </div>
+                {Number(total || 0) > 0 ? (
+                  <>
+                    <div className="paypal-button-container">
+                      <div ref={paypalRef} />
+                    </div>
+                    {!paypalLoaded && (
+                      <div className="paypal-note small mt-2">Cargando PayPal...</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="paypal-note small mt-2">Añade productos al carrito para pagar con PayPal</div>
+                )}
+              </div>
+            );
+          })()}
 
           <div>
             <div className={`credit-card ${flipped ? "flipped" : ""}`}>

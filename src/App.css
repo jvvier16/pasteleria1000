@@ -129,6 +129,38 @@ header .nav-link {
 	padding: 1.5rem;
 }
 
+.payment-card {
+	border: 1px solid var(--border-muted);
+	transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.payment-card:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 14px 40px rgba(0,0,0,0.14);
+}
+
+.paypal-box {
+	min-width: 320px;
+	margin: 12px;
+	border-radius: 12px;
+	padding: 14px;
+	background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+	border: 1px solid var(--border-muted);
+	box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+.paypal-title { font-weight: 700; font-size: 1rem; color: var(--accent-text); }
+.paypal-amount { color: #6b3e2a; font-weight: 700; }
+.paypal-note { font-size: 0.85rem; color: #6c6c6c; }
+.paypal-button-container { width: 100%; display: flex; justify-content: center; }
+
+@media (max-width: 767px) {
+	.payment-card { width: 92%; padding: 1rem; }
+	.paypal-box { width: 92%; min-width: auto; }
+}
+
 .card-preview {
 	width: 320px;
 	height: 200px;

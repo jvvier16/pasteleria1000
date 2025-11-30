@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Pago con PayPal</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px}</style>
+</head>
+<body>
+
+  <h1>Compra de ejemplo</h1>
+  <p>Producto: Curso Universitario — Precio: 10.00 USD</p>
+
+  <!-- Contenedor donde se insertará el botón PayPal -->
+  <div id="paypal-button-container"></div>
+
+  <!-- Mensaje de resultado -->
+  <p id="result-message"></p>
+
+  <!-- Cargar el SDK de PayPal: Client ID insertado -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AZORs6mzYg9iOI5y_NROUNvgEJs_DglF6uJ3bsOWvu597kDZrhWEnfMLVopWjxp4DrQRNVEaDIUE9Ffk&currency=USD"></script>
+
+  <script>
+    // Renderiza el botón de PayPal dentro del contenedor
+    paypal.Buttons({
+      // Opcional: estilo del botón
+      style: {
+        layout: 'vertical',   // 'vertical' o 'horizontal'
+        color:  'gold',       // 'gold', 'blue', 'silver', etc.
+        shape:  'rect',       // 'rect' o 'pill'
+        label:  'paypal'      // etiqueta del botón
+      },
+
+      // Cuando el usuario haga click: crear la orden de pago
+      createOrder: function(data, actions) {
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: '10.00'  // monto (como string) — aquí puedes poner el precio de tu producto
+            },
+            description: 'Curso Universitario — pago de ejemplo'
+          }]
+        });
+      },
+
+      // Cuando el pago sea aprobado por el usuario
+      onApprove: function(data, actions) {
+        return actions.order.capture().then(function(details) {
+          // Puedes mostrar confirmación al usuario
+          const name = (details.payer && details.payer.name && details.payer.name.given_name) || '';
+          document.getElementById('result-message').innerText = 
+            'Gracias ' + name + '! Tu pago fue exitoso.';
+          // Aquí puedes redirigir, almacenar datos, etc.
+          console.log('Capture details:', details);
+        });
+      },
+
+      // Opcional: qué hacer si el usuario cancela
+      onCancel: function(data) {
+        document.getElementById('result-message').innerText = 'Pago cancelado.';
+      },
+
+      // Opcional: manejar errores
+      onError: function(err) {
+        console.error(err);
+        document.getElementById('result-message').innerText = 'Error en el pago.';
+      }
+    }).render('#paypal-button-container');  // renderiza en este div
+  </script>
+
+</body>
+</html>

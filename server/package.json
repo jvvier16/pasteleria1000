@@ -1,0 +1,20 @@
+{
+  "name": "pasteleria1000-paypal-server",
+  "version": "0.1.0",
+  "description": "Servidor de ejemplo para crear y capturar órdenes PayPal (sandbox) para Pasteleria1000",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "express": "^4.18.2",
+    "node-fetch": "^2.6.12"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
