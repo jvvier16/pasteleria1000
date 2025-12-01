@@ -1,38 +1,38 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+/**
+ * @component AdminPasteles
+ * @description Panel de administración de pasteles conectado al backend.
+ * Permite:
+ * - Visualizar todos los productos desde GET /api/v2/productos
+ * - Crear productos con POST /api/v2/productos
+ * - Editar productos con PUT /api/v2/productos/{id}
+ * - Eliminar productos con DELETE /api/v2/productos/{id}
+ *
+ * Solo accesible para usuarios con rol de administrador
+ */
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import { addToCart } from "../utils/cart.js";
-import pastelesData from "../data/Pasteles.json";
+import {
+  obtenerProductos,
+  crearProducto,
+  actualizarProducto,
+  eliminarProducto,
+  obtenerCategorias,
+} from "../utils/apiHelper";
 
-/**
- * @component AdminPasteles
- * @description Panel de administración de pasteles que permite:
- * - Visualizar todos los pasteles (tanto de JSON como LocalStorage)
- * - Editar o eliminar pasteles almacenados en LocalStorage
- * - Gestionar pasteles mediante un modal de Bootstrap
- * - Controlar stock y categorías
- *
- * Solo accesible para usuarios con rol de administrador
- * @returns {JSX.Element} Panel de administración de pasteles
- */
 export default function AdminPasteles() {
   const navigate = useNavigate();
 
-  /** @state {Array} pastelesLocal - Lista de pasteles creados por el admin en localStorage */
-  const [pastelesLocal, setPastelesLocal] = useState([]);
+  // Estados principales
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  /** @state {string|null} editId - ID del pastel que se está editando actualmente */
+  // Estados para edición
   const [editId, setEditId] = useState(null);
-
-  /**
-   * @state {Object} editForm - Formulario para edición de pasteles
-   * @property {string} nombre - Nombre del pastel
-   * @property {string} descripcion - Descripción del pastel
-   * @property {string} precio - Precio del pastel
-   * @property {string} stock - Cantidad disponible
-   * @property {string} stockCritico - Nivel de stock para alertas
-   * @property {string} categoria - Categoría del pastel
-   */
   const [editForm, setEditForm] = useState({
     nombre: "",
     descripcion: "",
@@ -40,392 +40,569 @@ export default function AdminPasteles() {
     stock: "",
     stockCritico: "",
     categoria: "",
+    imagen: "",
   });
 
-  // Lista de categorías disponibles
-  const [categorias, setCategorias] = useState([]);
+  // Estados para agregar
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({
+    nombre: "",
+    descripcion: "",
+    precio: "",
+    stock: "0",
+    categoria: "",
+    imagen: "",
+  });
 
-  // Ref al modal y a la instancia de Bootstrap
+  // Refs para modal
   const modalRef = useRef(null);
   const modalInstanceRef = useRef(null);
   const [showInlineEditor, setShowInlineEditor] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addForm, setAddForm] = useState({ nombre: "", precio: "" });
 
-  // 🔐 Proteger ruta (solo admin)
+  // 🔐 Proteger ruta (solo admin/vendedor)
   useEffect(() => {
     const sessionRaw = localStorage.getItem("session_user");
-    if (!sessionRaw) {
-      navigate("/");
+    const token = localStorage.getItem("token");
+    
+    if (!sessionRaw || !token) {
+      navigate("/login");
       return;
     }
+    
     try {
       const session = JSON.parse(sessionRaw);
-      const role = (session?.role || session?.rol || session?.roleName || "").toString().toLowerCase();
-      if (role !== "admin" && role !== "tester") {
+      const role = (session?.role || "").toLowerCase();
+      if (!["admin", "tester", "vendedor"].includes(role)) {
         navigate("/");
       }
     } catch {
-      navigate("/");
+      navigate("/login");
     }
   }, [navigate]);
 
-  // 📥 Cargar pasteles y categorías al montar
+  // 📥 Cargar productos y categorías del backend
   useEffect(() => {
-    try {
-      // Cargar pasteles
-      const rawPasteles = localStorage.getItem("pasteles_local");
-      const arrPasteles = rawPasteles ? JSON.parse(rawPasteles) : [];
-      setPastelesLocal(Array.isArray(arrPasteles) ? arrPasteles : []);
+    const cargarDatos = async () => {
+      setLoading(true);
+      setError(null);
 
-      // Cargar categorías
-      const rawCategorias = localStorage.getItem("categorias_local");
-      if (rawCategorias) {
-        setCategorias(JSON.parse(rawCategorias));
-      } else {
-        // Categorías por defecto si no existen
-        const categoriasDefault = [
-          "Tortas",
-          "Postres",
-          "Sin Azúcar",
-          "Sin Gluten",
-          "Veganas",
-          "Especiales",
-        ];
-        localStorage.setItem(
-          "categorias_local",
-          JSON.stringify(categoriasDefault)
-        );
-        setCategorias(categoriasDefault);
+      try {
+        // Cargar productos y categorías en paralelo
+        const [productosRes, categoriasRes] = await Promise.all([
+          obtenerProductos(),
+          obtenerCategorias().catch(() => ({ data: [] })),
+        ]);
+
+        // Procesar productos
+        const productosData = (productosRes.data || []).map((p) => ({
+          ...p,
+          id: p.productoId || p.id,
+          imagen: resolveImageUrl(p.imagen),
+        }));
+        setProductos(productosData);
+
+        // Procesar categorías
+        const categoriasData = (categoriasRes.data || []).map((c) => ({
+          id: c.categoriaId || c.id,
+          nombre: c.nombre,
+        }));
+        setCategorias(categoriasData);
+
+      } catch (err) {
+        console.error("Error cargando datos:", err);
+        setError(err.message || "Error al cargar los productos");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error cargando datos:", error);
-      setPastelesLocal([]);
-      setCategorias([]);
-    }
+    };
+
+    cargarDatos();
   }, []);
 
-  // 🖼️ Resolver imágenes de los que vienen del JSON (mantener filename)
-  const baseJsonResuelto = useMemo(() => {
-    return pastelesData.map((p) => {
-      // si tiene imagen relativa, resolver a /assets
-      const filename = (p.imagen || "").split("/").pop();
-      const imageUrl = filename
-        ? new URL(`../assets/img/${filename}`, import.meta.url).href
-        : "";
-      return { ...p, imagen: imageUrl, _origen: "json" };
-    });
-  }, []);
-
-  /**
-   * @function localesMarcados
-   * @description Marca los pasteles del localStorage con origen "local"
-   * @returns {Array} Lista de pasteles con origen marcado
-   */
-  const localesMarcados = useMemo(() => {
-    return (pastelesLocal || []).map((p) => {
-      // resolver imagen local si viene como filename relativo
-      const filename = (p.imagen || "").split("/").pop();
-      const imageUrl = filename
-        ? new URL(`../assets/img/${filename}`, import.meta.url).href
-        : p.imagen || "";
-      return {
-        ...p,
-        imagen: imageUrl,
-        // locales pueden venir con imagen "", Card muestra placeholder
-        _origen: "local",
-      };
-    });
-  }, [pastelesLocal]);
-
-  // 🔗 Mostrar solo los pasteles locales en el panel admin (son los editables)
-  // - El resto (JSON) se muestra en la tienda pública, pero en admin sólo
-  //   queremos permitir editar/Eliminar los que fueron creados localmente.
-  // Cambiamos para mostrar también las imágenes de los pasteles JSON en el
-  // panel admin: combinamos los locales (editables) y los del JSON (solo lectura)
-  const todos = useMemo(() => {
-    const locals = localesMarcados || [];
-    // incluir JSON solo si no está ya en locales (evitar duplicados)
-    const jsonOnly = baseJsonResuelto.filter(
-      (b) => !locals.find((l) => String(l.id) === String(b.id))
-    );
-    return [...locals, ...jsonOnly];
-  }, [localesMarcados, baseJsonResuelto]);
-
-  /**
-   * @function handleEliminar
-   * @description Elimina un pastel del localStorage después de confirmar
-   * @param {string} id - ID del pastel a eliminar
-   */
-  const handleEliminar = (id) => {
-    const pastel = pastelesLocal.find((p) => p.id === id);
-    if (!pastel) return; // no es local o no existe
-
-    if (!window.confirm(`¿Eliminar "${pastel.nombre}"?`)) return;
-
-    const next = pastelesLocal.filter((p) => p.id !== id);
-    setPastelesLocal(next);
-    localStorage.setItem("pasteles_local", JSON.stringify(next));
+  // Resolver URL de imagen
+  const resolveImageUrl = (imagen) => {
+    if (!imagen) return "";
+    if (imagen.startsWith("data:") || imagen.startsWith("http")) return imagen;
+    const filename = (imagen || "").split("/").pop();
+    return filename
+      ? new URL(`../assets/img/${filename}`, import.meta.url).href
+      : "";
   };
 
-  // Permitir agregar al carrito desde el panel admin
+  // Recargar productos
+  const recargarProductos = async () => {
+    try {
+      const response = await obtenerProductos();
+      const productosData = (response.data || []).map((p) => ({
+        ...p,
+        id: p.productoId || p.id,
+        imagen: resolveImageUrl(p.imagen),
+      }));
+      setProductos(productosData);
+    } catch (err) {
+      console.error("Error recargando productos:", err);
+    }
+  };
+
+  /**
+   * Eliminar producto
+   */
+  const handleEliminar = async (id) => {
+    const producto = productos.find((p) => p.id === id);
+    if (!producto) return;
+
+    if (!window.confirm(`¿Eliminar "${producto.nombre}"?`)) return;
+
+    setSaving(true);
+    try {
+      await eliminarProducto(id);
+      
+      // Actualizar lista local
+      setProductos((prev) => prev.filter((p) => p.id !== id));
+      
+      alert("Producto eliminado exitosamente");
+    } catch (err) {
+      console.error("Error eliminando producto:", err);
+      alert(err.message || "Error al eliminar el producto");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /**
+   * Agregar al carrito
+   */
   const handleAgregar = (product) => {
     try {
-      // product puede venir con cantidad, fallback a 1
       const qty = Number(product.cantidad) || 1;
       addToCart(product, qty);
-      // avisar a listeners (cart UI) que hubo un cambio
-      try {
-        window.dispatchEvent(new Event("cart:updated"));
-      } catch (e) {}
-      // feedback inmediato
-      try {
-        // si hay alguna interfaz de notificaciones, mejor usarla; por ahora alert
-        alert(`${product.nombre || product.titulo || 'Producto'} agregado al carrito`);
-      } catch (e) {}
+      window.dispatchEvent(new Event("cart:updated"));
+      alert(`${product.nombre || "Producto"} agregado al carrito`);
       return true;
     } catch (err) {
-      console.error("Error agregando al carrito desde AdminPastel:", err);
+      console.error("Error agregando al carrito:", err);
       return false;
     }
   };
 
   /**
-   * @function handleEditar
-   * @description Abre el modal de edición para un pastel específico
-   * Carga los datos del pastel en el formulario de edición
-   * @param {string} id - ID del pastel a editar
+   * Abrir editor para editar producto
    */
   const handleEditar = (id) => {
-    const pastel = pastelesLocal.find((p) => p.id === id);
-    if (!pastel) return;
+    const producto = productos.find((p) => p.id === id);
+    if (!producto) return;
 
     setEditId(id);
     setEditForm({
-      nombre: pastel.nombre || "",
-      descripcion: pastel.descripcion || "",
-      precio: pastel.precio ?? "",
-      stock: pastel.stock ?? "",
-      categoria: pastel.categoria || "",
+      nombre: producto.nombre || "",
+      descripcion: producto.descripcion || "",
+      precio: producto.precio ?? "",
+      stock: producto.stock ?? "",
+      stockCritico: producto.stockCritico ?? "",
+      categoria: producto.categoria?.nombre || producto.categoria || "",
+      imagen: producto.imagen || "",
     });
 
-  // Mostrar modal Bootstrap
+    // Intentar mostrar modal Bootstrap
     try {
-      // requiere bootstrap JS vía CDN: window.bootstrap.Modal
-      if (!modalInstanceRef.current) {
-        modalInstanceRef.current = new window.bootstrap.Modal(
-          modalRef.current,
-          {
-            backdrop: "static",
-          }
-        );
+      if (!modalInstanceRef.current && modalRef.current) {
+        modalInstanceRef.current = new window.bootstrap.Modal(modalRef.current, {
+          backdrop: "static",
+        });
       }
-      modalInstanceRef.current.show();
+      modalInstanceRef.current?.show();
       setShowInlineEditor(false);
-    } catch (e) {
-      console.error(
-        "Bootstrap Modal no disponible. Asegúrate de incluir el JS de Bootstrap por CDN."
-      );
-      // Mostrar formulario inline como fallback
+    } catch {
       setShowInlineEditor(true);
     }
   };
 
   /**
-   * @function handleGuardar
-   * @description Guarda los cambios del formulario de edición
-   * Valida los datos antes de guardar y actualiza tanto el estado como localStorage
-   * @param {Event} e - Evento del formulario
+   * Guardar cambios de edición
    */
-  const handleGuardar = (e) => {
+  const handleGuardar = async (e) => {
     e.preventDefault();
 
-    // Validaciones mínimas
+    // Validaciones
     if (!editForm.nombre.trim()) return alert("El nombre es obligatorio");
     const precioNum = Number(editForm.precio);
     const stockNum = Number(editForm.stock);
-    if (Number.isNaN(precioNum) || precioNum < 0) {
-      return alert("Precio inválido");
-    }
-    if (!Number.isInteger(stockNum) || stockNum < 0) {
-      return alert("Stock inválido");
-    }
+    if (Number.isNaN(precioNum) || precioNum < 0) return alert("Precio inválido");
+    if (Number.isNaN(stockNum) || stockNum < 0) return alert("Stock inválido");
 
-    const next = pastelesLocal.map((p) =>
-      p.id === editId
-        ? {
-            ...p,
-            nombre: editForm.nombre.trim(),
-            descripcion: editForm.descripcion.trim(),
-            precio: precioNum,
-            stock: stockNum,
-            categoria: (editForm.categoria || "").trim(),
-          }
-        : p
-    );
-
-    setPastelesLocal(next);
-    localStorage.setItem("pasteles_local", JSON.stringify(next));
-
-    // Cerrar modal (G1)
+    setSaving(true);
     try {
-      if (modalInstanceRef.current) {
-        modalInstanceRef.current.hide();
+      // Preparar datos para el backend
+      const datosActualizados = {
+        nombre: editForm.nombre.trim(),
+        descripcion: editForm.descripcion.trim(),
+        precio: precioNum,
+        stock: stockNum,
+        imagen: editForm.imagen || null,
+      };
+
+      // Si hay categoría, buscar su ID
+      if (editForm.categoria) {
+        const cat = categorias.find((c) => c.nombre === editForm.categoria);
+        if (cat) {
+          datosActualizados.categoria = { categoriaId: cat.id };
+        }
       }
+
+      await actualizarProducto(editId, datosActualizados);
+
+      // Cerrar modal
+      try {
+        modalInstanceRef.current?.hide();
+      } catch {}
       setShowInlineEditor(false);
-    } catch {}
+
+      // Recargar productos
+      await recargarProductos();
+      
+      alert("Producto actualizado exitosamente");
+    } catch (err) {
+      console.error("Error actualizando producto:", err);
+      alert(err.message || "Error al actualizar el producto");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  /**
+   * Crear nuevo producto
+   */
+  const handleCrear = async (e) => {
+    e.preventDefault();
+
+    // Validaciones
+    if (!addForm.nombre.trim()) return alert("El nombre es obligatorio");
+    const precioNum = Number(addForm.precio);
+    if (Number.isNaN(precioNum) || precioNum < 0) return alert("Precio inválido");
+
+    setSaving(true);
+    try {
+      // Preparar datos para el backend
+      const nuevoProducto = {
+        nombre: addForm.nombre.trim(),
+        descripcion: addForm.descripcion?.trim() || "",
+        precio: precioNum,
+        stock: Number(addForm.stock) || 0,
+        imagen: addForm.imagen || null,
+      };
+
+      // Si hay categoría, buscar su ID
+      if (addForm.categoria) {
+        const cat = categorias.find((c) => c.nombre === addForm.categoria);
+        if (cat) {
+          nuevoProducto.categoria = { categoriaId: cat.id };
+        }
+      }
+
+      await crearProducto(nuevoProducto);
+
+      // Limpiar formulario
+      setAddForm({
+        nombre: "",
+        descripcion: "",
+        precio: "",
+        stock: "0",
+        categoria: "",
+        imagen: "",
+      });
+      setShowAddForm(false);
+
+      // Recargar productos
+      await recargarProductos();
+      
+      alert("Producto creado exitosamente");
+    } catch (err) {
+      console.error("Error creando producto:", err);
+      alert(err.message || "Error al crear el producto");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Estado de carga
+  if (loading) {
+    return (
+      <div className="container py-4">
+        <h2 className="mb-4">Administrar Pasteles</h2>
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "40vh" }}>
+          <div className="text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted">Cargando productos...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de error
+  if (error) {
+    return (
+      <div className="container py-4">
+        <h2 className="mb-4">Administrar Pasteles</h2>
+        <div className="alert alert-danger" role="alert">
+          <h5 className="alert-heading">Error</h5>
+          <p>{error}</p>
+          <hr />
+          <button className="btn btn-outline-danger" onClick={() => window.location.reload()}>
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h2>Administrar Pasteles</h2>
         <div className="d-flex gap-2">
-          <a
-            href="/admin/pasteles/agregar"
-            className="btn btn-success"
-            data-testid="admin-add-pastel-link"
-          >
-            + Agregar pastel
-          </a>
           <button
             type="button"
-            className="btn btn-outline-primary"
+            className="btn btn-success"
             data-testid="card-add-pastel"
             onClick={() => setShowAddForm((s) => !s)}
+            disabled={saving}
           >
             {showAddForm ? "Cerrar" : "+ Agregar pastel"}
           </button>
         </div>
       </div>
+
+      {/* Formulario para agregar */}
       {showAddForm && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            try {
-              const saved = localStorage.getItem("pasteles_local");
-              const existing = saved ? JSON.parse(saved) : [];
-              const newProduct = {
-                id: Date.now(),
-                nombre: (addForm.nombre || "").trim(),
-                descripcion: "",
-                precio: Number(addForm.precio) || 0,
-                stock: 0,
-                categoria: "Tortas",
-                imagen: "",
-              };
-              const updated = Array.isArray(existing) ? [...existing, newProduct] : [newProduct];
-              localStorage.setItem("pasteles_local", JSON.stringify(updated));
-              setPastelesLocal(updated);
-              setAddForm({ nombre: "", precio: "" });
-              setShowAddForm(false);
-            } catch (err) {
-              console.error("Error al crear producto:", err);
-            }
-          }}
-          className="card mb-3"
-        >
+        <form onSubmit={handleCrear} className="card mb-4">
+          <div className="card-header">
+            <h5 className="mb-0">Nuevo Producto</h5>
+          </div>
           <div className="card-body">
             <div className="row">
               <div className="col-md-6 mb-3">
-                <label htmlFor="add-nombre" className="form-label">Nombre</label>
+                <label htmlFor="add-nombre" className="form-label">Nombre *</label>
                 <input
                   id="add-nombre"
-                  name="nombre"
                   className="form-control"
                   value={addForm.nombre}
                   onChange={(e) => setAddForm((f) => ({ ...f, nombre: e.target.value }))}
+                  required
+                  disabled={saving}
                 />
               </div>
               <div className="col-md-3 mb-3">
-                <label htmlFor="add-precio" className="form-label">Precio</label>
+                <label htmlFor="add-precio" className="form-label">Precio *</label>
                 <input
                   id="add-precio"
-                  name="precio"
                   type="number"
                   className="form-control"
                   value={addForm.precio}
                   onChange={(e) => setAddForm((f) => ({ ...f, precio: e.target.value }))}
+                  required
+                  min="0"
+                  disabled={saving}
                 />
               </div>
-              <div className="col-md-3 d-flex align-items-end mb-3">
-                <div className="d-flex gap-2">
-                  <button type="submit" className="btn btn-primary">Guardar</button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancelar</button>
-                </div>
+              <div className="col-md-3 mb-3">
+                <label htmlFor="add-stock" className="form-label">Stock</label>
+                <input
+                  id="add-stock"
+                  type="number"
+                  className="form-control"
+                  value={addForm.stock}
+                  onChange={(e) => setAddForm((f) => ({ ...f, stock: e.target.value }))}
+                  min="0"
+                  disabled={saving}
+                />
               </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label htmlFor="add-categoria" className="form-label">Categoría</label>
+                <select
+                  id="add-categoria"
+                  className="form-select"
+                  value={addForm.categoria}
+                  onChange={(e) => setAddForm((f) => ({ ...f, categoria: e.target.value }))}
+                  disabled={saving}
+                >
+                  <option value="">Sin categoría</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-md-6 mb-3">
+                <label htmlFor="add-imagen" className="form-label">URL de imagen</label>
+                <input
+                  id="add-imagen"
+                  type="text"
+                  className="form-control"
+                  value={addForm.imagen}
+                  onChange={(e) => setAddForm((f) => ({ ...f, imagen: e.target.value }))}
+                  placeholder="https://..."
+                  disabled={saving}
+                />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="add-descripcion" className="form-label">Descripción</label>
+              <textarea
+                id="add-descripcion"
+                className="form-control"
+                value={addForm.descripcion}
+                onChange={(e) => setAddForm((f) => ({ ...f, descripcion: e.target.value }))}
+                rows="2"
+                disabled={saving}
+              />
+            </div>
+            <div className="d-flex gap-2">
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? "Guardando..." : "Crear producto"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowAddForm(false)}
+                disabled={saving}
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         </form>
       )}
-      {/* Inline editor fallback (cuando el modal de Bootstrap no esté disponible) */}
+
+      {/* Editor inline (fallback cuando no hay Bootstrap Modal) */}
       {showInlineEditor && (
         <div className="card mb-4">
+          <div className="card-header">
+            <h5 className="mb-0">Editar producto</h5>
+          </div>
           <div className="card-body">
-            <h5 className="card-title">Editar pastel (inline)</h5>
             <form onSubmit={handleGuardar}>
               <div className="row">
                 <div className="col-md-6 mb-3">
-                  <label className="form-label">Nombre</label>
-                  <input type="text" className="form-control" value={editForm.nombre} onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })} required />
+                  <label className="form-label">Nombre *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.nombre}
+                    onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
                 </div>
                 <div className="col-md-6 mb-3">
                   <label className="form-label">Categoría</label>
-                  <select className="form-select" value={editForm.categoria} onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })} required>
-                    <option value="">Selecciona una categoría...</option>
+                  <select
+                    className="form-select"
+                    value={editForm.categoria}
+                    onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })}
+                    disabled={saving}
+                  >
+                    <option value="">Sin categoría</option>
                     {categorias.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
                     ))}
                   </select>
                 </div>
               </div>
               <div className="mb-3">
                 <label className="form-label">Descripción</label>
-                <textarea className="form-control" value={editForm.descripcion} onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })} required />
+                <textarea
+                  className="form-control"
+                  value={editForm.descripcion}
+                  onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })}
+                  disabled={saving}
+                />
               </div>
               <div className="row">
                 <div className="col-md-4 mb-3">
-                  <label className="form-label">Precio</label>
-                  <input type="number" className="form-control" value={editForm.precio} onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })} required min="0" step="1" />
+                  <label className="form-label">Precio *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={editForm.precio}
+                    onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })}
+                    required
+                    min="0"
+                    disabled={saving}
+                  />
                 </div>
                 <div className="col-md-4 mb-3">
                   <label className="form-label">Stock</label>
-                  <input type="number" className="form-control" value={editForm.stock} onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })} required min="0" step="1" />
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={editForm.stock}
+                    onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
+                    min="0"
+                    disabled={saving}
+                  />
                 </div>
                 <div className="col-md-4 mb-3">
-                  <label className="form-label">Stock Crítico</label>
-                  <input type="number" className="form-control" value={editForm.stockCritico} onChange={(e) => setEditForm({ ...editForm, stockCritico: e.target.value })} min="0" step="1" />
+                  <label className="form-label">URL Imagen</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.imagen}
+                    onChange={(e) => setEditForm({ ...editForm, imagen: e.target.value })}
+                    disabled={saving}
+                  />
                 </div>
               </div>
               <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-primary">Guardar cambios</button>
-                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowInlineEditor(false)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowInlineEditor(false)}
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Grid de cards (similar a Productos) */}
-      <div className="cards-grid mt-3">
-        {todos.map((p) => (
-          <Card
-            key={`${p._origen}-${p.id}`}
-            id={p.id}
-            nombre={p.nombre}
-            descripcion={p.descripcion}
-            precio={Number(p.precio)}
-            imagen={p.imagen} // si "" el Card muestra placeholder
-            // --- Props admin ---
-            origen={p._origen} // "json" o "local"
-            onEditar={handleEditar}
-            onEliminar={handleEliminar}
-            onAgregar={handleAgregar}
-          />
-        ))}
-      </div>
+      {/* Grid de productos */}
+      {productos.length === 0 ? (
+        <div className="text-center py-5">
+          <p className="text-muted fs-5">No hay productos registrados</p>
+          <button className="btn btn-primary mt-2" onClick={() => setShowAddForm(true)}>
+            Crear primer producto
+          </button>
+        </div>
+      ) : (
+        <div className="cards-grid mt-3">
+          {productos.map((p) => (
+            <Card
+              key={p.id}
+              id={p.id}
+              nombre={p.nombre}
+              descripcion={p.descripcion}
+              precio={Number(p.precio)}
+              imagen={p.imagen}
+              stock={p.stock}
+              origen="backend"
+              onEditar={handleEditar}
+              onEliminar={handleEliminar}
+              onAgregar={handleAgregar}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Modal Bootstrap (único / M1) */}
+      {/* Modal Bootstrap para edición */}
       <div
         className="modal fade"
         id="modalEditarPastel"
@@ -436,28 +613,26 @@ export default function AdminPasteles() {
         <div className="modal-dialog">
           <form className="modal-content" onSubmit={handleGuardar}>
             <div className="modal-header">
-              <h5 className="modal-title">Editar pastel</h5>
+              <h5 className="modal-title">Editar producto</h5>
               <button
                 type="button"
                 className="btn-close"
-                onClick={() =>
-                  modalInstanceRef.current && modalInstanceRef.current.hide()
-                }
+                onClick={() => modalInstanceRef.current?.hide()}
                 aria-label="Close"
-              ></button>
+                disabled={saving}
+              />
             </div>
 
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Nombre</label>
+                <label className="form-label">Nombre *</label>
                 <input
                   type="text"
                   className="form-control"
                   value={editForm.nombre}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, nombre: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
                   required
+                  disabled={saving}
                 />
               </div>
 
@@ -466,59 +641,35 @@ export default function AdminPasteles() {
                 <textarea
                   className="form-control"
                   value={editForm.descripcion}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, descripcion: e.target.value })
-                  }
-                  required
-                ></textarea>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Precio</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={editForm.precio}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, precio: e.target.value })
-                  }
-                  required
-                  min="0"
-                  step="1"
+                  onChange={(e) => setEditForm({ ...editForm, descripcion: e.target.value })}
+                  disabled={saving}
                 />
               </div>
 
-              <div className="mb-3">
-                <label className="form-label">Stock</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={editForm.stock}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, stock: e.target.value })
-                  }
-                  required
-                  min="0"
-                  step="1"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Stock Crítico</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={editForm.stockCritico}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, stockCritico: e.target.value })
-                  }
-                  min="0"
-                  step="1"
-                  placeholder="Nivel de stock para alertas"
-                />
-                <small className="form-text text-muted">
-                  Cuando el stock baje de este número, se mostrará una alerta
-                </small>
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Precio *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={editForm.precio}
+                    onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })}
+                    required
+                    min="0"
+                    disabled={saving}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Stock</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={editForm.stock}
+                    onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
+                    min="0"
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
               <div className="mb-3">
@@ -526,27 +677,26 @@ export default function AdminPasteles() {
                 <select
                   className="form-select"
                   value={editForm.categoria}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, categoria: e.target.value })
-                  }
-                  required
+                  onChange={(e) => setEditForm({ ...editForm, categoria: e.target.value })}
+                  disabled={saving}
                 >
-                  <option value="">Selecciona una categoría...</option>
+                  <option value="">Sin categoría</option>
                   {categorias.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
+                    <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
                   ))}
                 </select>
-                <small className="form-text text-muted">
-                  <a
-                    href="/admin/categorias"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Administrar categorías
-                  </a>
-                </small>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">URL de imagen</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={editForm.imagen}
+                  onChange={(e) => setEditForm({ ...editForm, imagen: e.target.value })}
+                  placeholder="https://..."
+                  disabled={saving}
+                />
               </div>
             </div>
 
@@ -554,14 +704,13 @@ export default function AdminPasteles() {
               <button
                 type="button"
                 className="btn btn-outline-secondary"
-                onClick={() =>
-                  modalInstanceRef.current && modalInstanceRef.current.hide()
-                }
+                onClick={() => modalInstanceRef.current?.hide()}
+                disabled={saving}
               >
                 Cancelar
               </button>
-              <button type="submit" className="btn btn-primary">
-                Guardar cambios
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
           </form>
