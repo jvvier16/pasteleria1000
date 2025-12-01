@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
-import { PastelService } from "../services/dataService";
+import { crearPedido } from "../utils/apiHelper";
 
 /**
  * Utilidades para el manejo de tarjetas de crédito
@@ -60,6 +60,7 @@ export default function Pago() {
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
   const [errors, setErrors] = useState({});
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
 
   const cardType = detectCardType(number);
@@ -132,207 +133,21 @@ export default function Pago() {
     return Object.keys(e).length === 0;
   };
 
-  const onSubmit = (ev) => {
-    ev.preventDefault();
-    if (!validate()) {
-      // Si hay errores de validación, mostrar boleta de error inline (no abrir nueva pestaña)
-      const errorOrden = {
-        id: `ERR-${Date.now()}`,
-        fecha: new Date().toISOString(),
-        error: true,
-        mensajeError: "Error en la validación del formulario de pago",
-        errores: Object.values(errors),
-        cliente: (() => {
-          try {
-            const rawSession = localStorage.getItem("session_user");
-            if (rawSession) {
-              const s = JSON.parse(rawSession);
-              return {
-                nombre: s.nombre || "Cliente",
-                correo: s.correo || s.email || "",
-              };
-            }
-          } catch {}
-          return { nombre: "Cliente", correo: "" };
-        })(),
-      };
-
-      // Guardar en sessionStorage y mostrar boleta inline (sin abrir nueva pestaña)
-      sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
-      setInlineOrden(errorOrden);
-      setShowConfirmation(true);
-      return;
-    }
-    // Simular pago exitoso: crear boleta/orden y guardarla en localStorage
+  // Obtener datos del cliente desde session_user
+  const getClienteData = () => {
     try {
-      // leer carrito
-      const rawCart = localStorage.getItem("pasteleria_cart");
-      const cart = rawCart ? JSON.parse(rawCart) : [];
-
-      // intentar obtener datos del cliente desde session_user
-      let cliente = { nombre: "Cliente", correo: "" };
-      try {
-        const rawSession = localStorage.getItem("session_user");
-        if (rawSession) {
-          const s = JSON.parse(rawSession);
-          cliente = {
-            nombre: s.nombre || "Cliente",
-            correo: s.correo || s.email || "",
-          };
-        }
-      } catch (err) {
-        /* ignore */
-      }
-
-      // Validar stock y construir/actualizar el inventario local
-      const cartArr = Array.isArray(cart) ? cart : [];
-
-      // Cargar pasteles locales y crear una lista combinada con datos base
-      const rawPastelesLocal = localStorage.getItem("pasteles_local");
-      let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
-
-      // merged: copia de locales + los que vienen del servicio base si faltan
-      const merged = [...pastelesLocal];
-      const baseList = PastelService.getAll() || [];
-      baseList.forEach((base) => {
-        if (!merged.find((p) => String(p.id) === String(base.id))) {
-          merged.push({ ...base });
-        }
-      });
-
-      // Verificar stock disponible para cada item del carrito
-      const insufficient = [];
-      cartArr.forEach((c) => {
-        const prod = merged.find((p) => String(p.id) === String(c.id));
-        const qty = Number(c.cantidad || 1);
-        if (prod) {
-          const available = Number(prod.stock || 0);
-          if (qty > available) {
-            insufficient.push({
-              id: c.id,
-              nombre: prod.nombre || `ID ${c.id}`,
-              available,
-              qty,
-            });
-          }
-        }
-      });
-
-      if (insufficient.length > 0) {
-        // Construir orden de error por stock insuficiente y mostrar inline
-        const msg = insufficient
-          .map((x) => `${x.nombre}: stock ${x.available}, solicitado ${x.qty}`)
-          .join("; ");
-        const errorOrden = {
-          id: `ERR-${Date.now()}`,
-          fecha: new Date().toISOString(),
-          error: true,
-          mensajeError: "Stock insuficiente para algunos productos",
-          errores: [msg],
-          cliente,
-        };
-        sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
-        setInlineOrden(errorOrden);
-        setShowConfirmation(true);
-        return;
-      }
-
-      // Si todo ok, decrementar stock en merged y persistir en pasteles_local
-      cartArr.forEach((c) => {
-        const prod = merged.find((p) => String(p.id) === String(c.id));
-        const qty = Number(c.cantidad || 1);
-        if (prod) {
-          prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
-          // Si stock cae a nivel crítico (<=3), asegurar que exista stockCritico <= 3
-          if (prod.stock <= 3) {
-            if (!prod.stockCritico || Number(prod.stockCritico) > 3) {
-              prod.stockCritico = 3;
-            }
-          }
-        }
-      });
-
-      // Guardar merged como pasteles_local (persistir cambios de stock)
-      try {
-        localStorage.setItem("pasteles_local", JSON.stringify(merged));
-      } catch (err) {
-        console.error("Error actualizando pasteles_local:", err);
-      }
-
-      // construir items básicos desde el carrito (id, cantidad, precio, nombre)
-      const items = cartArr.map((c) => {
-        const prod = merged.find((p) => String(p.id) === String(c.id));
+      const rawSession = localStorage.getItem("session_user");
+      if (rawSession) {
+        const s = JSON.parse(rawSession);
         return {
-          id: c.id,
-          cantidad: c.cantidad || 1,
-          precio: Number((prod && prod.precio) || c.precio || 0),
-          nombre: (prod && prod.nombre) || c.nombre || `ID ${c.id}`,
+          nombre: s.nombre || "Cliente",
+          correo: s.correo || s.email || "",
+          direccion: s.direccion || "",
+          telefono: s.telefono || "",
         };
-      });
-
-      const subtotal = items.reduce(
-        (acc, it) => acc + it.precio * it.cantidad,
-        0
-      );
-      const impuestos = Number((subtotal * 0.19).toFixed(2));
-      const total = subtotal + impuestos;
-
-      const orden = {
-        id: `ORD-${Date.now()}`,
-        fecha: new Date().toISOString(),
-        cliente,
-        userId: (() => {
-          try {
-            const rawSession = localStorage.getItem("session_user");
-            if (rawSession) return JSON.parse(rawSession).id;
-          } catch {}
-          return null;
-        })(),
-        items,
-        subtotal,
-        impuestos,
-        total,
-        estado: "pendiente",
-      };
-
-      const rawPedidos = localStorage.getItem("pedidos_local");
-      const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
-      pedidos.push(orden);
-      localStorage.setItem("pedidos_local", JSON.stringify(pedidos));
-
-      // limpiar carrito
-      localStorage.removeItem("pasteleria_cart");
-      // Notificar tanto storage como un evento personalizado para actualizar la UI en la misma pestaña
-      try {
-        window.dispatchEvent(new Event("storage"));
-      } catch (e) {}
-      try {
-        window.dispatchEvent(new Event("pedidos:updated"));
-      } catch (e) {}
-
-      // Mostrar confirmación y abrir boleta en nueva ventana
-      setShowConfirmation(true);
-
-      // Guardar la orden en sessionStorage para que esté disponible en la nueva ventana
-      sessionStorage.setItem("ultima_orden", JSON.stringify(orden));
-
-      // Mostrar boleta inline temporalmente (sin eliminar el comportamiento existente
-      // que abre una nueva ventana). Esto permite al usuario ver la boleta en la
-      // misma pestaña antes de la redirección y no afecta a los tests.
-      setInlineOrden(orden);
-
-      // No abrir nueva ventana: la boleta se muestra inline en esta misma página
-
-      // Mostrar toast — la boleta inline permanece visible hasta que el usuario
-      // la cierre manualmente; además abrimos la boleta en nueva ventana.
-      // Esto facilita al usuario ver la boleta sin redirecciones automáticas.
-      setShowConfirmation(true);
-    } catch (err) {
-      console.error("Error guardando boleta", err);
-      alert(
-        "Pago procesado, pero hubo un error guardando la boleta localmente."
-      );
-    }
+      }
+    } catch {}
+    return { nombre: "Cliente", correo: "", direccion: "", telefono: "" };
   };
 
   // Helper: calcular totales y items desde el carrito local
@@ -340,79 +155,127 @@ export default function Pago() {
     const rawCart = localStorage.getItem("pasteleria_cart");
     const cart = rawCart ? JSON.parse(rawCart) : [];
 
-    const rawPastelesLocal = localStorage.getItem("pasteles_local");
-    let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
-    const merged = [...pastelesLocal];
-    const baseList = PastelService.getAll() || [];
-    baseList.forEach((base) => {
-      if (!merged.find((p) => String(p.id) === String(base.id))) merged.push({ ...base });
-    });
-
-    const items = (Array.isArray(cart) ? cart : []).map((c) => {
-      const prod = merged.find((p) => String(p.id) === String(c.id));
-      return {
-        id: c.id,
-        cantidad: c.cantidad || 1,
-        precio: Number((prod && prod.precio) || c.precio || 0),
-        nombre: (prod && prod.nombre) || c.nombre || `ID ${c.id}`,
-      };
-    });
+    const items = (Array.isArray(cart) ? cart : []).map((c) => ({
+      productoId: c.id,
+      cantidad: c.cantidad || 1,
+      precio: Number(c.precio || 0),
+      nombre: c.nombre || `ID ${c.id}`,
+    }));
 
     const subtotal = items.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
     const impuestos = Number((subtotal * 0.19).toFixed(2));
     const total = Number((subtotal + impuestos).toFixed(2));
-    return { items, subtotal, impuestos, total, merged };
+    return { items, subtotal, impuestos, total };
   };
 
-  // Procesar captura exitosa (común para server/client/simulación)
-  const processCapture = (capture) => {
+  /**
+   * Envía el pedido al backend
+   * @param {Object} options - Opciones adicionales (paypalOrderId, etc.)
+   * @returns {Object} - Orden creada o null si falla
+   */
+  const enviarPedidoAlBackend = async (options = {}) => {
+    const { items } = computeCartTotals();
+    const cliente = getClienteData();
+
+    // Preparar datos para el backend según CrearBoletaRequest
+    const pedidoData = {
+      items: items.map((it) => ({
+        productoId: it.productoId,
+        cantidad: it.cantidad,
+      })),
+      nombreCliente: cliente.nombre,
+      emailCliente: cliente.correo,
+      telefonoCliente: cliente.telefono,
+      direccionEntrega: cliente.direccion,
+      notas: options.paypalOrderId 
+        ? `Pago PayPal - Order ID: ${options.paypalOrderId}` 
+        : "Pago con tarjeta simulada",
+    };
+
     try {
-      const { items, subtotal, impuestos, total, merged } = computeCartTotals();
-
-      // actualizar stock en merged
-      items.forEach((c) => {
-        const prod = merged.find((p) => String(p.id) === String(c.id));
-        const qty = Number(c.cantidad || 1);
-        if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
-      });
-      try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
-
-      let cliente = { nombre: 'Cliente', correo: '' };
-      try {
-        const rawSession = localStorage.getItem('session_user');
-        if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
-      } catch (err) {}
-
-      const orden = {
-        id: `PAYPAL-${Date.now()}`,
-        fecha: new Date().toISOString(),
-        cliente,
-        items,
-        subtotal,
-        impuestos,
-        total,
-        estado: 'pagado',
-        paypalCapture: capture,
+      const response = await crearPedido(pedidoData);
+      
+      // El backend devuelve: { status, message, data: {...boleta} }
+      const boletaCreada = response.data;
+      
+      return {
+        id: boletaCreada.boletaId || boletaCreada.id || `ORD-${Date.now()}`,
+        fecha: boletaCreada.fecha || new Date().toISOString(),
+        cliente: {
+          nombre: cliente.nombre,
+          correo: cliente.correo,
+        },
+        items: boletaCreada.items || items,
+        subtotal: boletaCreada.subtotal || boletaCreada.subTotal,
+        impuestos: boletaCreada.iva || boletaCreada.impuestos,
+        total: boletaCreada.total,
+        estado: boletaCreada.estado || "pendiente",
+        paypalOrderId: options.paypalOrderId || null,
       };
-
-      const rawPedidos = localStorage.getItem('pedidos_local');
-      const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
-      pedidos.push(orden);
-      localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
-
-      // limpiar carrito
-      localStorage.removeItem('pasteleria_cart');
-      try { window.dispatchEvent(new Event('storage')); } catch (e) {}
-
-      sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
-      setInlineOrden(orden);
-      setShowConfirmation(true);
-    } catch (err) {
-      console.error('Error procesando captura localmente', err);
+    } catch (error) {
+      console.error("Error enviando pedido al backend:", error);
+      throw error;
     }
   };
 
-  // (Simulación removida) use `processCapture(capture)` cuando necesites procesar capturas manualmente
+  const onSubmit = async (ev) => {
+    ev.preventDefault();
+    if (!validate()) {
+      // Si hay errores de validación, mostrar boleta de error inline
+      const errorOrden = {
+        id: `ERR-${Date.now()}`,
+        fecha: new Date().toISOString(),
+        error: true,
+        mensajeError: "Error en la validación del formulario de pago",
+        errores: Object.values(errors),
+        cliente: getClienteData(),
+      };
+
+      sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
+      setInlineOrden(errorOrden);
+      setShowConfirmation(true);
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      // Enviar pedido al backend
+      const orden = await enviarPedidoAlBackend();
+
+      // Limpiar carrito
+      localStorage.removeItem("pasteleria_cart");
+      try {
+        window.dispatchEvent(new Event("storage"));
+      } catch (e) {}
+
+      // Guardar la orden en sessionStorage para referencia
+      sessionStorage.setItem("ultima_orden", JSON.stringify(orden));
+
+      // Mostrar boleta inline
+      setInlineOrden(orden);
+      setShowConfirmation(true);
+
+    } catch (err) {
+      console.error("Error procesando pago", err);
+      
+      // Mostrar error
+      const errorOrden = {
+        id: `ERR-${Date.now()}`,
+        fecha: new Date().toISOString(),
+        error: true,
+        mensajeError: err.message || "Error al procesar el pago. Intenta nuevamente.",
+        errores: [err.message || "Error de conexión con el servidor"],
+        cliente: getClienteData(),
+      };
+      
+      sessionStorage.setItem("ultima_orden", JSON.stringify(errorOrden));
+      setInlineOrden(errorOrden);
+      setShowConfirmation(true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Cargar SDK de PayPal y renderizar botones (sandbox/production según client id)
   useEffect(() => {
@@ -454,7 +317,7 @@ export default function Pago() {
     document.body.appendChild(script);
 
     return () => {
-      // No remover el script para no romper otras páginas, pero cleanup si fuera necesario
+      // No remover el script para no romper otras páginas
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [PAYPAL_CLIENT_ID, PAYPAL_CURRENCY]);
@@ -466,27 +329,8 @@ export default function Pago() {
       const usdSubtotal = clpToUsd(subtotal);
       const usdImpuestos = clpToUsd(impuestos);
       const usdTotal = clpToUsd(total);
-      // Intentar crear la orden en el servidor si el endpoint existe
-      try {
-        const resp = await fetch('/api/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            total: Number(usdTotal).toFixed(2),
-            currency: 'USD',
-            items: items.map((it) => ({ name: it.nombre, unit_amount: Number(clpToUsd(it.precio)).toFixed(2), quantity: Number(it.cantidad || 1) }))
-          })
-        });
-        const json = await resp.json().catch(() => null);
-        if (resp.ok && json && (json.id || json.orderID)) {
-          return json.id || json.orderID;
-        }
-        // si el servidor responde con error, hacemos fallback a create en cliente
-      } catch (err) {
-        console.warn('Fallo create-order server, usando createOrder cliente', err);
-      }
 
-      // Fallback: crear orden en el cliente (como antes) usando USD convertidos
+      // Crear orden en el cliente usando USD convertidos
       return actions.order.create({
         purchase_units: [
           {
@@ -508,104 +352,42 @@ export default function Pago() {
       });
     },
     onApprove: async (data, actions) => {
-      // data.orderID viene de PayPal
-      const orderID = data.orderID || (data && data.orderID) || null;
-      // Intentar capturar en el servidor
+      const paypalOrderId = data.orderID || null;
+      
       try {
-        if (orderID) {
-          const resp = await fetch('/api/capture-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderID })
-          });
-          const json = await resp.json().catch(() => null);
-          if (resp.ok && json) {
-            // usar la respuesta del servidor como detalle de captura
-            const capture = json;
-            const { items, subtotal, impuestos, total, merged } = computeCartTotals();
-            // actualizar stock local
-            items.forEach((c) => {
-              const prod = merged.find((p) => String(p.id) === String(c.id));
-              const qty = Number(c.cantidad || 1);
-              if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
-            });
-            try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
-
-            let cliente = { nombre: 'Cliente', correo: '' };
-            try {
-              const rawSession = localStorage.getItem('session_user');
-              if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
-            } catch (err) {}
-
-            const orden = {
-              id: `PAYPAL-${Date.now()}`,
-              fecha: new Date().toISOString(),
-              cliente,
-              items,
-              subtotal,
-              impuestos,
-              total,
-              estado: 'pagado',
-              paypalCapture: capture,
-            };
-
-            const rawPedidos = localStorage.getItem('pedidos_local');
-            const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
-            pedidos.push(orden);
-            localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
-            localStorage.removeItem('pasteleria_cart');
-            try { window.dispatchEvent(new Event('storage')); } catch (e) {}
-            sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
-            setInlineOrden(orden);
-            setShowConfirmation(true);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Error capture-order server, cayendo al capture cliente', err);
-      }
-
-      // Fallback: captura en el cliente
-      try {
+        // Capturar pago en PayPal
         const capture = await actions.order.capture();
-        const { items, subtotal, impuestos, total, merged } = computeCartTotals();
-        items.forEach((c) => {
-          const prod = merged.find((p) => String(p.id) === String(c.id));
-          const qty = Number(c.cantidad || 1);
-          if (prod) prod.stock = Math.max(0, Number(prod.stock || 0) - qty);
+        
+        // Enviar pedido al backend con paypalOrderId
+        const orden = await enviarPedidoAlBackend({ 
+          paypalOrderId,
+          paypalCapture: capture 
         });
-        try { localStorage.setItem('pasteles_local', JSON.stringify(merged)); } catch (e) { console.error(e); }
 
-        let cliente = { nombre: 'Cliente', correo: '' };
-        try {
-          const rawSession = localStorage.getItem('session_user');
-          if (rawSession) { const s = JSON.parse(rawSession); cliente = { nombre: s.nombre || 'Cliente', correo: s.correo || s.email || '' }; }
-        } catch (err) {}
-
-        const orden = {
-          id: `PAYPAL-${Date.now()}`,
-          fecha: new Date().toISOString(),
-          cliente,
-          items,
-          subtotal,
-          impuestos,
-          total,
-          estado: 'pagado',
-          paypalCapture: capture,
-        };
-
-        const rawPedidos = localStorage.getItem('pedidos_local');
-        const pedidos = rawPedidos ? JSON.parse(rawPedidos) : [];
-        pedidos.push(orden);
-        localStorage.setItem('pedidos_local', JSON.stringify(pedidos));
+        // Limpiar carrito
         localStorage.removeItem('pasteleria_cart');
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+
+        // Mostrar boleta
         sessionStorage.setItem('ultima_orden', JSON.stringify(orden));
         setInlineOrden(orden);
         setShowConfirmation(true);
+
       } catch (err) {
-        console.error('Error en captura PayPal (cliente)', err);
-        alert('Hubo un error procesando el pago con PayPal.');
+        console.error('Error procesando pago PayPal:', err);
+        
+        const errorOrden = {
+          id: `ERR-${Date.now()}`,
+          fecha: new Date().toISOString(),
+          error: true,
+          mensajeError: err.message || "Error al procesar el pago con PayPal",
+          errores: [err.message || "Error de conexión con el servidor"],
+          cliente: getClienteData(),
+        };
+        
+        sessionStorage.setItem('ultima_orden', JSON.stringify(errorOrden));
+        setInlineOrden(errorOrden);
+        setShowConfirmation(true);
       }
     },
     onError: (err) => {
@@ -632,6 +414,7 @@ export default function Pago() {
                   id="nombre"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={isProcessing}
                 />
                 {errors.name && (
                   <div className="field-error">{errors.name}</div>
@@ -650,6 +433,7 @@ export default function Pago() {
                   onChange={handleNumberChange}
                   inputMode="numeric"
                   placeholder="1234 5678 9012 3456"
+                  disabled={isProcessing}
                 />
                 {errors.number && (
                   <div className="field-error">{errors.number}</div>
@@ -669,6 +453,7 @@ export default function Pago() {
                     value={expiry}
                     onChange={handleExpiryChange}
                     maxLength={5}
+                    disabled={isProcessing}
                   />
                   {errors.expiry && (
                     <div className="field-error">{errors.expiry}</div>
@@ -687,6 +472,7 @@ export default function Pago() {
                     onChange={(e) => setCvv(onlyDigits(e.target.value))}
                     onFocus={() => setFlipped(true)}
                     onBlur={() => setFlipped(false)}
+                    disabled={isProcessing}
                   />
                   {errors.cvv && (
                     <div className="field-error">{errors.cvv}</div>
@@ -694,8 +480,19 @@ export default function Pago() {
                 </div>
               </div>
 
-              <button type="submit" className="btn btn-success w-100">
-                Pagar
+              <button 
+                type="submit" 
+                className="btn btn-success w-100"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Procesando...
+                  </>
+                ) : (
+                  "Pagar"
+                )}
               </button>
 
               {/* Toast fijo en la esquina superior derecha */}
@@ -809,8 +606,9 @@ export default function Pago() {
                     className="modal-header"
                     style={{
                       borderBottom: "1px solid rgba(0,0,0,0.06)",
-                      background:
-                        "linear-gradient(90deg, var(--accent-pink) 0%, rgba(255,245,225,0.6) 100%)",
+                      background: inlineOrden.error 
+                        ? "linear-gradient(90deg, #f8d7da 0%, rgba(255,245,225,0.6) 100%)"
+                        : "linear-gradient(90deg, var(--accent-pink) 0%, rgba(255,245,225,0.6) 100%)",
                       color: "var(--accent-choco)",
                     }}
                   >
@@ -830,11 +628,13 @@ export default function Pago() {
                       <div>
                         <h6
                           className="mb-0"
-                          style={{ color: "var(--accent-choco)" }}
+                          style={{ color: inlineOrden.error ? "#721c24" : "var(--accent-choco)" }}
                         >
-                          Pastelería 1000
+                          {inlineOrden.error ? "Error en el pago" : "Pastelería 1000"}
                         </h6>
-                        <small className="text-muted">Boleta electrónica</small>
+                        <small className="text-muted">
+                          {inlineOrden.error ? "No se pudo procesar" : "Boleta electrónica"}
+                        </small>
                       </div>
                     </div>
                     <div
@@ -855,122 +655,136 @@ export default function Pago() {
                   </div>
 
                   <div className="modal-body p-4">
-                    <div className="row">
-                      <div className="col-md-6 mb-3">
-                        <h6 className="mb-1">Cliente</h6>
-                        <div className="text-muted">
-                          {inlineOrden.cliente?.nombre || "--"}
-                        </div>
-                        {inlineOrden.cliente?.correo && (
-                          <div className="text-muted small">
-                            {inlineOrden.cliente.correo}
-                          </div>
+                    {inlineOrden.error ? (
+                      <div className="alert alert-danger">
+                        <h5>{inlineOrden.mensajeError}</h5>
+                        {inlineOrden.errores && inlineOrden.errores.length > 0 && (
+                          <ul className="mb-0 mt-2">
+                            {inlineOrden.errores.map((err, i) => (
+                              <li key={i}>{err}</li>
+                            ))}
+                          </ul>
                         )}
                       </div>
-                      <div className="col-md-6 mb-3 text-md-end">
-                        <h6 className="mb-1">Resumen</h6>
-                        <div className="small text-muted">
-                          Items:{" "}
-                          {Array.isArray(inlineOrden.items)
-                            ? inlineOrden.items.length
-                            : 0}
+                    ) : (
+                      <>
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <h6 className="mb-1">Cliente</h6>
+                            <div className="text-muted">
+                              {inlineOrden.cliente?.nombre || "--"}
+                            </div>
+                            {inlineOrden.cliente?.correo && (
+                              <div className="text-muted small">
+                                {inlineOrden.cliente.correo}
+                              </div>
+                            )}
+                          </div>
+                          <div className="col-md-6 mb-3 text-md-end">
+                            <h6 className="mb-1">Resumen</h6>
+                            <div className="small text-muted">
+                              Items:{" "}
+                              {Array.isArray(inlineOrden.items)
+                                ? inlineOrden.items.length
+                                : 0}
+                            </div>
+                            <div className="small text-muted">IVA incluido</div>
+                          </div>
                         </div>
-                        <div className="small text-muted">IVA incluido</div>
-                      </div>
-                    </div>
 
-                    <div className="table-responsive mt-2">
-                      <table className="table table-borderless">
-                        <thead>
-                          <tr className="border-bottom">
-                            <th>Producto</th>
-                            <th className="text-center">Cant.</th>
-                            <th className="text-end">Precio</th>
-                            <th className="text-end">Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Array.isArray(inlineOrden.items) &&
-                          inlineOrden.items.length > 0 ? (
-                            inlineOrden.items.map((it) => (
-                              <tr key={it.id}>
-                                <td style={{ maxWidth: 280 }}>
-                                  {it.nombre || `ID ${it.id}`}
-                                </td>
-                                <td className="text-center">
-                                  {it.cantidad || 1}
-                                </td>
-                                <td className="text-end">
-                                  $
-                                  {Number(it.precio || 0).toLocaleString(
-                                    "es-CL"
-                                  )}
-                                </td>
-                                <td className="text-end">
-                                  $
-                                  {Number(
-                                    (it.precio || 0) * (it.cantidad || 1)
-                                  ).toLocaleString("es-CL")}
-                                </td>
+                        <div className="table-responsive mt-2">
+                          <table className="table table-borderless">
+                            <thead>
+                              <tr className="border-bottom">
+                                <th>Producto</th>
+                                <th className="text-center">Cant.</th>
+                                <th className="text-end">Precio</th>
+                                <th className="text-end">Subtotal</th>
                               </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td
-                                colSpan={4}
-                                className="text-center text-muted py-4"
-                              >
-                                No hay productos en la boleta
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            </thead>
+                            <tbody>
+                              {Array.isArray(inlineOrden.items) &&
+                              inlineOrden.items.length > 0 ? (
+                                inlineOrden.items.map((it, idx) => (
+                                  <tr key={it.productoId || it.id || idx}>
+                                    <td style={{ maxWidth: 280 }}>
+                                      {it.nombreProducto || it.nombre || `ID ${it.productoId || it.id}`}
+                                    </td>
+                                    <td className="text-center">
+                                      {it.cantidad || 1}
+                                    </td>
+                                    <td className="text-end">
+                                      $
+                                      {Number(it.precioUnitario || it.precio || 0).toLocaleString(
+                                        "es-CL"
+                                      )}
+                                    </td>
+                                    <td className="text-end">
+                                      $
+                                      {Number(
+                                        it.subtotal || (it.precioUnitario || it.precio || 0) * (it.cantidad || 1)
+                                      ).toLocaleString("es-CL")}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td
+                                    colSpan={4}
+                                    className="text-center text-muted py-4"
+                                  >
+                                    No hay productos en la boleta
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
 
-                    <div className="d-flex justify-content-end mt-3">
-                      <div style={{ minWidth: 260 }}>
-                        {/* Usar valores por defecto si la orden no incluye montos */}
-                        {(() => {
-                          const safeSubtotal = Number(
-                            inlineOrden.subtotal || 0
-                          );
-                          const safeImpuestos = Number(
-                            inlineOrden.impuestos || 0
-                          );
-                          const safeTotal = Number(
-                            inlineOrden.total || safeSubtotal + safeImpuestos
-                          );
-                          return (
-                            <>
-                              <div className="d-flex justify-content-between small text-muted">
-                                <div>Subtotal</div>
-                                <div>
-                                  ${safeSubtotal.toLocaleString("es-CL")}
-                                </div>
-                              </div>
-                              <div className="d-flex justify-content-between small text-muted">
-                                <div>IVA (19%)</div>
-                                <div>
-                                  ${safeImpuestos.toLocaleString("es-CL")}
-                                </div>
-                              </div>
-                              <div
-                                className="d-flex justify-content-between align-items-center mt-2"
-                                style={{ fontSize: 18 }}
-                              >
-                                <strong>Total</strong>
-                                <strong
-                                  style={{ color: "var(--accent-choco)" }}
-                                >
-                                  ${safeTotal.toLocaleString("es-CL")}
-                                </strong>
-                              </div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
+                        <div className="d-flex justify-content-end mt-3">
+                          <div style={{ minWidth: 260 }}>
+                            {(() => {
+                              const safeSubtotal = Number(
+                                inlineOrden.subtotal || inlineOrden.subTotal || 0
+                              );
+                              const safeImpuestos = Number(
+                                inlineOrden.impuestos || inlineOrden.iva || 0
+                              );
+                              const safeTotal = Number(
+                                inlineOrden.total || safeSubtotal + safeImpuestos
+                              );
+                              return (
+                                <>
+                                  <div className="d-flex justify-content-between small text-muted">
+                                    <div>Subtotal</div>
+                                    <div>
+                                      ${safeSubtotal.toLocaleString("es-CL")}
+                                    </div>
+                                  </div>
+                                  <div className="d-flex justify-content-between small text-muted">
+                                    <div>IVA (19%)</div>
+                                    <div>
+                                      ${safeImpuestos.toLocaleString("es-CL")}
+                                    </div>
+                                  </div>
+                                  <div
+                                    className="d-flex justify-content-between align-items-center mt-2"
+                                    style={{ fontSize: 18 }}
+                                  >
+                                    <strong>Total</strong>
+                                    <strong
+                                      style={{ color: "var(--accent-choco)" }}
+                                    >
+                                      ${safeTotal.toLocaleString("es-CL")}
+                                    </strong>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div
@@ -992,22 +806,32 @@ export default function Pago() {
                           marginRight: 8,
                         }}
                       />
-                      <span>Gracias por comprar en Pastelería 1000</span>
+                      <span>
+                        {inlineOrden.error 
+                          ? "Por favor, intenta nuevamente" 
+                          : "Gracias por comprar en Pastelería 1000"}
+                      </span>
                     </div>
-                    <button
-                      className="btn btn-secondary me-2"
-                      onClick={() => window.print()}
-                    >
-                      <i className="bi bi-printer"></i> Imprimir
-                    </button>
+                    {!inlineOrden.error && (
+                      <button
+                        className="btn btn-secondary me-2"
+                        onClick={() => window.print()}
+                      >
+                        <i className="bi bi-printer"></i> Imprimir
+                      </button>
+                    )}
                     <button
                       className="btn btn-primary"
                       onClick={() => {
                         setInlineOrden(null);
-                        navigate("/pedidos");
+                        if (inlineOrden.error) {
+                          // Quedarse en la página de pago para reintentar
+                        } else {
+                          navigate("/");
+                        }
                       }}
                     >
-                      Ver mis pedidos
+                      {inlineOrden.error ? "Cerrar" : "Volver al inicio"}
                     </button>
                   </div>
                 </div>
