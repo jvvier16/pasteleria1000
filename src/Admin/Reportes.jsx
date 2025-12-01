@@ -55,25 +55,35 @@ export default function AdminReportes() {
     try {
       // Cargar estadísticas generales
       const statsResponse = await obtenerEstadisticas();
-      if (statsResponse.status === 200 && statsResponse.data) {
+      // El backend devuelve: { status: 200, mensaje: "...", data: {...} }
+      // Verificar que haya data (status 200 o que simplemente exista data)
+      if (statsResponse && statsResponse.data) {
         setEstadisticas(statsResponse.data);
-      } else {
-        throw new Error(statsResponse.message || "Error al cargar estadísticas");
+      } else if (statsResponse && !statsResponse.data && (statsResponse.status >= 400 || statsResponse.mensaje)) {
+        throw new Error(statsResponse.mensaje || statsResponse.message || "Error al cargar estadísticas");
       }
 
       // Cargar reporte de ventas
       const reporteResponse = await obtenerReporteVentas(fechaInicio || null, fechaFin || null);
-      if (reporteResponse.status === 200 && reporteResponse.data) {
+      if (reporteResponse && reporteResponse.data) {
         setReporte(reporteResponse.data);
       }
     } catch (err) {
       console.error("Error cargando datos:", err);
-      if (err.status === 401) {
+      // Verificar tipo de error
+      const errorStatus = err.status || err.statusCode;
+      const errorMessage = err.message || err.mensaje || err.error;
+      
+      if (errorStatus === 401) {
         setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
-      } else if (err.status === 403) {
-        setError("No tienes permisos para acceder a esta información.");
+      } else if (errorStatus === 403) {
+        setError("No tienes permisos para acceder a esta información. Necesitas ser Admin o Tester.");
+      } else if (errorStatus === 404) {
+        setError("Endpoint no encontrado. Verifica que el backend esté actualizado.");
+      } else if (errorMessage) {
+        setError(`Error: ${errorMessage}`);
       } else {
-        setError(err.message || "Error al cargar los datos");
+        setError("Error al cargar los datos. Verifica la consola del navegador para más detalles.");
       }
     } finally {
       setLoading(false);
@@ -85,12 +95,12 @@ export default function AdminReportes() {
     e.preventDefault();
     try {
       const reporteResponse = await obtenerReporteVentas(fechaInicio || null, fechaFin || null);
-      if (reporteResponse.status === 200 && reporteResponse.data) {
+      if (reporteResponse && reporteResponse.data) {
         setReporte(reporteResponse.data);
       }
     } catch (err) {
       console.error("Error filtrando reporte:", err);
-      alert(err.message || "Error al filtrar el reporte");
+      alert(err.message || err.mensaje || "Error al filtrar el reporte");
     }
   };
 
