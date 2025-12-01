@@ -22,7 +22,7 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
-import usuariosData from "../data/Usuarios.json";
+import { UsuarioService } from "../services/dataService";
 import { Eye, EyeOff } from "lucide-react";
 
 const Registro = () => {
@@ -166,17 +166,16 @@ const Registro = () => {
 
     // Validar mail duplicado
     const emailLower = formData.correo.toLowerCase();
-    const dupInJson = usuariosData.some(
-      (u) => u.correo.toLowerCase() === emailLower
-    );
-    const dupInLocal = local.some((u) => u.correo.toLowerCase() === emailLower);
+    const allUsuarios = UsuarioService.getAll() || []
+    const dupInJson = allUsuarios.some((u) => (u.correo || '').toLowerCase() === emailLower)
+    const dupInLocal = local.some((u) => (u.correo || '').toLowerCase() === emailLower);
     if (dupInJson || dupInLocal) {
       setErrors({ correo: "Este correo ya está registrado" });
       return;
     }
 
     // Nuevo ID
-    const idsJson = usuariosData.map((u) => u.id || 0);
+    const idsJson = (UsuarioService.getAll()||[]).map((u) => u.id || 0);
     const idsLocal = local.map((u) => u.id || 0);
     const maxId = Math.max(0, ...idsJson, ...idsLocal);
     const nuevoId = maxId + 1;

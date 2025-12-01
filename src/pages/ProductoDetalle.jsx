@@ -1,25 +1,12 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import pastelesData from "../data/Pasteles.json";
+import { PastelService } from "../services/dataService";
 import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
 
 const ProductoDetalle = () => {
   const { id } = useParams();
 
-  // Combinar JSON + pasteles_local (locales sobrescriben)
-  const rawLocal = localStorage.getItem("pasteles_local");
-  let pastelesLocales = [];
-  try {
-    pastelesLocales = rawLocal ? JSON.parse(rawLocal) : [];
-  } catch {
-    pastelesLocales = [];
-  }
-  const mapa = new Map();
-  for (const p of pastelesData) mapa.set(String(p.id), p);
-  for (const p of pastelesLocales || []) mapa.set(String(p.id), p);
-  const todos = Array.from(mapa.values());
-
-  const prod = todos.find((p) => String(p.id) === String(id));
+  const prod = PastelService.getById(Number(id))
   const [added, setAdded] = useState(false);
 
   if (!prod)

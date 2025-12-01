@@ -1,21 +1,15 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function RequireVendedor({ children }) {
-  let user = null;
-  try {
-    const raw = localStorage.getItem("session_user");
-    if (raw) user = JSON.parse(raw);
-  } catch (err) {
-    console.error("Error parsing session_user:", err);
-    return <Navigate to="/login" replace />;
-  }
+  const location = useLocation();
+  const { user } = useAuth();
 
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
 
   const userRole = (user.role || user.rol || user.roleName || "").toString().toLowerCase();
-  // Allow testers to access vendor/admin areas for QA
   if (userRole === "vendedor" || userRole === "tester") return children;
 
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/login" state={{ from: location }} replace />;
 }

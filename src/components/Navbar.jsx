@@ -6,8 +6,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ShoppingCart, Search } from "lucide-react";
 import blogPosts from "../data/BlogPosts";
-import pastelesData from "../data/Pasteles.json";
+import { PastelService } from "../services/dataService";
 import { getCart } from "../utils/localstorageHelper";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const [categorias, setCategorias] = useState([]);
@@ -15,7 +16,7 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [bump, setBump] = useState(false);
   const [cartTotalMoney, setCartTotalMoney] = useState(0);
-  const [sessionUser, setSessionUser] = useState(null);
+  const { user: sessionUser, logout } = useAuth();
   const navigate = useNavigate();
   // confirm logout modal
   const logoutModalRef = useRef(null);
@@ -23,17 +24,8 @@ export default function Navbar() {
 
   useEffect(() => {
     const cats = new Set();
-
-    // Intentar usar pasteles almacenados en localStorage si existen.
-    let source = pastelesData;
-    try {
-      const rawLocal = localStorage.getItem("pasteles_local");
-      const local = rawLocal ? JSON.parse(rawLocal) : [];
-      if (local && local.length) source = local;
-    } catch {
-      // si falla el parse, continuar con el JSON embebido
-      source = pastelesData;
-    }
+    // Use centralized PastelService (it returns [] when API down)
+    const source = PastelService.getAll() || []
 
     source.forEach((p) => {
       const nombre = (p.nombre || "").toLowerCase();
@@ -84,49 +76,25 @@ export default function Navbar() {
       }
     };
 
-    const updateUser = () => {
-      try {
-        const raw = localStorage.getItem("session_user");
-        if (raw) {
-          const userData = JSON.parse(raw);
-          setSessionUser(userData);
-          // Actualizar isAdmin cuando el usuario cambia
-          if (userData.role === "admin") {
-            console.log("Usuario admin detectado");
-          }
-        } else {
-          setSessionUser(null);
-        }
-      } catch (err) {
-        console.error("Error al cargar usuario:", err);
-        setSessionUser(null);
-      }
-    };
+
 
     // Ejecutar actualizaciones iniciales
     updateCart();
-    updateUser();
 
     const onStorage = (e) => {
       if (e.key === null || e.key === "pasteleria_cart") {
         updateCart();
-      }
-      if (e.key === null || e.key === "session_user") {
-        updateUser();
       }
     };
 
     // Escuchar eventos de storage y custom events
     window.addEventListener("storage", onStorage);
     window.addEventListener("cartUpdated", updateCart);
-    window.addEventListener("userLogin", updateUser);
-    window.addEventListener("userLogout", updateUser);
+    // session changes are handled by AuthContext; it dispatches storage/userLogin events
 
     return () => {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("cartUpdated", updateCart);
-      window.removeEventListener("userLogin", updateUser);
-      window.removeEventListener("userLogout", updateUser);
     };
   }, []);
 
@@ -160,18 +128,8 @@ export default function Navbar() {
 
   const confirmLogout = async () => {
     try {
-      // Guardar el usuario actual para el evento
-      const currentUser = sessionUser;
-
-      // Eliminar sesión y actualizar estado
-      localStorage.removeItem("session_user");
-      setSessionUser(null);
-
-      // Disparar eventos de logout
-      window.dispatchEvent(
-        new CustomEvent("userLogout", { detail: currentUser })
-      );
-      window.dispatchEvent(new Event("storage"));
+      // Use centralized logout from AuthContext
+      await logout();
 
       // Ocultar modal si existe
       try {

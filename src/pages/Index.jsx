@@ -2,8 +2,8 @@ import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Card from "../components/Card";
-import pastelesData from "../data/Pasteles.json";
 import { addToCart } from "../utils/localstorageHelper";
+import { usePasteles } from "../hooks/usePasteles";
 
 const Index = () => {
   useEffect(() => {
@@ -25,23 +25,11 @@ const Index = () => {
   }, []);
   const location = useLocation();
   const showCarousel = !location.pathname.startsWith("/vendedor");
-  // Leer pasteles locales (si existen) y combinar con el JSON base
-  const rawLocal = localStorage.getItem("pasteles_local");
-  let pastelesLocales = [];
-  try {
-    pastelesLocales = rawLocal ? JSON.parse(rawLocal) : [];
-  } catch {
-    pastelesLocales = [];
-  }
-
-  // Combinar JSON + locales (locales sobrescriben si comparten id)
-  const mapa = new Map();
-  for (const p of pastelesData) mapa.set(p.id, p);
-  for (const p of pastelesLocales || []) mapa.set(p.id, p);
-  const todos = Array.from(mapa.values());
-
-  // Crear un set con ids locales para marcar el origen
-  const localIds = new Set((pastelesLocales || []).map((x) => String(x.id)));
+  const { pasteles } = usePasteles()
+  const todos = pasteles || []
+  const localRaw = localStorage.getItem('pasteles_local')
+  let localIds = new Set()
+  try { const locals = localRaw ? JSON.parse(localRaw) : []; localIds = new Set((locals||[]).map(x=>String(x.id))) } catch { localIds = new Set() }
 
   // Handler para agregar al carrito desde la página principal
   const handleAddToCart = (product) => {

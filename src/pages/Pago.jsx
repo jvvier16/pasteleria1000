@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/img/logo.png";
-import pastelesData from "../data/Pasteles.json";
+import { PastelService } from "../services/dataService";
 
 /**
  * Utilidades para el manejo de tarjetas de crédito
@@ -191,11 +191,11 @@ export default function Pago() {
       const rawPastelesLocal = localStorage.getItem("pasteles_local");
       let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
 
-      // merged: copia de locales + los que vienen del JSON base si faltan
+      // merged: copia de locales + los que vienen del servicio base si faltan
       const merged = [...pastelesLocal];
-      pastelesData.forEach((base) => {
+      const baseList = PastelService.getAll() || [];
+      baseList.forEach((base) => {
         if (!merged.find((p) => String(p.id) === String(base.id))) {
-          // clonar el base para poder persistir cambios locales
           merged.push({ ...base });
         }
       });
@@ -343,7 +343,8 @@ export default function Pago() {
     const rawPastelesLocal = localStorage.getItem("pasteles_local");
     let pastelesLocal = rawPastelesLocal ? JSON.parse(rawPastelesLocal) : [];
     const merged = [...pastelesLocal];
-    pastelesData.forEach((base) => {
+    const baseList = PastelService.getAll() || [];
+    baseList.forEach((base) => {
       if (!merged.find((p) => String(p.id) === String(base.id))) merged.push({ ...base });
     });
 

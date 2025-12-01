@@ -2,8 +2,8 @@
 // - Lee la query string `search` para filtrar por nombre/descripcion (normalizado sin tildes).
 // - Resuelve la URL de la imagen basada en el campo `imagen` del JSON.
 import Card from "../components/Card";
-import { addToCart as addToCartHelper } from "../utils/localstorageHelper";
-import pastelesData from "../data/Pasteles.json";
+import { CarritoService } from "../services/dataService";
+import { usePasteles } from "../hooks/usePasteles";
 import { useLocation } from "react-router-dom";
 
 function useQuery() {
@@ -20,52 +20,22 @@ export default function Productos() {
   const query = useQuery();
   const search = normalize(query.get("search") || "");
 
-  // 1) Leer pasteles creados en localStorage
-  const localRaw = localStorage.getItem("pasteles_local");
-  let pastelesLocales = [];
-  try {
-    pastelesLocales = localRaw ? JSON.parse(localRaw) : [];
-  } catch {
-    pastelesLocales = [];
+  // Usar hook para obtener pasteles
+  const { pasteles } = usePasteles(search || "")
+
+  // Resolver imagen para cada pastel
+  const resolveImageUrl = (imagen) => {
+    if (!imagen) return ""
+    if (imagen.startsWith("data:") || imagen.startsWith("http")) return imagen
+    const filename = imagen.split("/").pop()
+    return filename ? new URL(`../assets/img/${filename}`, import.meta.url).href : ""
   }
 
-  // 2) Combinar JSON + LocalStorage sin duplicados.
-  // - Queremos mostrar todos los productos (los 20 del JSON) pero permitir
-  //   que los pasteles locales reemplacen/actualicen a los del JSON cuando
-  //   compartan el mismo `id` (por ejemplo, tras editar/crear desde Admin).
-  // - Evita concatenar indiscriminadamente y producir duplicados con los
-  //   mismos ids.
-  const mapa = new Map();
-  // primero cargar JSON (base)
-  for (const p of pastelesData) mapa.set(p.id, p);
-  // luego sobreescribir/añadir locales
-  for (const p of pastelesLocales || []) mapa.set(p.id, p);
-  const todosLosPasteles = Array.from(mapa.values());
-
-  // 3) Resolver imagen y filtrar por search
-  const productos = todosLosPasteles
-    .map((p) => {
-      // Resolver imagen (usando ruta relativa del JSON o ruta completa de local)
-      let imageUrl = "";
-      if (p.imagen) {
-        // Si la imagen ya es una URL completa (ej: data:image/... o http://) usarla directamente
-        if (p.imagen.startsWith("data:") || p.imagen.startsWith("http")) {
-          imageUrl = p.imagen;
-        } else {
-          // Si es ruta relativa, resolverla usando la estructura del proyecto
-          const filename = p.imagen.split("/").pop();
-          imageUrl = filename
-            ? new URL(`../assets/img/${filename}`, import.meta.url).href
-            : "";
-        }
-      }
-      return { ...p, imageUrl };
-    })
-    .filter((p) => {
-      if (!search) return true;
-      const hay = normalize(`${p.nombre || ""} ${p.descripcion || ""}`);
-      return hay.includes(search);
-    });
+  // Mapear pasteles con URL de imagen resuelta
+  const productos = pasteles.map((p) => ({
+    ...p,
+    imageUrl: resolveImageUrl(p.imagen),
+  }))
 
   return (
     <div className="container mt-4">
@@ -99,7 +69,7 @@ export default function Productos() {
             showStockCritical={false}
             precio={Number(prod.precio)}
             onAgregar={(p) =>
-              addToCartHelper({
+              CarritoService.addItem({
                 id: prod.id,
                 nombre: prod.nombre,
                 precio: Number(prod.precio),

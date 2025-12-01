@@ -18,8 +18,9 @@
  * 6. Se redirige según el rol del usuario
  */
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { UsuarioService } from "../services/dataService";
 import { Eye, EyeOff } from "lucide-react";
-import usuariosData from "../data/Usuarios.json";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Login() {
@@ -27,33 +28,9 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
-  const [usuarios, setUsuarios] = useState([]); // ahora tendrá JSON + localStorage
   const navigate = useNavigate();
   const location = useLocation();
-
-  //  Cargar usuarios desde JSON + localStorage
-  useEffect(() => {
-    try {
-      // Leer local
-      const rawLocal = localStorage.getItem("usuarios_local");
-      const usuariosLocal = rawLocal ? JSON.parse(rawLocal) : [];
-
-      // Si no existe, inicializar
-      if (!rawLocal) {
-        localStorage.setItem("usuarios_local", JSON.stringify([]));
-      }
-
-      // Preferir usuarios locales si existen, sino usar JSON
-      // Evitamos concatenar ambos para prevenir duplicados cuando
-      // `usuarios_local` contiene ya las entradas del JSON.
-      setUsuarios(
-        usuariosLocal && usuariosLocal.length ? usuariosLocal : usuariosData
-      );
-    } catch (err) {
-      console.error("Error cargando usuarios", err);
-      setUsuarios(usuariosData);
-    }
-  }, []);
+  const { login } = useAuth();
 
   // Validación del formulario
   const validate = () => {
@@ -92,25 +69,48 @@ export default function Login() {
   };
 
   // 🚪 Submit login
-  const onSubmit = (ev) => {
+  const onSubmit = async (ev) => {
     ev.preventDefault();
     if (!validate()) return;
 
-    // Normalizar comparaciones
-    const normalized = (s) => (s || "").toString().toLowerCase();
+    // Primero intentamos autenticación en el servidor (si está disponible)
+    const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8094'
+    try {
+      const resp = await fetch(`${API_BASE}/api/usuarios/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userOrEmail: form.userOrEmail, password: form.password })
+      })
+      if (resp.ok) {
+        const payload = await resp.json()
+        let found = payload && payload.user ? payload.user : payload
+        const token = payload && payload.token ? payload.token : null
+        // server returns user object without password
+        const session = {
+          id: found.id,
+          nombre: (found.nombre || '') + (found.apellido ? ' ' + found.apellido : '') || 'Usuario',
+          correo: found.correo || form.userOrEmail,
+          imagen: found.imagen || null,
+          role: found.role || 'user',
+          token: token,
+        }
+        login(session)
+        setLogged(true)
+        setErrors({})
+        setTimeout(() => {
+          const fromPath = location?.state?.from?.pathname
+          if (fromPath) { navigate(fromPath); return }
+          if (session.role === 'admin') navigate('/admin'); else navigate('/')
+        }, 0)
+        return
+      }
+    } catch (e) {
+      // Si falla la llamada al servidor, caemos a autenticación local
+      console.warn('Server login failed, falling back to local auth', e.message)
+    }
 
-    const matches = (u) => {
-      const email = normalized(u.correo || u.email);
-      const nombre = normalized(u.nombre || "");
-      const nombreCompleto = normalized(
-        ((u.nombre || "") + " " + (u.apellido || "")).trim()
-      );
-      const input = normalized(form.userOrEmail);
-      return input === email || input === nombre || input === nombreCompleto;
-    };
-
-    // Buscar en la lista combinada
-    const found = usuarios.find(matches);
+    // Fallback: Usar UsuarioService para buscar el usuario (local)
+    const found = UsuarioService.findBy(form.userOrEmail);
 
     if (!found) {
       setLogged(false);
@@ -118,7 +118,7 @@ export default function Login() {
       return;
     }
 
-    // Validar contraseña
+    // Validar contraseña (local)
     const expected = found.contrasena || "";
     if (expected !== form.password) {
       setLogged(false);
@@ -154,21 +154,8 @@ export default function Login() {
         role: found.role || "user",
       };
 
-      // Guardar sesión en localStorage
-      localStorage.setItem("session_user", JSON.stringify(session));
-
-      // Disparar eventos para notificar el inicio de sesión
-      // Primero el evento personalizado para actualizar el estado
-      window.dispatchEvent(
-        new CustomEvent("userLogin", {
-          detail: session,
-          bubbles: true,
-          cancelable: true,
-        })
-      );
-
-      // Luego el evento de storage para persistencia
-      window.dispatchEvent(new Event("storage"));
+      // Guardar sesión usando AuthContext (centraliza storage y eventos)
+      login(session);
 
       // Marcar login como exitoso antes de redirigir para que los tests
       // y la UI muestren el feedback. Luego navegar en un tick.

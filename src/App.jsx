@@ -8,6 +8,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // Layout
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
+import { ApiHealthProvider } from "./context/ApiHealthContext"
+import ApiDown from "./components/ApiDown"
 
 // Pages
 import Index from "./pages/Index.jsx";
@@ -49,8 +51,9 @@ import EditarPastelVendedor from "./vendedor/EditarPastelVendedor.jsx";
 
 function App() {
   return (
-    <>
+    <ApiHealthProvider>
       <Navbar />
+      <ApiDown />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/productos" element={<Productos />} />
@@ -131,7 +134,7 @@ function App() {
         </Route>
       </Routes>
       <Footer />
-    </>
+    </ApiHealthProvider>
   );
 }
 

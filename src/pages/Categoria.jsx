@@ -6,7 +6,7 @@ import { useLocation } from "react-router-dom";
 import Card from "../components/Card";
 import { addToCart } from "../utils/localstorageHelper";
 import "bootstrap/dist/css/bootstrap.min.css";
-import pasteles from "../data/Pasteles.json";
+import { usePasteles } from "../hooks/usePasteles";
 
 // helper para crear slugs seguros (sin tildes y espacios)
 const slugify = (str) => {
@@ -22,10 +22,11 @@ const slugify = (str) => {
 };
 
 const Categorias = () => {
+  const { pasteles } = usePasteles()
   // agrupar pasteles por categoria
   const categorias = useMemo(() => {
     const map = new Map();
-    pasteles.forEach((p) => {
+    (pasteles || []).forEach((p) => {
       const cat = (p.categoria || "Otros").toString().trim();
       if (!map.has(cat)) map.set(cat, []);
       // resolver URL de imagen
@@ -41,7 +42,7 @@ const Categorias = () => {
       nombre,
       productos,
     }));
-  }, []);
+  }, [pasteles]);
 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [toast, setToast] = useState(null);
@@ -85,14 +86,14 @@ const Categorias = () => {
   // Special discounts view: compute discounted products (e.g., 20% off on productos >= 40000)
   const DISCOUNT_PERCENT = 20;
   const discountedProducts = useMemo(() => {
-    return pasteles
+    return (pasteles || [])
       .filter((p) => Number(p.precio || 0) >= 40000)
       .map((p) => ({
         ...p,
         imageUrl: p.imageUrl || ((p.imagen || "").split("/").pop() ? new URL(`../assets/img/${(p.imagen||"").split("/").pop()}`, import.meta.url).href : ""),
         discountedPrice: Math.round(Number(p.precio || 0) * (1 - DISCOUNT_PERCENT / 100)),
       }));
-  }, []);
+  }, [pasteles]);
 
   // si la url contiene ?cat=slug, seleccionar esa categoria al cargar
   const location = useLocation();

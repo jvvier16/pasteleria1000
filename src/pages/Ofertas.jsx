@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import pasteles from "../data/Pasteles.json";
+import { usePasteles } from "../hooks/usePasteles";
 import Card from "../components/Card";
 import { addToCart } from "../utils/localstorageHelper";
 
@@ -17,8 +17,8 @@ const resolveImage = (imgPath) => {
 };
 
 const Ofertas = () => {
-  // filtrar pasteles con precio mayor a 45000
   const DISCOUNT = 20; // percent
+  const { pasteles } = usePasteles()
   const ofertados = (pasteles || [])
     .map((p) => ({ ...p, precio: Number(p.precio || 0) }))
     .filter((p) => p.precio >= 40000)
