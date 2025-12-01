@@ -49,12 +49,49 @@ const authHeaders = () => ({
 
 /**
  * Maneja la respuesta de fetch y parsea JSON
+ * - Maneja respuestas vacías (204 No Content)
+ * - Maneja errores de parsing JSON
+ * - Maneja errores HTTP
  */
 const handleResponse = async (response) => {
-  const data = await response.json();
-  if (!response.ok) {
-    throw { status: response.status, ...data };
+  // Si es 204 No Content o respuesta vacía
+  const contentType = response.headers.get('content-type');
+  const contentLength = response.headers.get('content-length');
+  
+  // Si no hay contenido, retornar objeto vacío
+  if (response.status === 204 || contentLength === '0') {
+    if (!response.ok) {
+      throw { status: response.status, message: 'Error del servidor' };
+    }
+    return { status: response.status, data: null, message: 'OK' };
   }
+  
+  // Intentar parsear JSON
+  let data = null;
+  try {
+    const text = await response.text();
+    if (text && text.trim()) {
+      data = JSON.parse(text);
+    } else {
+      // Respuesta vacía
+      if (!response.ok) {
+        throw { status: response.status, message: `Error HTTP ${response.status}` };
+      }
+      return { status: response.status, data: null, message: 'OK' };
+    }
+  } catch (parseError) {
+    // Error al parsear JSON
+    if (!response.ok) {
+      throw { status: response.status, message: `Error HTTP ${response.status}` };
+    }
+    console.warn('Respuesta no es JSON válido:', parseError);
+    return { status: response.status, data: null, message: 'OK' };
+  }
+  
+  if (!response.ok) {
+    throw { status: response.status, ...(typeof data === 'object' ? data : { message: data }) };
+  }
+  
   return data;
 };
 
