@@ -14,7 +14,7 @@ import pastelesData from '../data/Pasteles.json'
 // API base (Vite environment or fallback)
 export const API_BASE = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
-  : 'http://localhost:3000'
+  : 'http://localhost:8094'
 
 // Helper: Normalize image paths to absolute URLs or Vite imports
 function normalizeImagePath(imagePath) {
