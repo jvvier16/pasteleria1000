@@ -46,6 +46,10 @@ export function AuthProvider({ children }) {
   function login(sessionObj) {
     try {
       localStorage.setItem('session_user', JSON.stringify(sessionObj))
+      // Guardar token también de forma separada para apiHelper
+      if (sessionObj && sessionObj.token) {
+        localStorage.setItem('token', sessionObj.token)
+      }
       setUser(sessionObj)
       window.dispatchEvent(new CustomEvent('userLogin', { detail: sessionObj }))
       // also dispatch storage so other listeners update (compat)
@@ -78,6 +82,7 @@ export function AuthProvider({ children }) {
   function logout() {
     try {
       localStorage.removeItem('session_user')
+      localStorage.removeItem('token') // Eliminar token JWT
       setUser(null)
       window.dispatchEvent(new CustomEvent('userLogout'))
       // also dispatch storage so other listeners update (compat)

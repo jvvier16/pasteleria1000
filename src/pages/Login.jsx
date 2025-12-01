@@ -3,8 +3,8 @@
  *
  * Este componente maneja la autenticación de usuarios en la aplicación.
  * Características principales:
- * - Combina usuarios de JSON y localStorage para autenticación
- * - Validación completa de formularios
+ * - Autenticación contra el backend con JWT
+ * - Validación de formularios
  * - Manejo de sesiones con localStorage
  * - Redirección basada en roles
  * - Interfaz de usuario amigable con feedback visual
@@ -12,14 +12,14 @@
  * Flujo de autenticación:
  * 1. Usuario ingresa credenciales
  * 2. Se validan los datos localmente
- * 3. Se busca el usuario en la base de datos combinada
- * 4. Se verifica la contraseña
- * 5. Se crea la sesión y se almacena
+ * 3. Se envía petición al backend /api/v2/auth/login
+ * 4. Se recibe token JWT y datos del usuario
+ * 5. Se guarda token y sesión en localStorage
  * 6. Se redirige según el rol del usuario
  */
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { UsuarioService } from "../services/dataService";
+import { login as apiLogin } from "../utils/apiHelper";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -28,6 +28,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [logged, setLogged] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
@@ -50,18 +51,6 @@ export default function Login() {
     // Validación de contraseña
     if (!form.password) {
       e.password = "Ingresa la contraseña";
-    } else {
-      if (form.password.length < 12) {
-        e.password = "La contraseña debe tener al menos 12 caracteres";
-      } else if (form.password.length > 18) {
-        e.password = "La contraseña debe tener como máximo 18 caracteres";
-      } else if (!/[A-Z]/.test(form.password)) {
-        e.password = "La contraseña debe contener al menos una mayúscula";
-      } else if (!/[a-z]/.test(form.password)) {
-        e.password = "La contraseña debe contener al menos una minúscula";
-      } else if (!/\d/.test(form.password)) {
-        e.password = "La contraseña debe contener al menos un número";
-      }
     }
 
     setErrors(e);
@@ -73,114 +62,87 @@ export default function Login() {
     ev.preventDefault();
     if (!validate()) return;
 
-    // Primero intentamos autenticación en el servidor (si está disponible)
-    const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8094'
+    setIsLoading(true);
+    setLogged(null);
+    setErrors({});
+
     try {
-      const resp = await fetch(`${API_BASE}/api/usuarios/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userOrEmail: form.userOrEmail, password: form.password })
-      })
-      if (resp.ok) {
-        const payload = await resp.json()
-        let found = payload && payload.user ? payload.user : payload
-        const token = payload && payload.token ? payload.token : null
-        // server returns user object without password
-        const session = {
-          id: found.id,
-          nombre: (found.nombre || '') + (found.apellido ? ' ' + found.apellido : '') || 'Usuario',
-          correo: found.correo || form.userOrEmail,
-          imagen: found.imagen || null,
-          role: found.role || 'user',
-          token: token,
-        }
-        login(session)
-        setLogged(true)
-        setErrors({})
-        setTimeout(() => {
-          const fromPath = location?.state?.from?.pathname
-          if (fromPath) { navigate(fromPath); return }
-          if (session.role === 'admin') navigate('/admin'); else navigate('/')
-        }, 0)
-        return
-      }
-    } catch (e) {
-      // Si falla la llamada al servidor, caemos a autenticación local
-      console.warn('Server login failed, falling back to local auth', e.message)
-    }
+      // Llamada al backend usando apiHelper
+      const response = await apiLogin(form.userOrEmail, form.password);
 
-    // Fallback: Usar UsuarioService para buscar el usuario (local)
-    const found = UsuarioService.findBy(form.userOrEmail);
+      // El backend devuelve: { status, message, data: { token, userId, nombre, correo, role } }
+      const userData = response.data;
 
-    if (!found) {
-      setLogged(false);
-      setErrors({ userOrEmail: "Usuario o email no registrado" });
-      return;
-    }
-
-    // Validar contraseña (local)
-    const expected = found.contrasena || "";
-    if (expected !== form.password) {
-      setLogged(false);
-      setErrors({ password: "Contraseña incorrecta" });
-      return;
-    }
-
-    // Guardar session_user con el role real del usuario encontrado
-    try {
-      // Resolve imagen: allow JSON to provide a relative asset path like
-      // "../assets/img/segunda.jpeg" and convert it to an absolute URL
-      let imagenUrl = null;
-      try {
-        if (found.imagen) {
-          const raw = String(found.imagen);
-          if (raw.startsWith("data:") || raw.startsWith("http") || raw.startsWith("/")) {
-            imagenUrl = raw;
-          } else {
-            imagenUrl = new URL(raw, import.meta.url).href;
-          }
-        }
-      } catch (err) {
-        imagenUrl = found.imagen || null;
+      if (!userData || !userData.token) {
+        throw { status: 400, message: "Respuesta inválida del servidor" };
       }
 
+      // Guardar token JWT en localStorage (para que apiHelper lo use)
+      localStorage.setItem("token", userData.token);
+
+      // Crear objeto de sesión
       const session = {
-        id: found.id,
-        nombre:
-          (found.nombre || "") + (found.apellido ? " " + found.apellido : "") ||
-          "Usuario",
-        correo: found.correo || form.userOrEmail,
-        imagen: imagenUrl,
-        role: found.role || "user",
+        id: userData.userId,
+        nombre: userData.nombre || "Usuario",
+        correo: userData.correo || form.userOrEmail,
+        imagen: userData.imagen || null,
+        role: userData.role || "user",
+        token: userData.token,
       };
 
-      // Guardar sesión usando AuthContext (centraliza storage y eventos)
+      // Guardar sesión usando AuthContext
       login(session);
 
-      // Marcar login como exitoso antes de redirigir para que los tests
-      // y la UI muestren el feedback. Luego navegar en un tick.
+      // Marcar login como exitoso
       setLogged(true);
       setErrors({});
 
+      // Redirigir según rol o página de origen
       setTimeout(() => {
-        // If the user was redirected here by RequireAuth, go back to the original page
         const fromPath = location?.state?.from?.pathname;
         if (fromPath) {
           navigate(fromPath);
           return;
         }
-        if (session.role === "admin") {
+        // Redirigir según el rol
+        const role = (userData.role || "user").toLowerCase();
+        if (role === "admin") {
           navigate("/admin");
+        } else if (role === "vendedor") {
+          navigate("/vendedor");
         } else {
           navigate("/");
         }
       }, 0);
-    } catch (err) {
-      console.error("No se pudo guardar session_user", err);
-    }
 
-    setLogged(true);
-    setErrors({});
+    } catch (error) {
+      console.error("Error de autenticación:", error);
+      setLogged(false);
+
+      // Manejar errores específicos del backend
+      if (error.status === 401) {
+        // Credenciales inválidas
+        setErrors({ 
+          userOrEmail: "Credenciales inválidas",
+          password: "Verifica tu correo y contraseña" 
+        });
+      } else if (error.status === 403) {
+        // Usuario desactivado
+        setErrors({ 
+          userOrEmail: "Tu cuenta ha sido desactivada. Contacta al administrador." 
+        });
+      } else if (error.message) {
+        // Otro error del backend
+        setErrors({ userOrEmail: error.message });
+      } else {
+        // Error de conexión o desconocido
+        setErrors({ 
+          userOrEmail: "Error de conexión. Verifica tu conexión a internet." 
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -217,11 +179,11 @@ export default function Login() {
           {/* Usuario o correo */}
           <div className="mb-3">
             <label className="form-label" htmlFor="userOrEmail">
-              Usuario o Correo
+              Correo Electrónico
             </label>
             <input
               id="userOrEmail"
-              type="text"
+              type="email"
               className={`form-control ${
                 errors.userOrEmail ? "is-invalid" : ""
               }`}
@@ -230,6 +192,7 @@ export default function Login() {
               onChange={(e) =>
                 setForm({ ...form, userOrEmail: e.target.value })
               }
+              disabled={isLoading}
               data-testid="login-username"
               aria-invalid={errors.userOrEmail ? "true" : "false"}
             />
@@ -246,8 +209,6 @@ export default function Login() {
             <div className="input-group">
               <input
                 id="password"
-                minLength={12}
-                maxLength={18}
                 type={showPassword ? "text" : "password"}
                 className={`form-control ${
                   errors.password ? "is-invalid" : ""
@@ -255,6 +216,7 @@ export default function Login() {
                 placeholder="********"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                disabled={isLoading}
                 data-testid="login-password"
                 aria-invalid={errors.password ? "true" : "false"}
               />
@@ -262,6 +224,7 @@ export default function Login() {
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -275,14 +238,23 @@ export default function Login() {
             <button
               type="submit"
               className="btn btn-primary"
+              disabled={isLoading}
               data-testid="login-submit"
               role="button"
             >
-              Ingresar
+              {isLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Ingresando...
+                </>
+              ) : (
+                "Ingresar"
+              )}
             </button>
             <button
               type="reset"
               className="btn btn-secondary"
+              disabled={isLoading}
               data-testid="login-reset"
             >
               Limpiar
