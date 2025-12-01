@@ -3,6 +3,14 @@
  * 
  * Este archivo contiene todas las funciones para consumir los endpoints del backend.
  * Base URL: http://localhost:8094/api
+ * 
+ * Todas las respuestas del backend tienen el formato:
+ * {
+ *   status: number,
+ *   message: string,
+ *   data: T | null,
+ *   timestamp: string
+ * }
  */
 
 const API_BASE_URL = 'http://localhost:8094/api';
@@ -15,6 +23,12 @@ const API_BASE_URL = 'http://localhost:8094/api';
  * Obtiene el token JWT del localStorage
  */
 const getToken = () => localStorage.getItem('token');
+
+/**
+ * Verifica si el usuario está autenticado
+ * @returns {boolean}
+ */
+export const isAuthenticated = () => !!getToken();
 
 /**
  * Headers comunes para peticiones JSON
@@ -40,6 +54,32 @@ const handleResponse = async (response) => {
     throw { status: response.status, ...data };
   }
   return data;
+};
+
+/**
+ * Convierte el carrito del frontend al formato esperado por el backend
+ * @param {Array} carrito - Array de productos del carrito local
+ * @param {Object} datosCliente - Datos adicionales del cliente
+ * @returns {Object} - Objeto formateado para el endpoint de crear pedido
+ * 
+ * @example
+ * const carritoLocal = [
+ *   { id: 1, nombre: "Torta", precio: 15000, cantidad: 2 },
+ *   { id: 5, nombre: "Pie", precio: 8000, cantidad: 1 }
+ * ];
+ * const pedido = convertirCarritoParaBackend(carritoLocal, {
+ *   direccionEntrega: "Calle 123",
+ *   telefonoCliente: "+56912345678"
+ * });
+ */
+export const convertirCarritoParaBackend = (carrito, datosCliente = {}) => {
+  return {
+    items: carrito.map(item => ({
+      productoId: item.id || item.productoId,
+      cantidad: item.cantidad || 1
+    })),
+    ...datosCliente
+  };
 };
 
 // ============================================
@@ -337,8 +377,27 @@ export const obtenerMisPedidos = async () => {
 
 /**
  * Crear nueva boleta/pedido (finalizar compra)
- * @param {Object} pedido - { items: [{ productoId, cantidad }], direccionEnvio?, telefono?, notas? }
- * @returns {Promise} - Boleta creada
+ * @param {Object} pedido - Datos del pedido
+ * @param {Array} pedido.items - Lista de productos [{ productoId: number, cantidad: number }]
+ * @param {string} [pedido.nombreCliente] - Nombre del cliente (para compras sin autenticación)
+ * @param {string} [pedido.emailCliente] - Email del cliente
+ * @param {string} [pedido.telefonoCliente] - Teléfono del cliente
+ * @param {string} [pedido.direccionEntrega] - Dirección de entrega
+ * @param {string} [pedido.notas] - Notas adicionales del pedido
+ * @returns {Promise} - Boleta creada con detalles
+ * 
+ * @example
+ * // Ejemplo de uso:
+ * const pedido = {
+ *   items: [
+ *     { productoId: 1, cantidad: 2 },
+ *     { productoId: 5, cantidad: 1 }
+ *   ],
+ *   direccionEntrega: "Calle Principal 123",
+ *   telefonoCliente: "+56912345678",
+ *   notas: "Sin gluten por favor"
+ * };
+ * const resultado = await crearPedido(pedido);
  */
 export const crearPedido = async (pedido) => {
   const token = getToken();
@@ -562,6 +621,10 @@ export const obtenerReporteVentas = async (fechaInicio = null, fechaFin = null) 
 // ============================================
 
 export default {
+  // Utilidades
+  isAuthenticated,
+  convertirCarritoParaBackend,
+  
   // Auth
   login,
   registro,
