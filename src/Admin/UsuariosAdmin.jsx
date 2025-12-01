@@ -1,49 +1,33 @@
 /**
  * Componente: Administración de Usuarios
  *
- * Este componente permite gestionar todos los usuarios del sistema.
- * Características principales:
+ * Este componente permite gestionar todos los usuarios del sistema desde el backend.
+ * - Carga usuarios desde GET /api/v1/usuarios
+ * - Edición con PUT /api/v1/usuarios
+ * - Eliminación con DELETE /api/v1/usuarios/{id}
+ *
+ * Características:
  * - Vista protegida solo para administradores
- * - Gestión de usuarios locales y del sistema
  * - CRUD completo de usuarios
  * - Validaciones en tiempo real
- * - Persistencia en localStorage
  * - Interfaz responsive con Bootstrap 5
- *
- * Funcionalidades:
- * - Listado de usuarios con información detallada
- * - Edición de usuarios mediante modal
- * - Eliminación con confirmación
- * - Validaciones de correo y fechas
- * - Protección de usuarios del sistema
- * - Mantenimiento de sesiones activas
- *
- * Seguridad:
- * - Validación de rol de administrador
- * - Protección contra eliminación de admin principal
- * - Mantenimiento de roles y contraseñas
- * - Validación de datos sensibles
  */
-
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import usuariosData from "../data/Usuarios.json";
+import {
+  obtenerTodosLosUsuarios,
+  actualizarUsuario,
+  eliminarUsuario,
+} from "../utils/apiHelper";
 
-/**
- * /admin/usuarios
- * - Ruta protegida: solo admin
- * - Muestra usuarios del JSON + LocalStorage
- * - Solo los del LocalStorage se pueden EDITAR / ELIMINAR
- * - Modal Bootstrap 5 para edición (sin contraseña ni role)
- * - Eliminación con confirm() y actualización en vivo
- * - NO cierra sesión si se elimina al usuario actualmente logueado
- * - Muestra etiqueta de origen (Base / Local)
- */
 export default function AdminUsuarios() {
   const navigate = useNavigate();
 
-  // Usuarios locales (los únicos editables/eliminables)
-  const [usuariosLocal, setUsuariosLocal] = useState([]);
+  // Estados principales
+  const [usuarios, setUsuarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   // Modal edición (Bootstrap 5)
   const modalRef = useRef(null);
@@ -55,79 +39,107 @@ export default function AdminUsuarios() {
     correo: "",
     fechaNacimiento: "",
     direccion: "",
+    telefono: "",
+    role: "",
+    activo: true,
   });
+  const [showInlineEditor, setShowInlineEditor] = useState(false);
 
   // 🔐 Proteger ruta — solo admin
   useEffect(() => {
     const sessionRaw = localStorage.getItem("session_user");
-    if (!sessionRaw) {
-      navigate("/"); // no logueado
+    const token = localStorage.getItem("token");
+
+    if (!sessionRaw || !token) {
+      navigate("/login");
       return;
     }
+
     try {
       const session = JSON.parse(sessionRaw);
-      const role = (session?.role || session?.rol || session?.roleName || "").toString().toLowerCase();
-      if (role !== "admin" && role !== "tester") {
-        navigate("/"); // no admin
+      const role = (session?.role || "").toLowerCase();
+      if (!["admin", "tester"].includes(role)) {
+        navigate("/");
+        return;
       }
     } catch {
-      navigate("/");
+      navigate("/login");
+      return;
     }
+
+    cargarUsuarios();
   }, [navigate]);
 
-  // 📥 Cargar usuarios locales del storage al montar
-  useEffect(() => {
+  // Cargar usuarios del backend
+  const cargarUsuarios = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      const raw = localStorage.getItem("usuarios_local");
-      if (!raw) {
-        localStorage.setItem("usuarios_local", JSON.stringify([]));
-        setUsuariosLocal([]);
+      const response = await obtenerTodosLosUsuarios();
+      const usuariosData = (response.data || response || []).map((u) => ({
+        id: u.userId || u.id,
+        nombre: u.nombre,
+        apellido: u.apellido,
+        correo: u.correo,
+        role: u.role,
+        fechaNacimiento: u.fechaNacimiento,
+        direccion: u.direccion,
+        telefono: u.telefono,
+        activo: u.activo !== false,
+        imagen: u.imagen,
+      }));
+
+      setUsuarios(usuariosData);
+    } catch (err) {
+      console.error("Error cargando usuarios:", err);
+      if (err.status === 401) {
+        setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+      } else if (err.status === 403) {
+        setError("No tienes permisos para ver los usuarios.");
       } else {
-        const arr = JSON.parse(raw);
-        setUsuariosLocal(Array.isArray(arr) ? arr : []);
+        setError(err.message || "Error al cargar los usuarios");
       }
-    } catch {
-      setUsuariosLocal([]);
+      setUsuarios([]);
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  // Todos los usuarios están en localStorage y son editables
-  const usuariosTodos = useMemo(() => {
-    return usuariosLocal;
-  }, [usuariosLocal]);
-
-  // 🗑️ Eliminar cualquier usuario (con confirmación)
-  const handleEliminar = (id) => {
-    // No permitir eliminar al admin principal
-    if (id === 7) {
-      alert("No se puede eliminar la cuenta de administrador principal");
-      return;
-    }
-
-    const u = usuariosTodos.find((x) => x.id === id);
-    if (!u) return;
-
-    if (
-      !window.confirm(
-        `¿Seguro que deseas eliminar a ${u.nombre} ${u.apellido || ""}?`
-      )
-    )
-      return;
-
-    const next = usuariosLocal.filter((x) => x.id !== id);
-    setUsuariosLocal(next);
-    localStorage.setItem("usuarios_local", JSON.stringify(next));
-
-    // Mostrar confirmación
-    alert(`Usuario ${u.nombre} eliminado correctamente`);
   };
 
-  // ✏️ Abrir modal para editar usuario LOCAL o del JSON (se convertirá en local al editar)
+  // 🗑️ Eliminar usuario
+  const handleEliminar = async (id) => {
+    const u = usuarios.find((x) => x.id === id);
+    if (!u) return;
+
+    // Proteger al admin principal
+    if (u.role?.toLowerCase() === "admin") {
+      const admins = usuarios.filter((x) => x.role?.toLowerCase() === "admin");
+      if (admins.length <= 1) {
+        alert("No se puede eliminar el único administrador del sistema");
+        return;
+      }
+    }
+
+    if (!window.confirm(`¿Seguro que deseas eliminar a ${u.nombre} ${u.apellido || ""}?`)) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await eliminarUsuario(id);
+      setUsuarios((prev) => prev.filter((x) => x.id !== id));
+      alert(`Usuario ${u.nombre} eliminado correctamente`);
+    } catch (err) {
+      console.error("Error eliminando usuario:", err);
+      alert(err.message || "Error al eliminar el usuario");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✏️ Abrir modal para editar usuario
   const handleEditar = (id) => {
-    // Buscar primero en local, luego en el array combinado
-    const u =
-      usuariosLocal.find((x) => x.id === id) ||
-      usuariosTodos.find((x) => x.id === id);
+    const u = usuarios.find((x) => x.id === id);
     if (!u) return;
 
     setEditId(id);
@@ -137,126 +149,306 @@ export default function AdminUsuarios() {
       correo: u.correo || "",
       fechaNacimiento: u.fechaNacimiento || "",
       direccion: u.direccion || "",
+      telefono: u.telefono || "",
+      role: u.role || "user",
+      activo: u.activo !== false,
     });
 
     try {
-      if (!modalInstanceRef.current) {
-        // Bootstrap 5 Modal (NECESITA el bundle JS cargado)
-        modalInstanceRef.current = new window.bootstrap.Modal(
-          modalRef.current,
-          {
-            backdrop: "static",
-          }
-        );
+      if (!modalInstanceRef.current && modalRef.current) {
+        modalInstanceRef.current = new window.bootstrap.Modal(modalRef.current, {
+          backdrop: "static",
+        });
       }
-      modalInstanceRef.current.show();
-    } catch (e) {
-      console.error(
-        "Bootstrap 5 Modal no disponible. Asegúrate de cargar el JS (bundle) de Bootstrap."
-      );
+      modalInstanceRef.current?.show();
+      setShowInlineEditor(false);
+    } catch {
+      setShowInlineEditor(true);
     }
   };
 
-  // 🔎 Validar formato de fecha sencillo (YYYY-MM-DD)
-  const validarFecha = (s) => {
-    if (!s) return true; // permitir vacío
-    const re = /^\d{4}-\d{2}-\d{2}$/;
-    if (!re.test(s)) return false;
-    const d = new Date(s);
-    return !isNaN(d.getTime());
-  };
-
   // 💾 Guardar cambios del usuario
-  const handleGuardar = (e) => {
+  const handleGuardar = async (e) => {
     e.preventDefault();
-    // Validaciones mínimas
+
+    // Validaciones
     if (!editForm.nombre.trim()) return alert("El nombre es obligatorio");
     if (!editForm.correo.trim()) return alert("El correo es obligatorio");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.correo)) {
       return alert("Correo inválido");
     }
-    if (editForm.fechaNacimiento && !validarFecha(editForm.fechaNacimiento)) {
-      return alert("Fecha de nacimiento inválida (usa YYYY-MM-DD)");
-    }
 
-    // Evitar duplicados de correo (contra JSON + locales, ignorando el propio)
+    // Verificar duplicados de correo
     const correoLower = editForm.correo.toLowerCase();
-    const existeOtro = usuariosTodos.some(
+    const existeOtro = usuarios.some(
       (u) => u.id !== editId && (u.correo || "").toLowerCase() === correoLower
     );
     if (existeOtro) {
       return alert("Ese correo ya está registrado en el sistema");
     }
 
-    // Actualizar y persistir
-    const usuarioOriginal =
-      usuariosLocal.find((u) => u.id === editId) ||
-      usuariosTodos.find((u) => u.id === editId);
-    const usuarioEditado = {
-      id: editId,
-      nombre: editForm.nombre.trim(),
-      apellido: (editForm.apellido || "").trim(),
-      correo: editForm.correo.trim(),
-      fechaNacimiento: editForm.fechaNacimiento || "",
-      direccion: (editForm.direccion || "").trim(),
-      // Mantener role y contraseña del usuario original
-      role: usuarioOriginal?.role || "user",
-      contrasena: usuarioOriginal?.contrasena || "",
-    };
-
-    // Si no existe en local, agregar; si existe, actualizar
-    const existeEnLocal = usuariosLocal.some((u) => u.id === editId);
-    const next = existeEnLocal
-      ? usuariosLocal.map((u) => (u.id === editId ? usuarioEditado : u))
-      : [...usuariosLocal, usuarioEditado];
-
-    setUsuariosLocal(next);
-    localStorage.setItem("usuarios_local", JSON.stringify(next));
-
-    // Cerrar modal
+    setSaving(true);
     try {
-      if (modalInstanceRef.current) modalInstanceRef.current.hide();
-    } catch {}
+      const usuarioActualizado = {
+        userId: editId,
+        nombre: editForm.nombre.trim(),
+        apellido: (editForm.apellido || "").trim(),
+        correo: editForm.correo.trim(),
+        fechaNacimiento: editForm.fechaNacimiento || null,
+        direccion: (editForm.direccion || "").trim(),
+        telefono: (editForm.telefono || "").trim(),
+        role: editForm.role || "user",
+        activo: editForm.activo,
+      };
+
+      await actualizarUsuario(usuarioActualizado);
+
+      // Cerrar modal
+      try {
+        modalInstanceRef.current?.hide();
+      } catch {}
+      setShowInlineEditor(false);
+
+      // Recargar usuarios
+      await cargarUsuarios();
+      alert("Usuario actualizado correctamente");
+    } catch (err) {
+      console.error("Error actualizando usuario:", err);
+      alert(err.message || "Error al actualizar el usuario");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  // Badge de rol
+  const getRoleBadge = (role) => {
+    const r = (role || "user").toLowerCase();
+    switch (r) {
+      case "admin":
+        return "bg-danger";
+      case "vendedor":
+        return "bg-primary";
+      case "tester":
+        return "bg-warning text-dark";
+      default:
+        return "bg-secondary";
+    }
+  };
+
+  // Estado de carga
+  if (loading) {
+    return (
+      <div className="container py-4">
+        <h2 className="mb-4">Usuarios registrados</h2>
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "40vh" }}>
+          <div className="text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted">Cargando usuarios...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de error
+  if (error) {
+    return (
+      <div className="container py-4">
+        <h2 className="mb-4">Usuarios registrados</h2>
+        <div className="alert alert-danger" role="alert">
+          <h5 className="alert-heading">Error</h5>
+          <p>{error}</p>
+          <hr />
+          <button className="btn btn-outline-danger me-2" onClick={cargarUsuarios}>
+            Reintentar
+          </button>
+          {error.includes("sesión") && (
+            <button className="btn btn-danger" onClick={() => navigate("/login")}>
+              Ir a iniciar sesión
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
-      <h2 className="mb-4">Usuarios registrados</h2>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0">
+          Usuarios registrados <small className="text-muted">({usuarios.length})</small>
+        </h2>
+        <button className="btn btn-outline-primary btn-sm" onClick={cargarUsuarios} disabled={saving}>
+          ↻ Actualizar
+        </button>
+      </div>
 
-      {/* Tabla responsive */}
-      <div className="table-responsive">
-        <table className="table table-striped table-bordered align-middle">
-          <thead className="table-dark">
-            <tr>
-              <th className="nowrap">ID</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Role</th>
-              <th>Dirección</th>
-              <th>Fecha nacimiento</th>
-              <th className="th-width-160">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuariosTodos.map((u) => {
-              const esLocal = u._origen === "local";
-              return (
-                <tr key={`${u._origen}-${u.id}`}>
+      {/* Editor inline (fallback) */}
+      {showInlineEditor && (
+        <div className="card mb-4">
+          <div className="card-header">
+            <h5 className="mb-0">Editar usuario</h5>
+          </div>
+          <div className="card-body">
+            <form onSubmit={handleGuardar}>
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Nombre *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.nombre}
+                    onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Apellido</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.apellido}
+                    onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Correo *</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={editForm.correo}
+                    onChange={(e) => setEditForm({ ...editForm, correo: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Teléfono</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.telefono}
+                    onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Rol</label>
+                  <select
+                    className="form-select"
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    disabled={saving}
+                  >
+                    <option value="user">Usuario</option>
+                    <option value="vendedor">Vendedor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Estado</label>
+                  <select
+                    className="form-select"
+                    value={editForm.activo ? "true" : "false"}
+                    onChange={(e) => setEditForm({ ...editForm, activo: e.target.value === "true" })}
+                    disabled={saving}
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Fecha nacimiento</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={editForm.fechaNacimiento}
+                    onChange={(e) => setEditForm({ ...editForm, fechaNacimiento: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Dirección</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={editForm.direccion}
+                  onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+              <div className="d-flex gap-2">
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setShowInlineEditor(false)}
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tabla de usuarios */}
+      {usuarios.length === 0 ? (
+        <div className="alert alert-info">No hay usuarios registrados.</div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-striped table-hover align-middle">
+            <thead className="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th>Teléfono</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => (
+                <tr key={u.id} className={!u.activo ? "table-secondary" : ""}>
                   <td>{u.id}</td>
                   <td>
                     {u.nombre} {u.apellido || ""}
                   </td>
                   <td>{u.correo}</td>
-                  <td>{u.role}</td>
-                  <td>{u.direccion || "-"}</td>
-                  <td>{u.fechaNacimiento || "-"}</td>
                   <td>
-                    {/* Todos los usuarios son editables y eliminables */}
+                    <span className={`badge ${getRoleBadge(u.role)}`}>
+                      {(u.role || "user").toUpperCase()}
+                    </span>
+                  </td>
+                  <td>
+                    {u.activo ? (
+                      <span className="badge bg-success">Activo</span>
+                    ) : (
+                      <span className="badge bg-secondary">Inactivo</span>
+                    )}
+                  </td>
+                  <td>{u.telefono || "-"}</td>
+                  <td>
                     <div className="d-flex gap-2">
                       <button
                         type="button"
-                        className="btn btn-sm btn-outline-secondary"
+                        className="btn btn-sm btn-outline-primary"
                         onClick={() => handleEditar(u.id)}
+                        disabled={saving}
                       >
                         Editar
                       </button>
@@ -264,17 +456,18 @@ export default function AdminUsuarios() {
                         type="button"
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => handleEliminar(u.id)}
+                        disabled={saving}
                       >
                         Eliminar
                       </button>
                     </div>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal de edición (Bootstrap 5) */}
       <div
@@ -284,82 +477,106 @@ export default function AdminUsuarios() {
         aria-hidden="true"
         ref={modalRef}
       >
-        <div className="modal-dialog">
+        <div className="modal-dialog modal-lg">
           <form className="modal-content" onSubmit={handleGuardar}>
             <div className="modal-header">
               <h5 className="modal-title">Editar usuario</h5>
               <button
                 type="button"
                 className="btn-close"
-                onClick={() =>
-                  modalInstanceRef.current && modalInstanceRef.current.hide()
-                }
+                onClick={() => modalInstanceRef.current?.hide()}
                 aria-label="Close"
-              ></button>
+                disabled={saving}
+              />
             </div>
 
             <div className="modal-body">
-              {/* nombre */}
-              <div className="mb-3">
-                <label className="form-label">Nombre</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={editForm.nombre}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, nombre: e.target.value })
-                  }
-                  required
-                />
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Nombre *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.nombre}
+                    onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Apellido</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.apellido}
+                    onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
-              {/* apellido */}
-              <div className="mb-3">
-                <label className="form-label">Apellido</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={editForm.apellido}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, apellido: e.target.value })
-                  }
-                />
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Correo *</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={editForm.correo}
+                    onChange={(e) => setEditForm({ ...editForm, correo: e.target.value })}
+                    required
+                    disabled={saving}
+                  />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label">Teléfono</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editForm.telefono}
+                    onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
-              {/* correo */}
-              <div className="mb-3">
-                <label className="form-label">Correo</label>
-                <input
-                  type="email"
-                  className="form-control"
-                  value={editForm.correo}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, correo: e.target.value })
-                  }
-                  required
-                />
+              <div className="row">
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Rol</label>
+                  <select
+                    className="form-select"
+                    value={editForm.role}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    disabled={saving}
+                  >
+                    <option value="user">Usuario</option>
+                    <option value="vendedor">Vendedor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Estado</label>
+                  <select
+                    className="form-select"
+                    value={editForm.activo ? "true" : "false"}
+                    onChange={(e) => setEditForm({ ...editForm, activo: e.target.value === "true" })}
+                    disabled={saving}
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Fecha nacimiento</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={editForm.fechaNacimiento}
+                    onChange={(e) => setEditForm({ ...editForm, fechaNacimiento: e.target.value })}
+                    disabled={saving}
+                  />
+                </div>
               </div>
 
-              {/* fechaNacimiento */}
-              <div className="mb-3">
-                <label className="form-label">
-                  Fecha de nacimiento (YYYY-MM-DD)
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="1990-05-14"
-                  value={editForm.fechaNacimiento}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      fechaNacimiento: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              {/* direccion */}
               <div className="mb-3">
                 <label className="form-label">Dirección</label>
                 <input
@@ -367,17 +584,15 @@ export default function AdminUsuarios() {
                   className="form-control"
                   placeholder="Av. Ejemplo 1234, Comuna"
                   value={editForm.direccion}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, direccion: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, direccion: e.target.value })}
+                  disabled={saving}
                 />
               </div>
 
-              {/* role y contraseña NO se editan */}
-              <div className="alert alert-info py-2">
+              <div className="alert alert-info py-2 mb-0">
                 <small>
-                  Nota: <strong>role</strong> y <strong>contraseña</strong> no
-                  se pueden editar en esta vista.
+                  Nota: La <strong>contraseña</strong> no se puede editar desde esta vista.
+                  El usuario debe cambiarla desde su perfil.
                 </small>
               </div>
             </div>
@@ -386,14 +601,13 @@ export default function AdminUsuarios() {
               <button
                 type="button"
                 className="btn btn-outline-secondary"
-                onClick={() =>
-                  modalInstanceRef.current && modalInstanceRef.current.hide()
-                }
+                onClick={() => modalInstanceRef.current?.hide()}
+                disabled={saving}
               >
                 Cancelar
               </button>
-              <button type="submit" className="btn btn-primary">
-                Guardar cambios
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
           </form>
