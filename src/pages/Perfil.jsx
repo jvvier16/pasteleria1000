@@ -89,18 +89,54 @@ export default function PerfilPage() {
   const onChange = (e) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     try {
       const raw = localStorage.getItem("session_user");
       const existing = raw ? JSON.parse(raw) : {};
-      const toSave = { ...existing, ...form, ...(avatar ? { avatar } : {}) };
+      
+      // Preparar datos para enviar al backend
+      const updateData = {
+        nombre: form.nombre,
+        imagen: avatar || null,  // Enviar la imagen (base64 o URL)
+      };
+      
+      // Obtener el token JWT
+      const token = existing.token || localStorage.getItem('jwt_token');
+      
+      if (token) {
+        // Llamar al API del backend para guardar en la base de datos
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8094';
+        const response = await fetch(`${API_BASE}/api/v2/perfil`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updateData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error("Error del servidor:", data.message || data.error);
+          alert("Error al guardar en el servidor: " + (data.message || "Error desconocido"));
+          return;
+        }
+        
+        console.log("Perfil actualizado en el servidor:", data);
+      }
+      
+      // También actualizar localStorage para mantener sincronizado
+      const toSave = { ...existing, ...form, imagen: avatar, avatar: avatar };
       localStorage.setItem("session_user", JSON.stringify(toSave));
+      
       // notificar otros listeners (Navbar, etc.)
       window.dispatchEvent(new Event("storage"));
       setSaved(true);
     } catch (err) {
       console.error("Error guardando perfil:", err);
+      alert("Error al guardar el perfil: " + err.message);
     }
   };
 
@@ -115,12 +151,30 @@ export default function PerfilPage() {
     reader.readAsDataURL(file);
   };
 
-  const removeAvatar = () => {
+  const removeAvatar = async () => {
     if (!window.confirm('¿Eliminar foto de perfil?')) return;
     setAvatar(null);
     try {
       const raw = localStorage.getItem('session_user');
       const existing = raw ? JSON.parse(raw) : {};
+      
+      // Obtener el token JWT
+      const token = existing.token || localStorage.getItem('jwt_token');
+      
+      if (token) {
+        // Llamar al API para eliminar la imagen en la base de datos
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8094';
+        await fetch(`${API_BASE}/api/v2/perfil`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ imagen: null })
+        });
+      }
+      
+      // Actualizar localStorage
       delete existing.avatar;
       delete existing.imagen;
       delete existing.image;
