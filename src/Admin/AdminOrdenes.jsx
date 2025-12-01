@@ -1,192 +1,387 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import boletasSeed from "../data/Boleta.json";
-
 /**
  * AdminOrdenes
- * Muestra y administra las órdenes guardadas en localStorage (pedidos_local)
+ * Muestra y administra las órdenes desde el backend.
+ * - Carga órdenes desde GET /api/v1/boletas
+ * - Actualiza estado con PUT /api/v1/boletas/{id}/estado
+ * - Elimina con DELETE /api/v1/boletas/{id}
  */
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  obtenerTodasLasBoletas,
+  actualizarEstadoBoleta,
+  eliminarBoleta,
+} from "../utils/apiHelper";
+
 export default function AdminOrdenes() {
-	const [ordenes, setOrdenes] = useState([]);
-	const [filtro, setFiltro] = useState("todos");
-	const navigate = useNavigate();
-	const location = useLocation();
-	const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [ordenes, setOrdenes] = useState([]);
+  const [filtro, setFiltro] = useState("todos");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updating, setUpdating] = useState(null); // ID de orden siendo actualizada
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-	useEffect(() => {
-		// proteger ruta: solo admin (intentar validar desde session_user)
-		try {
-			const raw = localStorage.getItem("session_user");
-			if (!raw) return navigate("/");
-			const s = JSON.parse(raw);
-			const role = (s?.role || s?.rol || s?.roleName || "").toString().toLowerCase();
-			if (role !== "admin" && role !== "tester") return navigate("/");
-		} catch {
-			navigate("/");
-		}
+  // Cargar órdenes del backend
+  useEffect(() => {
+    // Proteger ruta: solo admin/tester/vendedor
+    const sessionRaw = localStorage.getItem("session_user");
+    const token = localStorage.getItem("token");
 
-			const load = () => {
-				try {
-					const raw = localStorage.getItem("pedidos_local");
-					let arr = [];
-					
-					// Intentar cargar desde localStorage
-					if (raw) {
-						const parsed = JSON.parse(raw);
-						if (Array.isArray(parsed)) {
-							arr = parsed;
-						}
-					}
-					
-					// Si no hay datos en localStorage, usar datos de Boleta.json
-					if (arr.length === 0 && Array.isArray(boletasSeed) && boletasSeed.length > 0) {
-						arr = boletasSeed;
-						// Guardar los datos semilla en localStorage para futuros accesos
-						localStorage.setItem("pedidos_local", JSON.stringify(arr));
-					}
+    if (!sessionRaw || !token) {
+      navigate("/login");
+      return;
+    }
 
-					// Ordenar por fecha descendente (más reciente primero)
-					arr.sort((a, b) => {
-						const dateA = new Date(a.fecha || a.createdAt || 0);
-						const dateB = new Date(b.fecha || b.createdAt || 0);
-						return dateB - dateA;
-					});
+    try {
+      const s = JSON.parse(sessionRaw);
+      const role = (s?.role || "").toLowerCase();
+      if (!["admin", "tester", "vendedor"].includes(role)) {
+        navigate("/");
+        return;
+      }
+      setCurrentUser(s);
+    } catch {
+      navigate("/login");
+      return;
+    }
 
-					setOrdenes(arr);
-				} catch (error) {
-					console.error("Error cargando órdenes:", error);
-					setOrdenes([]);
-				}
-			};
+    // Si venimos desde Perfil, activar filtro "mis pedidos"
+    if (location?.state?.fromPerfil) {
+      setShowOnlyMine(true);
+    }
 
-		load();
-			// si venimos desde Perfil, activar filtro "mis pedidos"
-			if (location && location.state && location.state.fromPerfil) {
-				setShowOnlyMine(true);
-			}
-		const onStorage = () => load();
-		window.addEventListener("storage", onStorage);
-		window.addEventListener("pedidos:updated", onStorage);
-		return () => {
-			window.removeEventListener("storage", onStorage);
-			window.removeEventListener("pedidos:updated", onStorage);
-		};
-	}, [navigate]);
+    cargarOrdenes();
+  }, [navigate, location]);
 
-	const handleEliminar = (id) => {
-		if (!window.confirm("Eliminar orden?")) return;
-		try {
-			const raw = localStorage.getItem("pedidos_local");
-			const arr = raw ? JSON.parse(raw) : [];
-			const next = arr.filter((o) => o.id !== id);
-			localStorage.setItem("pedidos_local", JSON.stringify(next));
-			setOrdenes(next.reverse());
-			try { window.dispatchEvent(new Event("pedidos:updated")); } catch (e) {}
-		} catch (err) {
-			console.error(err);
-		}
-	};
+  const cargarOrdenes = async () => {
+    setLoading(true);
+    setError(null);
 
-	const handleChangeEstado = (id, nuevoEstado) => {
-		try {
-			const raw = localStorage.getItem("pedidos_local");
-			const arr = raw ? JSON.parse(raw) : [];
-			const next = arr.map((o) => (o.id === id ? { ...o, estado: nuevoEstado } : o));
-			localStorage.setItem("pedidos_local", JSON.stringify(next));
-			setOrdenes(next.reverse());
-			try { window.dispatchEvent(new Event("pedidos:updated")); } catch (e) {}
-		} catch (err) {
-			console.error(err);
-		}
-	};
+    try {
+      const response = await obtenerTodasLasBoletas();
+      const ordenesData = response.data || [];
 
-		let filteredOrdenes = ordenes.filter((o) => {
-			if (filtro === "todos") return true;
-			return (o.estado || "pendiente") === filtro;
-		});
+      // Normalizar y ordenar por fecha descendente
+      const ordenesNormalizadas = ordenesData
+        .map((o) => ({
+          id: o.boletaId || o.id,
+          fecha: o.fecha,
+          estado: o.estado || "pendiente",
+          subtotal: o.subTotal || o.subtotal,
+          iva: o.iva || o.impuestos,
+          total: o.total,
+          cliente: o.cliente
+            ? {
+                id: o.cliente.userId || o.cliente.id,
+                nombre: o.cliente.nombre || o.cliente.nombreCompleto,
+                correo: o.cliente.correo || o.cliente.email,
+              }
+            : null,
+          items: (o.items || []).map((it) => ({
+            id: it.detalleId || it.id,
+            productoId: it.productoId,
+            nombre: it.nombreProducto || it.nombre,
+            cantidad: it.cantidad,
+            precio: it.precioUnitario || it.precio,
+            subtotal: it.subtotal,
+          })),
+        }))
+        .sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
 
-		// Si se solicitó ver solo los pedidos del usuario actual (desde perfil), filtrar por userId
-		if (showOnlyMine) {
-			try {
-				const raw = localStorage.getItem('session_user');
-				const u = raw ? JSON.parse(raw) : null;
-				if (u && u.id) {
-					filteredOrdenes = filteredOrdenes.filter((o) => String(o.userId) === String(u.id) || (o.cliente && (o.cliente.correo === u.correo || o.cliente.nombre === u.nombre)));
-				}
-			} catch (e) {
-				// ignore
-			}
-		}
+      setOrdenes(ordenesNormalizadas);
+    } catch (err) {
+      console.error("Error cargando órdenes:", err);
+      if (err.status === 401) {
+        setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+      } else if (err.status === 403) {
+        setError("No tienes permisos para ver las órdenes.");
+      } else {
+        setError(err.message || "Error al cargar las órdenes");
+      }
+      setOrdenes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-	return (
-		<div className="container py-4">
-					<div className="d-flex align-items-center justify-content-between mb-3">
-						<h3>Órdenes <small className="text-muted">({ordenes.length})</small></h3>
-						<div className="d-flex gap-2 align-items-center">
-							<div className="d-flex align-items-center">
-								<label className="mb-0 small text-muted me-2">Filtrar:</label>
-								<select className="form-select form-select-sm" style={{ width: 160 }} value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-									<option value="todos">Todos</option>
-									<option value="pendiente">Pendientes</option>
-									<option value="procesado">Procesados</option>
-									<option value="enviado">Enviados</option>
-								</select>
-							</div>
-							<div>
-								<button className="btn btn-sm btn-outline-secondary" onClick={() => setShowOnlyMine((s) => !s)}>
-									{showOnlyMine ? 'Ver todos' : 'Ver solo mis pedidos'}
-								</button>
-							</div>
-						</div>
-					</div>
+  const handleEliminar = async (id) => {
+    const orden = ordenes.find((o) => o.id === id);
+    if (!orden) return;
 
-			{filteredOrdenes.length === 0 ? (
-				<div className="alert alert-info">No hay órdenes registradas.</div>
-			) : (
-				filteredOrdenes.map((o) => (
-					<div key={o.id} className="card mb-3">
-						<div className="card-body">
-							<div className="d-flex justify-content-between align-items-start">
-								<div>
-									<h5>Pedido {o.id}</h5>
-									<small className="text-muted">{new Date(o.fecha || o.createdAt || Date.now()).toLocaleString()}</small>
-									<div>
-										<strong>Cliente:</strong> {o.cliente?.nombre || "-"} {o.cliente?.correo ? `— ${o.cliente.correo}` : ""}
-									</div>
-									<div className="mt-1">
-										<span className={`badge ${ (o.estado === 'pendiente' && 'bg-warning text-dark') || (o.estado === 'procesado' && 'bg-primary') || (o.estado === 'enviado' && 'bg-success') || 'bg-secondary' }`}>
-											{(o.estado || 'pendiente').toUpperCase()}
-										</span>
-									</div>
-								</div>
-								<div className="text-end">
-									<h6>Total: ${Number(o.total || 0).toLocaleString("es-CL")}</h6>
-								</div>
-							</div>
+    if (!window.confirm(`¿Eliminar orden #${id}?`)) return;
 
-							<hr />
-							<ul>
-								{(o.items || []).map((it, i) => (
-									<li key={i}>{it.nombre || it.id} x {it.cantidad} — ${Number(it.precio || 0).toLocaleString("es-CL")}</li>
-								))}
-							</ul>
+    setUpdating(id);
+    try {
+      await eliminarBoleta(id);
+      setOrdenes((prev) => prev.filter((o) => o.id !== id));
+      
+      // Notificar actualización
+      try {
+        window.dispatchEvent(new Event("pedidos:updated"));
+      } catch {}
+    } catch (err) {
+      console.error("Error eliminando orden:", err);
+      alert(err.message || "Error al eliminar la orden");
+    } finally {
+      setUpdating(null);
+    }
+  };
 
-							<div className="d-flex justify-content-end gap-2">
-								<div className="btn-group" role="group">
-									{o.estado !== "procesado" && (
-										<button className="btn btn-sm btn-outline-primary" onClick={() => handleChangeEstado(o.id, "procesado")}>Marcar procesado</button>
-									)}
-									{o.estado !== "enviado" && (
-										<button className="btn btn-sm btn-outline-success" onClick={() => handleChangeEstado(o.id, "enviado")}>Marcar enviado</button>
-									)}
-									<button className="btn btn-sm btn-outline-danger" onClick={() => handleEliminar(o.id)}>Eliminar</button>
-								</div>
-							</div>
-						</div>
-					</div>
-				))
-			)}
-		</div>
-	);
+  const handleChangeEstado = async (id, nuevoEstado) => {
+    setUpdating(id);
+    try {
+      await actualizarEstadoBoleta(id, nuevoEstado);
+      
+      // Actualizar estado local
+      setOrdenes((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, estado: nuevoEstado } : o))
+      );
+
+      // Notificar actualización
+      try {
+        window.dispatchEvent(new Event("pedidos:updated"));
+      } catch {}
+    } catch (err) {
+      console.error("Error actualizando estado:", err);
+      alert(err.message || "Error al actualizar el estado");
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  // Filtrar órdenes
+  let filteredOrdenes = ordenes.filter((o) => {
+    if (filtro === "todos") return true;
+    return (o.estado || "pendiente").toLowerCase() === filtro;
+  });
+
+  // Filtrar solo mis pedidos si está activado
+  if (showOnlyMine && currentUser) {
+    filteredOrdenes = filteredOrdenes.filter(
+      (o) =>
+        o.cliente &&
+        (String(o.cliente.id) === String(currentUser.id) ||
+          o.cliente.correo === currentUser.correo)
+    );
+  }
+
+  // Obtener badge de estado
+  const getEstadoBadge = (estado) => {
+    const estadoLower = (estado || "pendiente").toLowerCase();
+    switch (estadoLower) {
+      case "pendiente":
+        return "bg-warning text-dark";
+      case "procesado":
+      case "procesando":
+        return "bg-primary";
+      case "enviado":
+        return "bg-success";
+      case "entregado":
+        return "bg-info";
+      case "cancelado":
+        return "bg-danger";
+      default:
+        return "bg-secondary";
+    }
+  };
+
+  // Estado de carga
+  if (loading) {
+    return (
+      <div className="container py-4">
+        <h3 className="mb-4">Órdenes</h3>
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "40vh" }}>
+          <div className="text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted">Cargando órdenes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de error
+  if (error) {
+    return (
+      <div className="container py-4">
+        <h3 className="mb-4">Órdenes</h3>
+        <div className="alert alert-danger" role="alert">
+          <h5 className="alert-heading">Error</h5>
+          <p>{error}</p>
+          <hr />
+          <button className="btn btn-outline-danger me-2" onClick={cargarOrdenes}>
+            Reintentar
+          </button>
+          {error.includes("sesión") && (
+            <button className="btn btn-danger" onClick={() => navigate("/login")}>
+              Ir a iniciar sesión
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-4">
+      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h3 className="mb-0">
+          Órdenes <small className="text-muted">({ordenes.length})</small>
+        </h3>
+        <div className="d-flex gap-2 align-items-center flex-wrap">
+          <div className="d-flex align-items-center">
+            <label className="mb-0 small text-muted me-2">Filtrar:</label>
+            <select
+              className="form-select form-select-sm"
+              style={{ width: 160 }}
+              value={filtro}
+              onChange={(e) => setFiltro(e.target.value)}
+            >
+              <option value="todos">Todos</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="procesado">Procesados</option>
+              <option value="enviado">Enviados</option>
+              <option value="cancelado">Cancelados</option>
+            </select>
+          </div>
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => setShowOnlyMine((s) => !s)}
+          >
+            {showOnlyMine ? "Ver todos" : "Ver solo mis pedidos"}
+          </button>
+          <button
+            className="btn btn-sm btn-outline-primary"
+            onClick={cargarOrdenes}
+            disabled={loading}
+          >
+            ↻ Actualizar
+          </button>
+        </div>
+      </div>
+
+      {filteredOrdenes.length === 0 ? (
+        <div className="alert alert-info">
+          {filtro !== "todos"
+            ? `No hay órdenes con estado "${filtro}"`
+            : showOnlyMine
+            ? "No tienes órdenes registradas"
+            : "No hay órdenes registradas"}
+        </div>
+      ) : (
+        filteredOrdenes.map((o) => (
+          <div key={o.id} className="card mb-3 shadow-sm">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                  <h5 className="mb-1">Pedido #{o.id}</h5>
+                  <small className="text-muted">
+                    {o.fecha ? new Date(o.fecha).toLocaleString("es-CL") : "Sin fecha"}
+                  </small>
+                  <div className="mt-1">
+                    <strong>Cliente:</strong>{" "}
+                    {o.cliente?.nombre || "Anónimo"}
+                    {o.cliente?.correo && (
+                      <span className="text-muted"> — {o.cliente.correo}</span>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <span className={`badge ${getEstadoBadge(o.estado)}`}>
+                      {(o.estado || "pendiente").toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-end">
+                  <div className="text-muted small">
+                    Subtotal: ${Number(o.subtotal || 0).toLocaleString("es-CL")}
+                  </div>
+                  <div className="text-muted small">
+                    IVA: ${Number(o.iva || 0).toLocaleString("es-CL")}
+                  </div>
+                  <h5 className="mb-0 mt-1">
+                    Total: ${Number(o.total || 0).toLocaleString("es-CL")}
+                  </h5>
+                </div>
+              </div>
+
+              <hr />
+
+              {/* Lista de items */}
+              <div className="table-responsive">
+                <table className="table table-sm mb-0">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th className="text-center">Cant.</th>
+                      <th className="text-end">Precio</th>
+                      <th className="text-end">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(o.items || []).map((it, i) => (
+                      <tr key={it.id || i}>
+                        <td>{it.nombre || `Producto #${it.productoId}`}</td>
+                        <td className="text-center">{it.cantidad}</td>
+                        <td className="text-end">
+                          ${Number(it.precio || 0).toLocaleString("es-CL")}
+                        </td>
+                        <td className="text-end">
+                          ${Number(it.subtotal || it.precio * it.cantidad || 0).toLocaleString("es-CL")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Botones de acciones */}
+              <div className="d-flex justify-content-end gap-2 mt-3 flex-wrap">
+                <div className="btn-group" role="group">
+                  {o.estado?.toLowerCase() !== "procesado" && (
+                    <button
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => handleChangeEstado(o.id, "procesado")}
+                      disabled={updating === o.id}
+                    >
+                      {updating === o.id ? "..." : "Marcar procesado"}
+                    </button>
+                  )}
+                  {o.estado?.toLowerCase() !== "enviado" && (
+                    <button
+                      className="btn btn-sm btn-outline-success"
+                      onClick={() => handleChangeEstado(o.id, "enviado")}
+                      disabled={updating === o.id}
+                    >
+                      {updating === o.id ? "..." : "Marcar enviado"}
+                    </button>
+                  )}
+                  {o.estado?.toLowerCase() !== "cancelado" && (
+                    <button
+                      className="btn btn-sm btn-outline-warning"
+                      onClick={() => handleChangeEstado(o.id, "cancelado")}
+                      disabled={updating === o.id}
+                    >
+                      {updating === o.id ? "..." : "Cancelar"}
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => handleEliminar(o.id)}
+                    disabled={updating === o.id}
+                  >
+                    {updating === o.id ? "..." : "Eliminar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
 }
-
