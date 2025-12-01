@@ -1,31 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import pastelesData from "../data/Pasteles.json";
-
 /**
  * @component AgregarPastel
  * @description Componente que proporciona un formulario para agregar nuevos pasteles al sistema.
+ * Envía los datos al backend mediante POST /api/v2/productos
+ * 
  * Permite a los administradores crear nuevos productos con detalles como:
  * - Nombre y descripción
  * - Precio y stock
  * - Categoría
  * - URL de imagen
  *
- * Solo accesible para usuarios con rol de administrador.
- * @returns {JSX.Element} Formulario de creación de pasteles
+ * Solo accesible para usuarios con rol de administrador/vendedor.
  */
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { crearProducto, obtenerCategorias } from "../utils/apiHelper";
+
 const AgregarPastel = () => {
   const navigate = useNavigate();
 
   /**
    * @state {Object} formData - Datos del formulario para crear un nuevo pastel
-   * @property {string} nombre - Nombre del pastel
-   * @property {string} descripcion - Descripción detallada
-   * @property {string} precio - Precio de venta
-   * @property {string} categoria - Categoría del pastel
-   * @property {string} stock - Cantidad disponible inicial
-   * @property {string} stockCritico - Nivel de alerta de stock bajo
-   * @property {string} imagen - URL de la imagen del pastel
    */
   const [formData, setFormData] = useState({
     nombre: "",
@@ -33,61 +27,67 @@ const AgregarPastel = () => {
     precio: "",
     categoria: "",
     stock: "",
-    stockCritico: "",
     imagen: "",
   });
 
-  // Lista de categorías disponibles
   const [categorias, setCategorias] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Validar si el usuario logueado es admin
+  // Validar si el usuario logueado es admin y cargar categorías
   useEffect(() => {
-    // Validar admin
     const sessionRaw = localStorage.getItem("session_user");
-    if (!sessionRaw) {
-      navigate("/"); // no logueado
+    const token = localStorage.getItem("token");
+
+    if (!sessionRaw || !token) {
+      navigate("/login");
       return;
     }
 
     try {
       const session = JSON.parse(sessionRaw);
-      const role = (session?.role || session?.rol || session?.roleName || "").toString().toLowerCase();
-      if (role !== "admin" && role !== "tester") {
-        navigate("/"); // no admin
+      const role = (session?.role || "").toLowerCase();
+      if (!["admin", "tester", "vendedor"].includes(role)) {
+        navigate("/");
         return;
       }
-
-      // Cargar categorías
-      const rawCategorias = localStorage.getItem("categorias_local");
-      if (rawCategorias) {
-        setCategorias(JSON.parse(rawCategorias));
-      } else {
-        // Categorías por defecto si no existen
-        const categoriasDefault = [
-          "Tortas",
-          "Postres",
-          "Sin Azúcar",
-          "Sin Gluten",
-          "Veganas",
-          "Especiales",
-        ];
-        localStorage.setItem(
-          "categorias_local",
-          JSON.stringify(categoriasDefault)
-        );
-        setCategorias(categoriasDefault);
-      }
     } catch {
-      navigate("/");
+      navigate("/login");
+      return;
     }
+
+    // Cargar categorías desde el backend
+    const cargarCategorias = async () => {
+      try {
+        const response = await obtenerCategorias();
+        const categoriasData = (response.data || []).map((c) => ({
+          id: c.categoriaId || c.id,
+          nombre: c.nombre,
+        }));
+        setCategorias(categoriasData);
+      } catch (err) {
+        console.error("Error cargando categorías:", err);
+        // Usar categorías por defecto si falla
+        setCategorias([
+          { id: 1, nombre: "Tortas" },
+          { id: 2, nombre: "Postres" },
+          { id: 3, nombre: "Sin Azúcar" },
+          { id: 4, nombre: "Sin Gluten" },
+          { id: 5, nombre: "Veganas" },
+          { id: 6, nombre: "Especiales" },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarCategorias();
   }, [navigate]);
 
   /**
    * @function handleChange
    * @description Maneja los cambios en los campos del formulario
-   * Actualiza el estado formData con los nuevos valores
-   * @param {Event} e - Evento del campo de formulario
    */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -95,65 +95,91 @@ const AgregarPastel = () => {
 
   /**
    * @function handleSubmit
-   * @description Maneja el envío del formulario
-   * Realiza validaciones, crea un nuevo pastel y lo guarda en localStorage
-   * @param {Event} e - Evento del formulario
+   * @description Maneja el envío del formulario al backend
    */
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (
-      !formData.nombre ||
-      !formData.descripcion ||
-      !formData.precio ||
-      !formData.categoria ||
-      !formData.stock
-    ) {
-      setError("Todos los campos son obligatorios");
+    // Validaciones
+    if (!formData.nombre.trim()) {
+      setError("El nombre es obligatorio");
+      return;
+    }
+    if (!formData.precio || Number(formData.precio) < 0) {
+      setError("El precio debe ser un número válido");
       return;
     }
 
-    // Leer los pasteles locales
-    const localRaw = localStorage.getItem("pasteles_local");
-    let locales = [];
+    setSaving(true);
+
     try {
-      locales = localRaw ? JSON.parse(localRaw) : [];
-    } catch {
-      locales = [];
+      // Preparar datos para el backend
+      const nuevoProducto = {
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion?.trim() || "",
+        precio: parseFloat(formData.precio),
+        stock: parseInt(formData.stock) || 0,
+        imagen: formData.imagen?.trim() || null,
+      };
+
+      // Si hay categoría seleccionada, incluirla
+      if (formData.categoria) {
+        const categoriaSeleccionada = categorias.find(
+          (c) => c.nombre === formData.categoria
+        );
+        if (categoriaSeleccionada) {
+          nuevoProducto.categoria = { categoriaId: categoriaSeleccionada.id };
+        }
+      }
+
+      // Enviar al backend
+      await crearProducto(nuevoProducto);
+
+      alert(`Pastel "${formData.nombre}" agregado correctamente`);
+      navigate("/admin/pasteles");
+
+    } catch (err) {
+      console.error("Error creando producto:", err);
+      setError(err.message || "Error al crear el producto. Intenta nuevamente.");
+    } finally {
+      setSaving(false);
     }
-
-    // Calcular nuevo ID
-    const idsJson = pastelesData.map((p) => p.id || 0);
-    const idsLocal = locales.map((p) => p.id || 0);
-    const nuevoId = Math.max(0, ...idsJson, ...idsLocal) + 1;
-
-    // Crear nuevo pastel con estructura idéntica al JSON
-    const nuevoPastel = {
-      id: nuevoId,
-      nombre: formData.nombre,
-      precio: parseFloat(formData.precio),
-      stock: parseInt(formData.stock),
-      imagen: formData.imagen || "", // URL de la imagen o vacío
-      categoria: formData.categoria,
-      descripcion: formData.descripcion,
-    };
-
-    // Guardar en localStorage
-    locales.push(nuevoPastel);
-    localStorage.setItem("pasteles_local", JSON.stringify(locales));
-
-    alert(`Pastel "${formData.nombre}" agregado correctamente`);
-    navigate("/productos/pasteles");
   };
+
+  // Estado de carga
+  if (loading) {
+    return (
+      <div className="container py-5">
+        <div className="d-flex justify-content-center align-items-center" style={{ minHeight: "40vh" }}>
+          <div className="text-center">
+            <div className="spinner-border text-primary mb-3" role="status">
+              <span className="visually-hidden">Cargando...</span>
+            </div>
+            <p className="text-muted">Cargando formulario...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-5">
-      <h2 className="text-center mb-4">Agregar nuevo pastel</h2>
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <h2 className="mb-0">Agregar nuevo pastel</h2>
+        <button
+          type="button"
+          className="btn btn-outline-secondary"
+          onClick={() => navigate("/admin/pasteles")}
+        >
+          ← Volver
+        </button>
+      </div>
+
       <div className="card p-4 shadow-sm mx-auto card-max-500">
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label className="form-label">Nombre</label>
+            <label className="form-label">Nombre *</label>
             <input
               type="text"
               name="nombre"
@@ -161,6 +187,8 @@ const AgregarPastel = () => {
               value={formData.nombre}
               onChange={handleChange}
               required
+              disabled={saving}
+              placeholder="Ej: Torta de Chocolate"
             />
           </div>
 
@@ -171,49 +199,46 @@ const AgregarPastel = () => {
               className="form-control"
               value={formData.descripcion}
               onChange={handleChange}
-              required
-            ></textarea>
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Precio</label>
-            <input
-              type="number"
-              name="precio"
-              className="form-control"
-              value={formData.precio}
-              onChange={handleChange}
-              required
+              disabled={saving}
+              rows="3"
+              placeholder="Describe el producto..."
             />
           </div>
 
-          <div className="mb-3">
-            <label className="form-label">Stock</label>
-            <input
-              type="number"
-              name="stock"
-              className="form-control"
-              value={formData.stock}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <div className="row">
+            <div className="col-md-6 mb-3">
+              <label className="form-label">Precio *</label>
+              <div className="input-group">
+                <span className="input-group-text">$</span>
+                <input
+                  type="number"
+                  name="precio"
+                  className="form-control"
+                  value={formData.precio}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="1"
+                  disabled={saving}
+                  placeholder="0"
+                />
+              </div>
+            </div>
 
-          <div className="mb-3">
-            <label className="form-label">Stock Crítico</label>
-            <input
-              type="number"
-              name="stockCritico"
-              className="form-control"
-              value={formData.stockCritico}
-              onChange={handleChange}
-              min="0"
-              step="1"
-              placeholder="Nivel de stock para alertas"
-            />
-            <small className="form-text text-muted">
-              Cuando el stock baje de este número, se mostrará una alerta
-            </small>
+            <div className="col-md-6 mb-3">
+              <label className="form-label">Stock inicial</label>
+              <input
+                type="number"
+                name="stock"
+                className="form-control"
+                value={formData.stock}
+                onChange={handleChange}
+                min="0"
+                step="1"
+                disabled={saving}
+                placeholder="0"
+              />
+            </div>
           </div>
 
           <div className="mb-3">
@@ -223,12 +248,12 @@ const AgregarPastel = () => {
               className="form-select"
               value={formData.categoria}
               onChange={handleChange}
-              required
+              disabled={saving}
             >
-              <option value="">Selecciona una categoría...</option>
+              <option value="">Sin categoría</option>
               {categorias.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+                <option key={cat.id} value={cat.nombre}>
+                  {cat.nombre}
                 </option>
               ))}
             </select>
@@ -244,25 +269,67 @@ const AgregarPastel = () => {
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Imagen URL</label>
+            <label className="form-label">URL de imagen</label>
             <input
               type="url"
               name="imagen"
               className="form-control"
               value={formData.imagen}
               onChange={handleChange}
-              placeholder="http://... o https://... (opcional)"
+              disabled={saving}
+              placeholder="https://ejemplo.com/imagen.jpg"
             />
             <small className="form-text text-muted">
               URL de una imagen pública. Dejar vacío para usar placeholder.
             </small>
           </div>
 
-          {error && <p className="text-danger text-center">{error}</p>}
+          {/* Vista previa de imagen */}
+          {formData.imagen && (
+            <div className="mb-3 text-center">
+              <label className="form-label d-block">Vista previa</label>
+              <img
+                src={formData.imagen}
+                alt="Vista previa"
+                style={{ maxWidth: "200px", maxHeight: "150px", objectFit: "cover" }}
+                className="rounded border"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            </div>
+          )}
 
-          <button type="submit" className="btn btn-primary w-100">
-            Guardar pastel
-          </button>
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="d-grid gap-2">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Guardando...
+                </>
+              ) : (
+                "Guardar pastel"
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => navigate("/admin/pasteles")}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+          </div>
         </form>
       </div>
     </div>
