@@ -4,29 +4,30 @@
  * Este componente maneja el registro de nuevos usuarios en la aplicación.
  * Características principales:
  * - Formulario completo de registro con validaciones
- * - Verificación de duplicados en JSON y localStorage
+ * - Registro contra el backend con JWT
  * - Validación de edad (18+ años)
  * - Validación de contraseña
- * - Persistencia en localStorage
  * - Creación automática de sesión post-registro
  *
  * Flujo de registro:
  * 1. Usuario completa el formulario
- * 2. Se validan todos los campos
- * 3. Se verifica que el correo no esté duplicado
- * 4. Se crea el nuevo usuario con rol "user"
- * 5. Se guarda en localStorage
+ * 2. Se validan todos los campos localmente
+ * 3. Se envía petición al backend /api/v2/auth/registro
+ * 4. Se recibe token JWT y datos del usuario
+ * 5. Se guarda token y sesión en localStorage
  * 6. Se inicia sesión automáticamente
  * 7. Se redirige al inicio
  */
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
-import { UsuarioService } from "../services/dataService";
+import { useAuth } from "../context/AuthContext";
+import { registro as apiRegistro } from "../utils/apiHelper";
 import { Eye, EyeOff } from "lucide-react";
 
 const Registro = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -38,6 +39,7 @@ const Registro = () => {
   });
   const [errors, setErrors] = useState({});
   const [registroExitoso, setRegistroExitoso] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -46,24 +48,9 @@ const Registro = () => {
   };
 
   const validarFechaNacimiento = (fechaStr) => {
-    // Aceptar YYYY-MM-DD o DD-MM-YYYY (normalizaremos a YYYY-MM-DD)
-    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const ddmmyyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
-    let fecha;
-
-    if (isoRegex.test(fechaStr)) {
-      fecha = new Date(fechaStr);
-    } else if (ddmmyyyyRegex.test(fechaStr)) {
-      // convertir DD-MM-YYYY a YYYY-MM-DD para parseo seguro
-      const [dd, mm, yyyy] = fechaStr.split("-");
-      fecha = new Date(`${yyyy}-${mm}-${dd}`);
-    } else {
-      // Mantener soporte para DD-MM-YYYY en la validación, pero
-      // mostrar un mensaje compatible con los tests que esperan
-      // "Formato inválido (YYYY-MM-DD)".
-      return "Formato inválido (YYYY-MM-DD)";
-    }
-
+    if (!fechaStr) return "La fecha de nacimiento es obligatoria";
+    
+    const fecha = new Date(fechaStr);
     if (isNaN(fecha.getTime())) return "Fecha no válida";
 
     const hoy = new Date();
@@ -85,41 +72,12 @@ const Registro = () => {
   };
 
   const validarContrasena = (pass) => {
-    if (pass.length < 12)
-      return "La contraseña debe tener al menos 12 caracteres";
-    if (pass.length > 18)
-      return "La contraseña debe tener como máximo 18 caracteres";
-    if (!/[A-Z]/.test(pass))
-      return "La contraseña debe contener al menos una mayúscula";
-    if (!/[a-z]/.test(pass))
-      return "La contraseña debe contener al menos una minúscula";
-    if (!/\d/.test(pass))
-      return "La contraseña debe contener al menos un número";
+    if (!pass) return "La contraseña es obligatoria";
+    if (pass.length < 6) return "La contraseña debe tener al menos 6 caracteres";
     return null;
   };
 
-  // Normaliza una fecha a formato ISO YYYY-MM-DD si es posible
-  const normalizeToISO = (fechaStr) => {
-    if (!fechaStr) return fechaStr;
-    const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
-    const ddmmyyyyRegex = /^\d{2}-\d{2}-\d{4}$/;
-    if (isoRegex.test(fechaStr)) return fechaStr;
-    if (ddmmyyyyRegex.test(fechaStr)) {
-      const [dd, mm, yyyy] = fechaStr.split("-");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    // Fallback: intentar parsear con Date y formatear
-    const d = new Date(fechaStr);
-    if (!isNaN(d.getTime())) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    }
-    return fechaStr;
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     let newErrors = {};
 
@@ -155,53 +113,76 @@ const Registro = () => {
       return;
     }
 
-    // Leer usuarios del localStorage
-    const localRaw = localStorage.getItem("usuarios_local");
-    let local = [];
+    setIsLoading(true);
+    setErrors({});
+
     try {
-      local = localRaw ? JSON.parse(localRaw) : [];
-    } catch {
-      local = [];
+      // Preparar datos para el backend
+      const datosRegistro = {
+        nombre: formData.nombre.trim(),
+        apellido: formData.apellido.trim(),
+        correo: formData.correo.trim().toLowerCase(),
+        contrasena: formData.contrasena,
+        fechaNacimiento: formData.fechaNacimiento,
+        direccion: formData.direccion.trim(),
+      };
+
+      // Llamada al backend usando apiHelper
+      const response = await apiRegistro(datosRegistro);
+
+      // El backend devuelve: { status, message, data: { token, userId, nombre, correo, role } }
+      const userData = response.data;
+
+      if (!userData || !userData.token) {
+        throw { status: 400, message: "Respuesta inválida del servidor" };
+      }
+
+      // Guardar token JWT en localStorage
+      localStorage.setItem("token", userData.token);
+
+      // Crear objeto de sesión
+      const session = {
+        id: userData.userId,
+        nombre: userData.nombre || `${formData.nombre} ${formData.apellido}`,
+        correo: userData.correo || formData.correo,
+        imagen: null,
+        role: userData.role || "user",
+        token: userData.token,
+      };
+
+      // Guardar sesión usando AuthContext (inicia sesión automáticamente)
+      login(session);
+
+      // Mostrar mensaje de éxito
+      setRegistroExitoso(true);
+
+      // Redirigir al inicio después de un breve mensaje
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+
+    } catch (error) {
+      console.error("Error de registro:", error);
+
+      // Manejar errores específicos del backend
+      if (error.status === 400) {
+        // Puede ser correo duplicado u otro error de validación
+        if (error.message?.toLowerCase().includes("correo") || 
+            error.message?.toLowerCase().includes("registrado")) {
+          setErrors({ correo: "Este correo ya está registrado" });
+        } else {
+          setErrors({ correo: error.message || "Error en los datos de registro" });
+        }
+      } else if (error.message) {
+        setErrors({ correo: error.message });
+      } else {
+        setErrors({ 
+          correo: "Error de conexión. Verifica tu conexión a internet." 
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-
-    // Validar mail duplicado
-    const emailLower = formData.correo.toLowerCase();
-    const allUsuarios = UsuarioService.getAll() || []
-    const dupInJson = allUsuarios.some((u) => (u.correo || '').toLowerCase() === emailLower)
-    const dupInLocal = local.some((u) => (u.correo || '').toLowerCase() === emailLower);
-    if (dupInJson || dupInLocal) {
-      setErrors({ correo: "Este correo ya está registrado" });
-      return;
-    }
-
-    // Nuevo ID
-    const idsJson = (UsuarioService.getAll()||[]).map((u) => u.id || 0);
-    const idsLocal = local.map((u) => u.id || 0);
-    const maxId = Math.max(0, ...idsJson, ...idsLocal);
-    const nuevoId = maxId + 1;
-
-    // Crear usuario (normalizar fecha a YYYY-MM-DD)
-    const fechaNorm = normalizeToISO(formData.fechaNacimiento);
-    const nuevoUsuario = {
-      id: nuevoId,
-      nombre: formData.nombre,
-      apellido: formData.apellido,
-      correo: formData.correo,
-      contrasena: formData.contrasena,
-      fechaNacimiento: fechaNorm,
-      direccion: formData.direccion,
-      role: "user",
-    };
-
-    local.push(nuevoUsuario);
-    localStorage.setItem("usuarios_local", JSON.stringify(local));
-
-    // Guardar sesión
-    // Notificar éxito y redirigir a login
-    setRegistroExitoso(true);
-    setTimeout(() => {
-      navigate("/login");
-    }, 2000);
   };
 
   return (
@@ -223,7 +204,7 @@ const Registro = () => {
             role="alert"
             data-testid="registro-exitoso"
           >
-            ¡Registro exitoso! Redirigiendo al login...
+            ¡Registro exitoso! Iniciando sesión...
           </div>
         )}
 
@@ -244,6 +225,7 @@ const Registro = () => {
               className={`form-control ${errors.nombre ? "is-invalid" : ""}`}
               value={formData.nombre}
               onChange={handleChange}
+              disabled={isLoading}
               required
               data-testid="registro-nombre"
               aria-invalid={errors.nombre ? "true" : "false"}
@@ -267,6 +249,7 @@ const Registro = () => {
               className={`form-control ${errors.apellido ? "is-invalid" : ""}`}
               value={formData.apellido}
               onChange={handleChange}
+              disabled={isLoading}
               required
               data-testid="registro-apellido"
               aria-invalid={errors.apellido ? "true" : "false"}
@@ -290,6 +273,7 @@ const Registro = () => {
               className={`form-control ${errors.correo ? "is-invalid" : ""}`}
               value={formData.correo}
               onChange={handleChange}
+              disabled={isLoading}
               required
               data-testid="registro-email"
               aria-invalid={errors.correo ? "true" : "false"}
@@ -304,7 +288,7 @@ const Registro = () => {
           {/* Fecha Nacimiento */}
           <div className="mb-3">
             <label htmlFor="fechaNacimiento" className="form-label">
-              Fecha de nacimiento (YYYY-MM-DD)
+              Fecha de nacimiento
             </label>
             <input
               id="fechaNacimiento"
@@ -315,6 +299,7 @@ const Registro = () => {
               }`}
               value={formData.fechaNacimiento}
               onChange={handleChange}
+              disabled={isLoading}
               required
               data-testid="registro-fecha"
               aria-invalid={errors.fechaNacimiento ? "true" : "false"}
@@ -338,6 +323,7 @@ const Registro = () => {
               className={`form-control ${errors.direccion ? "is-invalid" : ""}`}
               value={formData.direccion}
               onChange={handleChange}
+              disabled={isLoading}
               required
               data-testid="registro-direccion"
               aria-invalid={errors.direccion ? "true" : "false"}
@@ -364,9 +350,8 @@ const Registro = () => {
                 }`}
                 value={formData.contrasena}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
-                minLength={12}
-                maxLength={18}
                 data-testid="registro-password"
                 aria-invalid={errors.contrasena ? "true" : "false"}
               />
@@ -374,6 +359,7 @@ const Registro = () => {
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -400,9 +386,8 @@ const Registro = () => {
                 }`}
                 value={formData.repetirContrasena}
                 onChange={handleChange}
+                disabled={isLoading}
                 required
-                minLength={12}
-                maxLength={18}
                 data-testid="registro-confirm-password"
                 aria-invalid={errors.repetirContrasena ? "true" : "false"}
               />
@@ -410,6 +395,7 @@ const Registro = () => {
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
               >
                 {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -425,14 +411,23 @@ const Registro = () => {
             <button
               type="submit"
               className="btn btn-primary"
+              disabled={isLoading}
               data-testid="registro-submit"
             >
-              Registrar
+              {isLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Registrando...
+                </>
+              ) : (
+                "Registrar"
+              )}
             </button>
 
             <button
               type="reset"
               className="btn btn-secondary"
+              disabled={isLoading}
               data-testid="registro-reset"
               onClick={() => {
                 setFormData({
