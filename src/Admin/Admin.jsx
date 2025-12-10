@@ -211,6 +211,12 @@ export default function Admin() {
               Productos
             </Link>
             <Link
+              to="/admin/categorias"
+              className={`list-group-item list-group-item-action ${location.pathname === "/admin/categorias" ? "active" : ""}`}
+            >
+              Categorías
+            </Link>
+            <Link
               to="/admin/usuarios"
               className={`list-group-item list-group-item-action ${location.pathname === "/admin/usuarios" ? "active" : ""}`}
             >

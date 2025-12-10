@@ -82,6 +82,11 @@ export default function Vendedor() {
               </Link>
             </li>
             <li className="nav-item mb-2">
+              <Link className={`nav-link ${active("/vendedor/categorias")}`} to="/vendedor/categorias">
+                🏷️ Categorías
+              </Link>
+            </li>
+            <li className="nav-item mb-2">
               <Link className={`nav-link ${active("/vendedor/ordenes")}`} to="/vendedor/ordenes">
                 📦 Órdenes
               </Link>

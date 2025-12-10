@@ -48,6 +48,7 @@ import ProductoDetalleVendedor from "./vendedor/ProductoDetalleVendedor.jsx";
 import OrdenesVendedor from "./vendedor/OrdenesVendedor.jsx";
 import OrdenDetalleVendedor from "./vendedor/OrdenDetalleVendedor.jsx";
 import EditarPastelVendedor from "./vendedor/EditarPastelVendedor.jsx";
+import CategoriasVendedor from "./vendedor/CategoriasVendedor.jsx";
 
 function App() {
   return (
@@ -131,6 +132,7 @@ function App() {
           <Route path="productos/:id/editar" element={<EditarPastelVendedor />} />
           <Route path="ordenes" element={<OrdenesVendedor />} />
           <Route path="ordenes/:id" element={<OrdenDetalleVendedor />} />
+          <Route path="categorias" element={<CategoriasVendedor />} />
         </Route>
       </Routes>
       <Footer />
