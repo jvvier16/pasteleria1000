@@ -241,12 +241,15 @@ export default function AdminPasteles() {
         imagen: editForm.imagen || null,
       };
 
-      // Si hay categoría, buscar su ID
+      // Si hay categoría, buscar su ID y enviarlo directamente
       if (editForm.categoria) {
         const cat = categorias.find((c) => c.nombre === editForm.categoria);
         if (cat) {
-          datosActualizados.categoria = { categoriaId: cat.id };
+          datosActualizados.categoriaId = cat.id;
         }
+      } else {
+        // Si no hay categoría seleccionada, enviar null para quitarla
+        datosActualizados.categoriaId = null;
       }
 
       await actualizarProducto(editId, datosActualizados);
@@ -291,11 +294,11 @@ export default function AdminPasteles() {
         imagen: addForm.imagen || null,
       };
 
-      // Si hay categoría, buscar su ID
+      // Si hay categoría, buscar su ID y enviarlo directamente
       if (addForm.categoria) {
         const cat = categorias.find((c) => c.nombre === addForm.categoria);
         if (cat) {
-          nuevoProducto.categoria = { categoriaId: cat.id };
+          nuevoProducto.categoriaId = cat.id;
         }
       }
 

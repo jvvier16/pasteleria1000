@@ -123,13 +123,13 @@ const AgregarPastel = () => {
         imagen: formData.imagen?.trim() || null,
       };
 
-      // Si hay categoría seleccionada, incluirla
+      // Si hay categoría seleccionada, incluir solo el ID
       if (formData.categoria) {
         const categoriaSeleccionada = categorias.find(
           (c) => c.nombre === formData.categoria
         );
         if (categoriaSeleccionada) {
-          nuevoProducto.categoria = { categoriaId: categoriaSeleccionada.id };
+          nuevoProducto.categoriaId = categoriaSeleccionada.id;
         }
       }
 
