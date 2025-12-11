@@ -57,8 +57,8 @@ function App() {
       <ApiDown />
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/productos" element={<Productos />} />
         <Route path="/productos/:id" element={<ProductoDetalle />} />
+        <Route path="/productos" element={<Productos />} />
         <Route path="/categorias" element={<Categorias />} />
         <Route path="/ofertas" element={<Ofertas />} />
         <Route path="/contacto" element={<Contacto />} />
