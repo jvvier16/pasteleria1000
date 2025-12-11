@@ -4,6 +4,10 @@
  * Este archivo contiene todas las funciones para consumir los endpoints del backend.
  * Base URL: http://localhost:8094/api
  * 
+ * Soporta dos métodos de autenticación:
+ * 1. JWT Token (Authorization: Bearer <token>) - Para usuarios logueados
+ * 2. API Key (X-API-Key: <key>) - Para testing o integraciones
+ * 
  * Todas las respuestas del backend tienen el formato:
  * {
  *   status: number,
@@ -18,7 +22,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
   : 'http://localhost:8094/api';
 
 // ============================================
-// UTILIDADES
+// UTILIDADES DE AUTENTICACIÓN
 // ============================================
 
 /**
@@ -27,10 +31,52 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const getToken = () => localStorage.getItem('token');
 
 /**
- * Verifica si el usuario está autenticado
+ * Obtiene la API Key del localStorage
+ */
+const getApiKey = () => localStorage.getItem('api_key');
+
+/**
+ * Configura una API Key para usar en las peticiones
+ * @param {string} apiKey - La API Key a usar
+ */
+export const setApiKey = (apiKey) => {
+  if (apiKey) {
+    localStorage.setItem('api_key', apiKey);
+  } else {
+    localStorage.removeItem('api_key');
+  }
+};
+
+/**
+ * Obtiene la API Key actual
+ * @returns {string|null}
+ */
+export const getCurrentApiKey = () => getApiKey();
+
+/**
+ * Elimina la API Key del localStorage
+ */
+export const clearApiKey = () => {
+  localStorage.removeItem('api_key');
+};
+
+/**
+ * Verifica si el usuario está autenticado (por token o API Key)
  * @returns {boolean}
  */
-export const isAuthenticated = () => !!getToken();
+export const isAuthenticated = () => !!getToken() || !!getApiKey();
+
+/**
+ * Verifica si hay un token JWT válido
+ * @returns {boolean}
+ */
+export const hasToken = () => !!getToken();
+
+/**
+ * Verifica si hay una API Key configurada
+ * @returns {boolean}
+ */
+export const hasApiKey = () => !!getApiKey();
 
 /**
  * Headers comunes para peticiones JSON
@@ -40,12 +86,44 @@ const jsonHeaders = () => ({
 });
 
 /**
- * Headers con autenticación JWT
+ * Headers con autenticación (JWT Token o API Key)
+ * Prioridad: API Key > JWT Token
  */
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${getToken()}`,
-});
+const authHeaders = () => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Priorizar API Key si existe
+  const apiKey = getApiKey();
+  if (apiKey) {
+    headers['X-API-Key'] = apiKey;
+    return headers;
+  }
+  
+  // Si no hay API Key, usar JWT Token
+  const token = getToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+
+/**
+ * Headers solo con API Key (forzar uso de API Key)
+ * @param {string} apiKey - API Key a usar (opcional, usa la guardada si no se proporciona)
+ */
+export const apiKeyHeaders = (apiKey = null) => {
+  const key = apiKey || getApiKey();
+  if (!key) {
+    throw new Error('No hay API Key configurada');
+  }
+  return {
+    'Content-Type': 'application/json',
+    'X-API-Key': key,
+  };
+};
 
 /**
  * Maneja la respuesta de fetch y parsea JSON
@@ -239,7 +317,7 @@ export const obtenerProductosPorCategoria = async (categoriaId) => {
 
 /**
  * Crear nuevo producto (Admin/Vendedor)
- * @param {Object} producto - { nombre, precio, stock, imagen?, descripcion?, categoria? }
+ * @param {Object} producto - { nombre, precio, stock, imagen?, descripcion?, categoriaId? }
  * @returns {Promise} - Producto creado
  */
 export const crearProducto = async (producto) => {
@@ -440,7 +518,8 @@ export const obtenerMisPedidos = async () => {
  */
 export const crearPedido = async (pedido) => {
   const token = getToken();
-  const headers = token ? authHeaders() : jsonHeaders();
+  const apiKey = getApiKey();
+  const headers = (token || apiKey) ? authHeaders() : jsonHeaders();
   
   const response = await fetch(`${API_BASE_URL}/v2/boletas`, {
     method: 'POST',
@@ -660,8 +739,14 @@ export const obtenerReporteVentas = async (fechaInicio = null, fechaFin = null) 
 // ============================================
 
 export default {
-  // Utilidades
+  // Utilidades de autenticación
   isAuthenticated,
+  hasToken,
+  hasApiKey,
+  setApiKey,
+  getCurrentApiKey,
+  clearApiKey,
+  apiKeyHeaders,
   convertirCarritoParaBackend,
   
   // Auth
@@ -719,4 +804,3 @@ export default {
   obtenerEstadisticas,
   obtenerReporteVentas,
 };
-

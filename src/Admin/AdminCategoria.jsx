@@ -1,6 +1,8 @@
 /**
  * AdminCategoria
  * Gestión de categorías conectada al backend.
+ * Soporta autenticación por JWT Token o API Key.
+ * 
  * - Carga categorías desde GET /api/v2/categorias
  * - Crear con POST /api/v1/categorias
  * - Editar con PUT /api/v1/categorias
@@ -13,6 +15,11 @@ import {
   crearCategoria,
   actualizarCategoria,
   eliminarCategoria,
+  hasApiKey,
+  hasToken,
+  setApiKey,
+  getCurrentApiKey,
+  clearApiKey,
 } from "../utils/apiHelper";
 
 export default function AdminCategoria() {
@@ -28,31 +35,70 @@ export default function AdminCategoria() {
   const [nuevaCategoria, setNuevaCategoria] = useState("");
   const [editando, setEditando] = useState(null);
   const [editForm, setEditForm] = useState({ nombre: "", descripcion: "" });
+  
+  // Estados para API Key
+  const [showApiKeyForm, setShowApiKeyForm] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [usingApiKey, setUsingApiKey] = useState(false);
 
-  // 🔐 Proteger ruta - solo admin
+  // 🔐 Verificar autenticación (Token o API Key)
   useEffect(() => {
     const sessionRaw = localStorage.getItem("session_user");
     const token = localStorage.getItem("token");
+    const apiKey = getCurrentApiKey();
 
-    if (!sessionRaw || !token) {
-      navigate("/login");
+    // Si hay API Key configurada, usarla
+    if (apiKey) {
+      setUsingApiKey(true);
+      cargarCategorias();
       return;
     }
 
-    try {
-      const session = JSON.parse(sessionRaw);
-      const role = (session?.role || "").toLowerCase();
-      if (!["admin", "tester"].includes(role)) {
-        navigate("/");
+    // Si no hay token ni API Key, mostrar opciones
+    if (!token) {
+      setShowApiKeyForm(true);
+      setLoading(false);
+      return;
+    }
+
+    // Si hay token, verificar rol
+    if (sessionRaw) {
+      try {
+        const session = JSON.parse(sessionRaw);
+        const role = (session?.role || "").toLowerCase();
+        if (!["admin", "tester"].includes(role)) {
+          navigate("/");
+          return;
+        }
+      } catch {
+        setShowApiKeyForm(true);
+        setLoading(false);
         return;
       }
-    } catch {
-      navigate("/login");
-      return;
     }
 
     cargarCategorias();
   }, [navigate]);
+
+  // Configurar API Key
+  const handleSetApiKey = (e) => {
+    e.preventDefault();
+    if (!apiKeyInput.trim()) return;
+    
+    setApiKey(apiKeyInput.trim());
+    setUsingApiKey(true);
+    setShowApiKeyForm(false);
+    setApiKeyInput("");
+    cargarCategorias();
+  };
+
+  // Limpiar API Key
+  const handleClearApiKey = () => {
+    clearApiKey();
+    setUsingApiKey(false);
+    setCategorias([]);
+    setShowApiKeyForm(true);
+  };
 
   // Cargar categorías del backend
   const cargarCategorias = async () => {
@@ -71,7 +117,9 @@ export default function AdminCategoria() {
     } catch (err) {
       console.error("Error cargando categorías:", err);
       if (err.status === 401) {
-        setError("Sesión expirada. Por favor, inicia sesión nuevamente.");
+        setError("Sesión expirada o API Key inválida. Por favor, autentícate nuevamente.");
+      } else if (err.status === 403) {
+        setError("No tienes permisos para acceder a este recurso.");
       } else {
         setError(err.message || "Error al cargar las categorías");
       }
@@ -106,7 +154,11 @@ export default function AdminCategoria() {
       
     } catch (err) {
       console.error("Error creando categoría:", err);
-      alert(err.message || "Error al crear la categoría");
+      if (err.status === 401 || err.status === 403) {
+        alert("No tienes permisos para crear categorías. Verifica tu autenticación.");
+      } else {
+        alert(err.message || "Error al crear la categoría");
+      }
     } finally {
       setSaving(false);
     }
@@ -149,7 +201,11 @@ export default function AdminCategoria() {
       
     } catch (err) {
       console.error("Error actualizando categoría:", err);
-      alert(err.message || "Error al actualizar la categoría");
+      if (err.status === 401 || err.status === 403) {
+        alert("No tienes permisos para editar categorías. Verifica tu autenticación.");
+      } else {
+        alert(err.message || "Error al actualizar la categoría");
+      }
     } finally {
       setSaving(false);
     }
@@ -172,6 +228,8 @@ export default function AdminCategoria() {
       // El backend puede rechazar si hay productos usando la categoría
       if (err.message?.includes("productos") || err.status === 400) {
         alert("No se puede eliminar esta categoría porque hay productos que la utilizan");
+      } else if (err.status === 401 || err.status === 403) {
+        alert("No tienes permisos para eliminar categorías. Verifica tu autenticación.");
       } else {
         alert(err.message || "Error al eliminar la categoría");
       }
@@ -179,6 +237,69 @@ export default function AdminCategoria() {
       setSaving(false);
     }
   };
+
+  // Formulario para ingresar API Key (si no hay autenticación)
+  if (showApiKeyForm && !usingApiKey && !hasToken()) {
+    return (
+      <div className="container py-4">
+        <div className="row">
+          <div className="col-12 col-md-6 mx-auto">
+            <h2 className="mb-4">Administrar Categorías</h2>
+            <div className="card">
+              <div className="card-header bg-warning text-dark">
+                <h5 className="mb-0">🔐 Autenticación requerida</h5>
+              </div>
+              <div className="card-body">
+                <p>Para administrar categorías necesitas estar autenticado.</p>
+                
+                <div className="d-grid gap-2 mb-4">
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => navigate("/login")}
+                  >
+                    Iniciar sesión con cuenta
+                  </button>
+                </div>
+                
+                <hr />
+                
+                <p className="text-muted small">
+                  <strong>Alternativa:</strong> Si tienes una API Key, puedes usarla aquí:
+                </p>
+                
+                <form onSubmit={handleSetApiKey}>
+                  <div className="input-group mb-3">
+                    <input
+                      type="password"
+                      className="form-control"
+                      placeholder="Ingresa tu API Key..."
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                    />
+                    <button 
+                      type="submit" 
+                      className="btn btn-outline-secondary"
+                      disabled={!apiKeyInput.trim()}
+                    >
+                      Usar API Key
+                    </button>
+                  </div>
+                </form>
+                
+                <div className="alert alert-light small mb-0">
+                  <strong>API Keys disponibles:</strong>
+                  <ul className="mb-0 mt-2">
+                    <li><code>CLAVE_SUPER_SECRETA_123</code> (Admin)</li>
+                    <li><code>TESTER_KEY_123</code> (Tester)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Estado de carga
   if (loading) {
@@ -215,11 +336,14 @@ export default function AdminCategoria() {
               <button className="btn btn-outline-danger me-2" onClick={cargarCategorias}>
                 Reintentar
               </button>
-              {error.includes("sesión") && (
-                <button className="btn btn-danger" onClick={() => navigate("/login")}>
-                  Ir a iniciar sesión
+              {usingApiKey && (
+                <button className="btn btn-outline-secondary me-2" onClick={handleClearApiKey}>
+                  Cambiar API Key
                 </button>
               )}
+              <button className="btn btn-danger" onClick={() => navigate("/login")}>
+                Ir a iniciar sesión
+              </button>
             </div>
           </div>
         </div>
@@ -236,14 +360,32 @@ export default function AdminCategoria() {
               Administrar Categorías{" "}
               <small className="text-muted">({categorias.length})</small>
             </h2>
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={cargarCategorias}
-              disabled={saving}
-            >
-              ↻ Actualizar
-            </button>
+            <div className="d-flex gap-2">
+              {usingApiKey && (
+                <button
+                  className="btn btn-outline-warning btn-sm"
+                  onClick={handleClearApiKey}
+                  title="Cambiar método de autenticación"
+                >
+                  🔑 API Key
+                </button>
+              )}
+              <button
+                className="btn btn-outline-primary btn-sm"
+                onClick={cargarCategorias}
+                disabled={saving}
+              >
+                ↻ Actualizar
+              </button>
+            </div>
           </div>
+
+          {/* Indicador de API Key */}
+          {usingApiKey && (
+            <div className="alert alert-info py-2 small mb-3">
+              <strong>🔑 Usando API Key</strong> - Autenticado mediante API Key
+            </div>
+          )}
 
           {/* Formulario para agregar */}
           <form onSubmit={handleAgregar} className="mb-4">
