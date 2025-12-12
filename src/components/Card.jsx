@@ -178,7 +178,7 @@ function Card({
             <small className="text-muted">(No editable)</small>
           )}
 
-          {origen === "local" && showAdminControls && (
+          {(origen === "local" || origen === "backend") && showAdminControls && (
             <div className="d-flex gap-2">
               <button
                 type="button"
